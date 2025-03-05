@@ -1,10 +1,44 @@
 using Emne9_Prosjekt.Components;
+using Emne9_Prosjekt.Data;
+using Emne9_Prosjekt.Features.Common.Interfaces;
+using Emne9_Prosjekt.Features.Members;
+using Emne9_Prosjekt.Features.Members.Interfaces;
+using Emne9_Prosjekt.Features.Members.Mappers;
+using Emne9_Prosjekt.Features.Members.Models;
+using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddControllers();
+
+builder.Services
+    .AddEndpointsApiExplorer()
+    .AddHttpContextAccessor();
+
+builder.Services.AddSwaggerGen();
+
+builder.Services
+    .AddScoped<IMemberService, MemberService>()
+    .AddScoped<IMemberRepository, MemberRepository>()
+    .AddScoped<IMapper<Member, MemberDTO>, MemberMapper>()
+    .AddScoped<IMapper<Member, MemberRegistrationDTO>, MemberRegistrationMapper>();
+
+builder.Services.AddDbContext<Emne9EksamenDbContext>(options =>
+    options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
+        new MySqlServerVersion(new Version(8, 0, 33))));
+
+
+
+
+builder.Host.UseSerilog((context, configuration) => 
+{
+    configuration.ReadFrom.Configuration(context.Configuration);
+});
 
 var app = builder.Build();
 
@@ -16,6 +50,12 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
@@ -23,5 +63,7 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.MapControllers();
 
 app.Run();
