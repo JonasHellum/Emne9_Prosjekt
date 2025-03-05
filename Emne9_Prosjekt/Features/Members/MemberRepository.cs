@@ -2,6 +2,7 @@
 using Emne9_Prosjekt.Data;
 using Emne9_Prosjekt.Features.Members.Interfaces;
 using Emne9_Prosjekt.Features.Members.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Emne9_Prosjekt.Features.Members;
 
@@ -53,4 +54,16 @@ public class MemberRepository : IMemberRepository
     {
         throw new NotImplementedException("Will be implemented later");
     }
+    
+    public async Task<bool> UsernameExistsAsync(string username)
+    {
+        return await _dbContext.Member.AnyAsync(m => m.UserName.ToLower() == username.ToLower());
+    }
+    
+    public async Task<Member?> GetByEmailAsync(string email)
+    {
+        return await _dbContext.Member.FirstOrDefaultAsync(m => m.Email == email);
+    }
+
+
 }

@@ -24,4 +24,6 @@ public class Member
     public DateOnly Updated { get; set; }
     
     public string HashedPassword { get; set; } = string.Empty;
+
+    public bool GoogleUser { get; set; } = false;
 }

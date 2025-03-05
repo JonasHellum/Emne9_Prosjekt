@@ -5,5 +5,7 @@ namespace Emne9_Prosjekt.Features.Members.Interfaces;
 
 public interface IMemberRepository : IBaseRepository<Member>
 {
-    
+    Task<bool> UsernameExistsAsync(string username);
+    Task<Member?> GetByEmailAsync(string email);
+
 }
