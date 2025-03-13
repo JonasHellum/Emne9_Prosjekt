@@ -48,36 +48,6 @@ builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration);
 });
 
-// builder.Services.AddAuthentication(options =>
-//     {
-//         options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-//         options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-//         options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
-//     })
-//     .AddCookie()
-//     .AddGoogle(options =>
-//     {
-//         // Google ClientId and ClientSecret
-//         options.ClientId = "525416754804-5sjmgl3kc3e2q8s4s8dgvv6dajd53m7s.apps.googleusercontent.com";
-//         options.ClientSecret = "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";
-//
-//         // Callback path for Google to redirect after login
-//         // options.CallbackPath = "/api/members/GoogleCallBack";
-//     })
-//     .AddJwtBearer(options =>
-//     {
-//         options.TokenValidationParameters = new TokenValidationParameters
-//         {
-//             ValidateIssuer = true,
-//             ValidateAudience = true,
-//             ValidateLifetime = true,
-//             ValidateIssuerSigningKey = true,
-//             ValidIssuer = builder.Configuration["JWT:Issuer"],
-//             ValidAudience = builder.Configuration["JWT:Audience"],
-//             IssuerSigningKey = new
-//                 SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]))
-//         };
-//     });
 
 builder.Services.AddAuthentication(options =>
     {
@@ -104,25 +74,6 @@ builder.Services.AddAuthentication(options =>
         options.ClientSecret = "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";
     });
 
-// builder.Services.AddAuthentication(options =>
-//     {
-//         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-//         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-//     })
-//     .AddJwtBearer(options =>
-//     {
-//         options.TokenValidationParameters = new TokenValidationParameters
-//         {
-//             ValidateIssuer = true,
-//             ValidateAudience = true,
-//             ValidateLifetime = true,
-//             ValidateIssuerSigningKey = true,
-//             ValidIssuer = builder.Configuration["JWT:Issuer"],
-//             ValidAudience = builder.Configuration["JWT:Audience"],
-//             IssuerSigningKey = new
-//                 SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]))
-//         };
-//     });
 
 
 builder.Services.AddAuthorization();
