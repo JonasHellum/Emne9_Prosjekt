@@ -1,5 +1,10 @@
 using System.Text;
 using Emne9_Prosjekt.Components;
+
+using Emne9_Prosjekt.Extensions;
+using Emne9_Prosjekt.Hubs;
+using Emne9_Prosjekt.Services;
+
 using Emne9_Prosjekt.Game_components;
 using Emne9_Prosjekt.Data;
 using Emne9_Prosjekt.Extensions;
@@ -15,6 +20,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -22,6 +28,11 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https:/
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddSignalR();
+builder.Services.AddSignalRHubConnection("/chatHub");
+builder.Services.AddSingleton<ChatService>();
+
 builder.Services.AddSingleton<BattleShipComponents>();
 
 builder.Services.AddControllers();
@@ -82,6 +93,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddSwaggerWithJwtBearerAuthentication();
 
+
 var app = builder.Build();
 
 
@@ -113,6 +125,7 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+app.MapHub<ChatHub>("/chatHub");
 
 app.MapControllers();
 

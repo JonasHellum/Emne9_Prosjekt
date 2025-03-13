@@ -1,0 +1,84 @@
+﻿@page "/chat"
+@inject HubConnection HubConnection
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
+
+
+
+<h3>Live Chat</h3>
+
+<p><strong>Tilkoblet!</strong></p>
+<div>
+    <input @bind="_message" @bind:event="oninput" placeholder="Skriv en melding..." />
+    <button @onclick="SendMessage">Send</button>
+</div>
+<div id="chat-box">
+    @foreach (var msg in _messages)
+    {
+        <div class="message @(msg.Item1 == _userName ? "self" : "user")">
+            <strong>@msg.Item1</strong>: @msg.Item2
+        </div>
+    }
+</div>
+
+@code {
+    private readonly string _userName = "";
+    private string _message = "";
+    private bool _isConnected;
+    private List<(string, string)> _messages = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Console.WriteLine("---Establishing connection...");
+
+            HubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+            {
+                _messages.Add((user, message));
+                InvokeAsync(StateHasChanged);
+            });
+
+            HubConnection.On<string>("NotifyUserConnected", (user) =>
+            {
+                _messages.Add(("System", $"{user} har koblet til."));
+                InvokeAsync(StateHasChanged);
+            });
+
+            HubConnection.On<string>("NotifyUserDisconnected", (user) =>
+            {
+                _messages.Add(("System", $"{user} har forlatt chatten."));
+                InvokeAsync(StateHasChanged);
+            });
+
+            try
+            {
+                await HubConnection.StartAsync();
+                Console.WriteLine("--Connection established!");
+                _isConnected = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"--Feil ved tilkobling: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (!string.IsNullOrEmpty(_message))
+        {
+            await HubConnection.SendAsync("SendMessage", _message);
+            _message = string.Empty;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_isConnected)
+        {
+            await HubConnection.DisposeAsync();
+            Console.WriteLine("--Connection closed.");
+        }
+    }
+}
