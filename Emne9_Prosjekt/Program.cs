@@ -1,10 +1,16 @@
 using Emne9_Prosjekt.Components;
+using Emne9_Prosjekt.Extensions;
+using Emne9_Prosjekt.Hubs;
+using Emne9_Prosjekt.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddSignalR();
+builder.Services.AddSignalRHubConnection("/chatHub");
+builder.Services.AddSingleton<ChatService>();
 
 var app = builder.Build();
 
@@ -23,5 +29,6 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+app.MapHub<ChatHub>("/chatHub");
 
 app.Run();
