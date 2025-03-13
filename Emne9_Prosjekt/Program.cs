@@ -1,5 +1,6 @@
 using System.Text;
 using Emne9_Prosjekt.Components;
+using Emne9_Prosjekt.Game_components;
 using Emne9_Prosjekt.Data;
 using Emne9_Prosjekt.Extensions;
 using Emne9_Prosjekt.Features.Common.Interfaces;
@@ -21,6 +22,7 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https:/
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddSingleton<BattleShipComponents>();
 
 builder.Services.AddControllers();
 
@@ -103,11 +105,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+//app.UseHttpsRedirection();
 
 app.UseStaticFiles();
-app.UseRouting();
+//app.UseRouting();
 app.UseAntiforgery();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
