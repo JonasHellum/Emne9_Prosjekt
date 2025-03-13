@@ -6,7 +6,9 @@ namespace Emne9_Prosjekt.Features.Members.Models;
 public class Member
 {
     [Key]
-    public Guid Id { get; set; }
+    public Guid MemberId { get; set; }
+    
+    public string GoogleId { get; set; } = string.Empty;
     
     public string UserName { get; set; } = string.Empty;
     
@@ -15,6 +17,7 @@ public class Member
     public string LastName { get; set; } = string.Empty;
     
     [EmailAddress]
+    // UNIQUE
     public string Email { get; set; } = string.Empty;
     
     public DateOnly BirthYear { get; set; }

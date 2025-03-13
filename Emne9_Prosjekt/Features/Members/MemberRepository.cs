@@ -19,14 +19,14 @@ public class MemberRepository : IMemberRepository
     }
     public async Task<Member?> AddAsync(Member entity)
     {
-        _logger.LogDebug($"Adding new member with Id: {entity.Id}, " +
+        _logger.LogDebug($"Adding new member with Id: {entity.MemberId}, " +
                          $"UserName: {entity.UserName}FirstName: {entity.FirstName}," +
                          $"LastName: {entity.LastName}, BirthYear: {entity.BirthYear}," +
                          $"Created: {entity.Created}, Updated: {entity.Updated}");
         await _dbContext.Member.AddAsync(entity);
         await _dbContext.SaveChangesAsync();
         
-        _logger.LogInformation($"Added new member with Id: {entity.Id}");
+        _logger.LogInformation($"Added new member with Id: {entity.MemberId}");
         return entity;
     }
 

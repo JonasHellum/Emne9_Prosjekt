@@ -9,7 +9,8 @@ public class MemberMapper : IMapper<Member, MemberDTO>
     {
         return new MemberDTO()
         {
-            Id = model.Id,
+            MemberId = model.MemberId,
+            GoogleId = model.GoogleId,
             UserName = model.UserName,
             FirstName = model.FirstName,
             LastName = model.LastName,
@@ -24,7 +25,8 @@ public class MemberMapper : IMapper<Member, MemberDTO>
     {
         return new Member()
         {
-            Id = dto.Id,
+            MemberId = dto.MemberId,
+            GoogleId = dto.GoogleId,
             UserName = dto.UserName,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
