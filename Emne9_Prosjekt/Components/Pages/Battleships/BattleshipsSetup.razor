@@ -1,0 +1,96 @@
+﻿@page "/BattleshipsSetup"
+@using Emne9_Prosjekt.Game_components
+@inject BattleShipComponents GameComponents
+
+<h3>Battleships test</h3>
+
+<table>
+    @foreach (var row in "ABCDEFGHIJ")
+    {
+        <tr>
+            @for (int col = 1; col <= 10; col++)
+            {
+                var pos = $"{row}{col}";
+                <td style="width: 30px; height: 30px; text-align: center; border: 1px solid black;
+                    background: @(GameComponents.GetBoard()[pos] == 1 ? "lightgreen" : "lightblue");"
+                    @onclick="() => PlaceShip(pos)">
+                    @GameComponents.GetBoard()[pos]
+                </td>
+            }
+        </tr>
+    }
+</table>
+
+<div>
+    @foreach (var ship in GameComponents.GetShips())
+    {
+        <button @onclick='() => SelectShip(ship.Key)'>@ship.Key</button>
+    }
+</div>
+
+<h4>Selected ship: @_selectedShip</h4>
+@if (@GameComponents.GetOrientation())
+{
+    <h4>Ship orientation: <button @onclick="OrientShip">Horizontal</button></h4>
+}
+else
+{
+    <h4>Ship orientation: <button @onclick="OrientShip">Vertical</button></h4>
+}
+
+<div>
+    All ships: @_allShips - Current ships: @BoardValues() @if (BoardValues() == _allShips)
+                                                          {
+                                                              <button><NavLink href="/InGameBattleships">Start Game!</NavLink></button>
+                                                          }
+</div>
+
+<button @onclick="Reset">Reset board</button>
+
+@code {
+    protected override void OnInitialized()
+    {
+        GameComponents.CreateBoard();
+        foreach (var ship in GameComponents.GetShips())
+        {
+            _allShips += ship.Value;
+        }
+    }
+    
+    private string _selectedShip = "";
+    private int _allShips;
+
+    private void SelectShip(string ship)
+    {
+        _selectedShip = ship;
+        GameComponents.SelectShip(ship);
+        StateHasChanged();
+    }
+    
+    private void PlaceShip(string position)
+    {
+        _selectedShip = "";
+        GameComponents.PlaceShip(position);
+        StateHasChanged();
+    }
+
+    private void OrientShip()
+    {
+        GameComponents.ToggleOrientation();
+    }
+    
+    private int BoardValues()
+    {
+        int boardValue = 0;
+        foreach (var square in GameComponents.GetBoard())
+        {
+            boardValue += square.Value;
+        }
+        return boardValue;
+    }
+
+    private void Reset()
+    {
+        GameComponents.CreateBoard();
+    }
+}

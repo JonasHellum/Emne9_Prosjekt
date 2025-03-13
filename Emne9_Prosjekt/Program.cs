@@ -1,5 +1,11 @@
 using System.Text;
 using Emne9_Prosjekt.Components;
+
+using Emne9_Prosjekt.Extensions;
+using Emne9_Prosjekt.Hubs;
+using Emne9_Prosjekt.Services;
+
+using Emne9_Prosjekt.Game_components;
 using Emne9_Prosjekt.Data;
 using Emne9_Prosjekt.Extensions;
 using Emne9_Prosjekt.Features.Common.Interfaces;
@@ -14,6 +20,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -21,6 +28,12 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https:/
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddSignalR();
+builder.Services.AddSignalRHubConnection("/chatHub");
+builder.Services.AddSingleton<ChatService>();
+
+builder.Services.AddSingleton<BattleShipComponents>();
 
 builder.Services.AddControllers();
 
@@ -48,36 +61,6 @@ builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration);
 });
 
-// builder.Services.AddAuthentication(options =>
-//     {
-//         options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-//         options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-//         options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
-//     })
-//     .AddCookie()
-//     .AddGoogle(options =>
-//     {
-//         // Google ClientId and ClientSecret
-//         options.ClientId = "525416754804-5sjmgl3kc3e2q8s4s8dgvv6dajd53m7s.apps.googleusercontent.com";
-//         options.ClientSecret = "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";
-//
-//         // Callback path for Google to redirect after login
-//         // options.CallbackPath = "/api/members/GoogleCallBack";
-//     })
-//     .AddJwtBearer(options =>
-//     {
-//         options.TokenValidationParameters = new TokenValidationParameters
-//         {
-//             ValidateIssuer = true,
-//             ValidateAudience = true,
-//             ValidateLifetime = true,
-//             ValidateIssuerSigningKey = true,
-//             ValidIssuer = builder.Configuration["JWT:Issuer"],
-//             ValidAudience = builder.Configuration["JWT:Audience"],
-//             IssuerSigningKey = new
-//                 SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]))
-//         };
-//     });
 
 builder.Services.AddAuthentication(options =>
     {
@@ -104,30 +87,12 @@ builder.Services.AddAuthentication(options =>
         options.ClientSecret = "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";
     });
 
-// builder.Services.AddAuthentication(options =>
-//     {
-//         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-//         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-//     })
-//     .AddJwtBearer(options =>
-//     {
-//         options.TokenValidationParameters = new TokenValidationParameters
-//         {
-//             ValidateIssuer = true,
-//             ValidateAudience = true,
-//             ValidateLifetime = true,
-//             ValidateIssuerSigningKey = true,
-//             ValidIssuer = builder.Configuration["JWT:Issuer"],
-//             ValidAudience = builder.Configuration["JWT:Audience"],
-//             IssuerSigningKey = new
-//                 SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]))
-//         };
-//     });
 
 
 builder.Services.AddAuthorization();
 
 builder.Services.AddSwaggerWithJwtBearerAuthentication();
+
 
 var app = builder.Build();
 
@@ -152,13 +117,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+//app.UseHttpsRedirection();
 
 app.UseStaticFiles();
-app.UseRouting();
+//app.UseRouting();
 app.UseAntiforgery();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+app.MapHub<ChatHub>("/chatHub");
 
 app.MapControllers();
 
