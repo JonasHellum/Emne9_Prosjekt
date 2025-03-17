@@ -47,7 +47,9 @@ public class MemberRepository : IMemberRepository
 
     public async Task<IEnumerable<Member>> FindAsync(Expression<Func<Member, bool>> predicate)
     {
-        throw new NotImplementedException("Will be implemented later");
+        return await _dbContext.Member
+            .Where(predicate)
+            .ToListAsync();
     }
 
     public async Task<IEnumerable<Member>> GetPagedAsync(int pageNumber, int pageSize)

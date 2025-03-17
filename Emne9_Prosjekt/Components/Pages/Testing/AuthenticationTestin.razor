@@ -1,0 +1,79 @@
+﻿@page "/AuthenticationTestin"
+@using Emne9_Prosjekt.Features.Random_Tests
+@inject HttpClient Http
+@inject ILogger<AuthenticationTestin> _logger
+
+
+<h3>AuthenticationTestin</h3>
+
+@if (testin != null)
+{
+    foreach (var thing in testin)
+    {
+        <p>@thing.Date</p>
+        <p>@thing.TemperatureC</p>
+        <p>@thing.Summary</p>
+    }
+    
+}
+@if (editSuccess)
+{
+    <div class="alert alert-success">
+        successfull.
+    </div>
+}
+else if (editFailed)
+{
+    <div class="alert alert-danger">
+        failed, log in.
+    </div>
+}
+else
+{
+    <p><em>Loading...</em></p>
+}
+
+@code {
+
+    private List<WeatherForecast> testin;
+    private bool editSuccess;
+    private bool editFailed;
+    
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost:80/ControllerTEST");
+
+            // Just in case it buggs, need to know if the header has info at all when it happens.
+            var authorizationHeader = Http.DefaultRequestHeaders.Authorization;
+            if (authorizationHeader != null)
+            {
+                _logger.LogDebug($"Request Authorization Header: {authorizationHeader.Scheme} {authorizationHeader.Parameter}");
+            }
+            else
+            {
+                _logger.LogDebug("Request Authorization Header: None");
+            }
+
+            var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                editSuccess = true;
+                
+                testin = await response.Content.ReadFromJsonAsync<List<WeatherForecast>>();
+            }
+            else
+            {
+                editFailed = true;
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            editFailed = true;
+        }
+       
+    }
+}

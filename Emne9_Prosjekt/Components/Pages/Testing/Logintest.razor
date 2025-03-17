@@ -1,0 +1,107 @@
+﻿@page "/logintest"
+@using Emne9_Prosjekt.Features.Members.Models
+@inject HttpClient Http
+
+
+<h3>Logintest</h3>
+@if (memberDto != null)
+{
+    <EditForm Model="@memberDto" OnValidSubmit="LoginAsync" FormName="LoginForm">
+
+        <div>
+            <label>Username:</label>
+            <InputText @bind-Value="memberDto.UserName" class="form-control" name="Username"/>
+        </div>
+
+        <div>
+            <label>Password:</label>
+            <InputText @bind-Value="memberDto.Password" type="password" class="form-control" name="Password"/>
+        </div>
+        <button type="submit" class="btn btn-primary">Login</button>
+    </EditForm>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">
+            @errorMessage
+        </div>
+    }
+
+    @if (loginSuccess)
+    {
+        <div class="alert alert-success">
+            Login success! Username: @memberDto.UserName
+        </div>
+    }
+    else if (loginFailed)
+    {
+        <div class="alert alert-danger">
+            Login failed.
+        </div>
+    }
+}
+else
+{
+    <p>loading...</p>
+}
+
+@code {
+    private MemberDTO memberDto { get; set; }
+    private bool loginSuccess;
+    private bool loginFailed;
+    private string errorMessage;
+    private static string? authHeader;
+    
+    protected override void OnInitialized()
+    {
+        memberDto = new MemberDTO();
+    }
+
+    protected async Task LoginAsync()
+    {
+        if (string.IsNullOrEmpty(memberDto.UserName) || string.IsNullOrEmpty(memberDto.Password))
+        {
+            errorMessage = "Username and Password are required.";
+            return;
+        }
+        
+        try
+        {
+            var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/login", memberDto);
+            Console.WriteLine($"Logging in with {memberDto.UserName} and {memberDto.Password}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                loginSuccess = true;
+
+                // Extract the Authorization header
+                if (response.Headers.TryGetValues("Authorization", out var authHeaders))
+                {
+                    authHeader = authHeaders.FirstOrDefault();
+                    Console.WriteLine($"Authorization header: {authHeader}");
+
+                    // Set the token in the default request headers for future requests
+                    if (!string.IsNullOrEmpty(authHeader))
+                    {
+                        Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authHeader);
+                    }
+                }
+            }
+            else
+            {
+                // Handle unsuccessful login attempt
+                loginFailed = true;
+
+                errorMessage = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Login failed: {errorMessage}");
+            }
+        }
+        catch (Exception e)
+        {
+            loginFailed = true;
+
+            errorMessage = "Something went wrong. Please try again.";
+            Console.WriteLine($"Exception: {e}");
+        }
+    }
+}
