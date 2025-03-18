@@ -4,7 +4,7 @@ public class BattleShipComponents
 {
     private string? _selectedShip;
     private bool _shipOrientation = true;
-    public int HitCount { get; set; } = 0;
+    public int HitCount { get; private set; }
     private readonly Dictionary<string,int> _board = new ();
     private readonly Dictionary<string,int> _opponentBoard = new ();
     private readonly Dictionary<string,int> _ships = new ()
