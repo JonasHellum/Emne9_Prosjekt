@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Text;
 using Emne9_Prosjekt.Features.Common.Interfaces;
@@ -101,6 +102,29 @@ public class MemberService : IMemberService
         GenerateJwtToken(newMember);
         return _memberMapper.MapToDTO(newMember);
     }
+    
+    public async Task<MemberDTO?> LoginMemberAsync(string username, string password)
+    {
+        _logger.LogInformation($"Trying to login member with username: {username}");
+        Expression<Func<Member, bool>> expr = member => member.UserName == username; 
+        var memb = (await _memberRepository.FindAsync(expr)).FirstOrDefault();
+        
+        if (memb is null)
+        {
+            _logger.LogWarning($"Member with username: {username} does not exist.");
+            throw new DataException($"Member with username: {username} does not exist.");
+        }
+        
+        if (!BCrypt.Net.BCrypt.Verify(password, memb.HashedPassword))
+        {
+            _logger.LogWarning("Member has entered incorrect password.");
+            throw new DataException("Incorrect password.");
+        }
+        
+        _logger.LogInformation("Member has entered correct password.");
+        
+        return _memberMapper.MapToDTO(memb);
+    }
 
     public string ValidateAccessToken(string accessToken)
     {
@@ -126,14 +150,14 @@ public class MemberService : IMemberService
             
             JwtSecurityToken jwtSecurityToken = (JwtSecurityToken)validatedToken;
             
-            string? userId = jwtSecurityToken?.Claims
+            string? memberId = jwtSecurityToken?.Claims
                 .FirstOrDefault(claim => claim.Type == "nameid")?.Value;
 
-            IEnumerable<string>? roles = jwtSecurityToken?.Claims
-                .Where(x => x.Type == "role")
-                .Select(x => x.Value);
+            // IEnumerable<string>? roles = jwtSecurityToken?.Claims
+            //     .Where(x => x.Type == "role")
+            //     .Select(x => x.Value);
 
-            return userId;
+            return memberId;
         }
         catch (Exception e)
         {
@@ -142,9 +166,10 @@ public class MemberService : IMemberService
         }
     }
 
-    public async Task<int?> AuthenticateMemberAsync(int firstName, string password)
+    public string MakeToken(MemberDTO member)
     {
-        throw new NotImplementedException("Will be implemented later");
+        var memberModel = _memberMapper.MapToModel(member);
+        return GenerateJwtToken(memberModel);
     }
 
 
@@ -212,28 +237,5 @@ public class MemberService : IMemberService
         return tokenHandler.WriteToken(token);
     }
     #endregion
-    
-    // private string GenerateJwtToken(Member member)
-    // {
-    //     // Example token generation logic
-    //     var claims = new List<Claim>
-    //     {
-    //         new Claim(JwtRegisteredClaimNames.Sub, member.Id.ToString()),
-    //         new Claim(JwtRegisteredClaimNames.Email, member.Email),
-    //         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-    //     };
-    //
-    //     var jwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("YourSecretHere"));
-    //     var creds = new SigningCredentials(jwtKey, SecurityAlgorithms.HmacSha256);
-    //
-    //     var token = new JwtSecurityToken(
-    //         issuer: "http://localhost:80",
-    //         audience: "http://localhost:80",
-    //         claims: claims,
-    //         expires: DateTime.Now.AddHours(2),
-    //         signingCredentials: creds);
-    //
-    //     return new JwtSecurityTokenHandler().WriteToken(token);
-    // }
 
 }

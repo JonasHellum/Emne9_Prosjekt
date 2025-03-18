@@ -40,11 +40,21 @@ public class MemberController : ControllerBase
     }
     
     [AllowAnonymous]
-    [HttpGet("Login-Google", Name = "LoginWithGoogle")]
-    public IActionResult LoginWithGoogle()
+    [HttpPost("Login", Name = "Login")]
+    public async Task<ActionResult<MemberDTO>> LoginAsync([FromBody] MemberDTO memberDTO)
     {
-        var properties = new AuthenticationProperties { RedirectUri = "/api/members/GoogleCallBack" };
-        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+        Console.WriteLine($"Login attempt for user: {memberDTO.UserName}");
+        var member = await _memberService.LoginMemberAsync(memberDTO.UserName, memberDTO.Password);
+        if (member == null)
+        {
+            Console.WriteLine($"Login failed for user: {memberDTO.UserName}");
+            return Unauthorized("Username or password is incorrect");
+        }
+        
+        var memberToken = _memberService.MakeToken(member);
+        Response.Headers.Add("Authorization", memberToken);
+
+        return Ok(member);
     }
     
     
@@ -52,7 +62,7 @@ public class MemberController : ControllerBase
     [HttpPost("GoogleCallBack", Name = "GoogleCallBack")]
     public async Task<IActionResult> GoogleCallback([FromBody] string credential)
     {
-        _logger.LogInformation("Doing a get on GoogleCallBack");
+        _logger.LogInformation("Doing a post on GoogleCallBack");
         
         // Validate the credential (ID Token)
         if (string.IsNullOrEmpty(credential))
@@ -77,12 +87,15 @@ public class MemberController : ControllerBase
             }
             
             _logger.LogInformation($"Google ID Token validated successfully for email: {payload.Email}");
-
             
-            var user = await _memberService.GoogleLoginAsync(payload);
-            return user is null
+            
+            var member = await _memberService.GoogleLoginAsync(payload);
+            var memberToken = _memberService.MakeToken(member!);
+            Response.Headers.Add("Authorization", memberToken);
+            
+            return member is null
                 ? BadRequest("Failed to login with Google")
-                : Ok(user);
+                : Ok(member);
         }
         catch (Exception e)
         {

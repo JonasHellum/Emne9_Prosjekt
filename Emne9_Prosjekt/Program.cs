@@ -13,6 +13,7 @@ using Emne9_Prosjekt.Features.Members;
 using Emne9_Prosjekt.Features.Members.Interfaces;
 using Emne9_Prosjekt.Features.Members.Mappers;
 using Emne9_Prosjekt.Features.Members.Models;
+using Emne9_Prosjekt.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -53,6 +54,8 @@ builder.Services.AddDbContext<Emne9EksamenDbContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
         new MySqlServerVersion(new Version(8, 0, 33))));
 
+builder.Services.AddScoped<JwtMiddleware>();
+
 
 
 
@@ -64,8 +67,8 @@ builder.Host.UseSerilog((context, configuration) =>
 
 builder.Services.AddAuthentication(options =>
     {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; // Use JWT for authentication
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme; // Challenge with JWT
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; 
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme; 
     })
     .AddJwtBearer(options =>
     {
@@ -101,7 +104,7 @@ var app = builder.Build();
 //app.UseHttpsRedirection();
 
 app.UseRouting();
-
+app.UseMiddleware<JwtMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
