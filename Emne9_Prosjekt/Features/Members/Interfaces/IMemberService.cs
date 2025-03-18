@@ -10,7 +10,7 @@ public interface IMemberService : IBaseService<MemberDTO>
     Task<MemberDTO?> RegistrationAsync(MemberRegistrationDTO registrationDTO);
     Task<MemberDTO?> LoginMemberAsync(string username, string password);
     Task<MemberDTO?> GoogleLoginAsync(GoogleJsonWebSignature.Payload googleUser);
-    string ValidateAccessToken(string accessToken);
+    (string memberId, string userName) ValidateAccessToken(string accessToken);
     
     string MakeToken(MemberDTO member);
     

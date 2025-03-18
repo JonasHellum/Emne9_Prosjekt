@@ -126,7 +126,7 @@ public class MemberService : IMemberService
         return _memberMapper.MapToDTO(memb);
     }
 
-    public string ValidateAccessToken(string accessToken)
+    public (string memberId, string userName) ValidateAccessToken(string accessToken)
     {
         try
         {
@@ -152,17 +152,20 @@ public class MemberService : IMemberService
             
             string? memberId = jwtSecurityToken?.Claims
                 .FirstOrDefault(claim => claim.Type == "nameid")?.Value;
+            
+            string? userName = jwtSecurityToken?.Claims
+                .FirstOrDefault(claim => claim.Type == "unique_name")?.Value;
 
             // IEnumerable<string>? roles = jwtSecurityToken?.Claims
             //     .Where(x => x.Type == "role")
             //     .Select(x => x.Value);
 
-            return memberId;
+            return (memberId, userName);
         }
         catch (Exception e)
         {
             // Legg til logging !!!
-            return null!;
+            return (null!, null!);
         }
     }
 
