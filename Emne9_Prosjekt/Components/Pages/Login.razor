@@ -13,6 +13,7 @@
 
 @code {
     private string? _clientId;
+    private static string? authHeader;
     
     [JSInvokable]
     public async Task HandleGoogleSignIn(string idToken)
@@ -27,6 +28,19 @@
                 Console.WriteLine("Login successful!");
                 var user = await response.Content.ReadFromJsonAsync<MemberDTO>();
                 Console.WriteLine($"User logged in: {user?.UserName}");
+                
+                // Extract the Authorization header
+                if (response.Headers.TryGetValues("Authorization", out var authHeaders))
+                {
+                    authHeader = authHeaders.FirstOrDefault();
+                    Console.WriteLine($"Authorization header: {authHeader}");
+
+                    // Set the token in the default request headers for future requests
+                    if (!string.IsNullOrEmpty(authHeader))
+                    {
+                        Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authHeader);
+                    }
+                }
                 
                 // redirect eller no
 
