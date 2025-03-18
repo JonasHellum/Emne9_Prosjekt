@@ -2,16 +2,18 @@
 @using Emne9_Prosjekt.Game_components
 @inject BattleShipComponents GameComponents
 
+
+<div style="text-align: center">
 <h3>Battleships test</h3>
 
-<table>
+<table style="margin: auto">
     @foreach (var row in "ABCDEFGHIJ")
     {
         <tr>
             @for (int col = 1; col <= 10; col++)
             {
                 var pos = $"{row}{col}";
-                <td style="width: 30px; height: 30px; text-align: center; border: 1px solid black;
+                <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
                     background: @(GameComponents.GetBoard()[pos] == 1 ? "lightgreen" : "lightblue");"
                     @onclick="() => PlaceShip(pos)">
                     @GameComponents.GetBoard()[pos]
@@ -46,6 +48,7 @@ else
 </div>
 
 <button @onclick="Reset">Reset board</button>
+</div>
 
 @code {
     protected override void OnInitialized()
