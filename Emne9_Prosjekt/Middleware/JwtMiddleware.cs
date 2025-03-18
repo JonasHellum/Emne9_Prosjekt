@@ -20,12 +20,15 @@ public class JwtMiddleware : IMiddleware
 
         if (token is not null)
         {
-            var userId = _memberService.ValidateAccessToken(token);
-            _logger.LogInformation($"User: {userId}" 
+            var (memberId, userName) = _memberService.ValidateAccessToken(token);
+            _logger.LogInformation($"User: {memberId}" 
                                    //$"Roles: {roles}"
                                    );
-            context.Items["UserId"] = userId;
+            context.Items["MemberId"] = memberId;
+            context.Items["UserName"] = userName;
             // context.Items["Roles"] = roles;
+            Console.WriteLine($"Member ID from middleware: {context.Items["MemberId"]}");
+            Console.WriteLine($"Username from middleware: {context.Items["UserName"]}");
         }
         
         await next(context);

@@ -1,0 +1,88 @@
+﻿@page "/Battleships"
+@using Emne9_Prosjekt.Game_components
+@inject BattleShipComponents GameComponents
+
+<div style="display: flex; justify-content: center; align-items: start; position: relative">
+    <div style="justify-content: center">
+        <h5 style="text-align: center">Your board</h5>
+        <table style="margin: auto">
+            @foreach (var row in "ABCDEFGHIJ")
+            {
+                <tr>
+                    @for (int col = 1; col <= 10; col++)
+                    {
+                        var pos = $"{row}{col}";
+                        var value = GameComponents.GetBoard()[pos];
+                        <td style="width: 10px; height: 10px; border: 1px solid black;
+                            background:  @(BoardStatus(value));">
+                        </td>
+                    }
+                </tr>
+            }
+        </table>
+    </div>
+    <div style="justify-content: center; padding-left: 10px">
+        <h5 style="text-align: center">Opponents board</h5>
+        @if (!GameComponents.GetBoard().Any())
+        {
+            <p><em>Waiting for opponent to join...</em></p>
+        }
+        else
+        {
+            <table style="margin: auto">
+                @foreach (var row in "ABCDEFGHIJ")
+                {
+                    <tr>
+                        @for (int col = 1; col <= 10; col++)
+                        {
+                            var pos = $"{row}{col}";
+                            var value = GameComponents.GetBoard()[pos];
+                            <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
+                                background: @(BoardStatus(value));"
+                                @onclick="() => ShootAtTarget(pos)">
+                                @GameComponents.GetBoard()[pos]
+                            </td>
+                        }
+                    </tr>
+                }
+            </table>
+            <div style="text-align: center">
+                @if (_allShips == @GameComponents.HitCount)
+                {
+                    <h3>Win-condition met!</h3>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+
+    private int _allShips;
+    protected override void OnInitialized()
+    {
+        GameComponents.GetBoard();
+        GameComponents.GetOpponentBoard();
+        foreach (var ship in GameComponents.GetShips())
+        {
+            _allShips += ship.Value;
+        }
+    }
+
+    private string BoardStatus(int value)
+    {
+        return value switch
+        {
+            0 => "lightblue",
+            1 => "lightgreen",
+            -1 => "darkred",
+            -2 => "blue",
+            _ => "black"
+        };
+    }
+    
+    private void ShootAtTarget(string position)
+    {
+        GameComponents.ShootBoard(position);
+    }
+}
