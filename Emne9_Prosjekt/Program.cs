@@ -32,7 +32,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddSignalR();
 builder.Services.AddSignalRHubConnection("/chatHub");
 builder.Services.AddSingleton<ChatService>();
-builder.Services.AddSignalRHubConnection("/gameHub"); 
+/*builder.Services.AddSignalRHubConnection("/gameHub");  */
 builder.Services.AddSingleton<GameService>();
 
 builder.Services.AddSingleton<BattleShipComponents>();
