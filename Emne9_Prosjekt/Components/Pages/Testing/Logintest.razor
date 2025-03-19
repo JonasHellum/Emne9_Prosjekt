@@ -1,11 +1,28 @@
 ﻿@page "/logintest"
+@using System.IdentityModel.Tokens.Jwt
+@using System.Runtime.InteropServices.JavaScript
 @using Emne9_Prosjekt.Features.Members.Models
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
+@inject IHttpContextAccessor context
+
 
 
 <h3>Logintest</h3>
-@if (memberDto != null)
+
+@* @if (!userName.IsNullOrEmpty()) *@
+@* { *@
+@*     <div class="alert alert-success"> *@
+@*         Already logged in as: ! Username: @memberDto.UserName *@
+@*         Already logged in as: @userName *@
+@*     </div> *@
+@* } *@
+@if (memberDto != null && userName.IsNullOrEmpty())
 {
+    <div class="alert alert-success">
+        Username: @userName
+    </div>
     <EditForm Model="@memberDto" OnValidSubmit="LoginAsync" FormName="LoginForm">
 
         <div>
@@ -33,16 +50,23 @@
             Login success! Username: @memberDto.UserName
         </div>
     }
-    else if (loginFailed)
+    @if (loginFailed)
     {
         <div class="alert alert-danger">
             Login failed.
         </div>
     }
 }
-else
+else if (memberDto == null)
 {
-    <p>loading...</p>
+    <p>loading...??</p>
+}
+@if (!userName.IsNullOrEmpty())
+{
+    
+    <div class="alert alert-success" href="Home.razor">
+        Already logged in as: @userName.........
+    </div>
 }
 
 @code {
@@ -51,10 +75,22 @@ else
     private bool loginFailed;
     private string errorMessage;
     private static string? authHeader;
+    private static string userName;
+    private static bool loggedIn;
     
     protected override void OnInitialized()
     {
         memberDto = new MemberDTO();
+        Console.WriteLine($"Username from Logintest.razor: {userName}");
+
+        if (userName is not null)
+        {
+            loggedIn = true;
+        }
+        else
+        {
+            loggedIn = false;
+        }
     }
 
     protected async Task LoginAsync()
@@ -79,11 +115,16 @@ else
                 {
                     authHeader = authHeaders.FirstOrDefault();
                     Console.WriteLine($"Authorization header: {authHeader}");
+                    var token = authHeaders.FirstOrDefault()?.Split(" ").Last();
+                        
 
                     // Set the token in the default request headers for future requests
                     if (!string.IsNullOrEmpty(authHeader))
                     {
+                        loggedIn = true;
+                        userName = DecodeJwt(token);
                         Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authHeader);
+                        
                     }
                 }
             }
@@ -103,5 +144,21 @@ else
             errorMessage = "Something went wrong. Please try again.";
             Console.WriteLine($"Exception: {e}");
         }
+        
     }
+    private string? DecodeJwt(string jwtToken)
+    {
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(jwtToken);
+            return jwt.Claims.FirstOrDefault(claim => claim.Type == "unique_name")?.Value; 
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error decoding JWT: {e.Message}");
+            return null;
+        }
+    }
+
 }
