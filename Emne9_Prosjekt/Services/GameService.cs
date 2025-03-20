@@ -1,5 +1,7 @@
 ﻿using System.Collections.Concurrent;
-using Emne9_Prosjekt.Game_components; // Bruker en trådsikker samling for å håndtere samtidige forespørsler
+using Emne9_Prosjekt.GameComponents;
+
+// Bruker en trådsikker samling for å håndtere samtidige forespørsler
 
 namespace Emne9_Prosjekt.Services;
 
@@ -121,4 +123,13 @@ public class GameService
     {
         return PlayerBoards.TryGetValue(connectionId, out var board) ? board : null;
     }
+    
+    // 🔹 Henter spill-ID og motstander-ID for en gitt spiller
+    public (string? gameId, string? opponentId) GetGameByPlayer(string connectionId)
+    {
+        if (!PlayerGames.TryGetValue(connectionId, out var gameId)) return (null, null);
+        if (!PlayerOpponents.TryGetValue(connectionId, out var opponentId)) return (gameId, null);
+        return (gameId, opponentId);
+    }
+   
 }

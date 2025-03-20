@@ -1,5 +1,5 @@
 ﻿@page "/BattleshipsSetup"
-@using Emne9_Prosjekt.Game_components
+@using Emne9_Prosjekt.GameComponents
 @inject BattleShipComponents GameComponents
 
 
@@ -41,16 +41,22 @@ else
 }
 
 <div>
-    All ships: @_allShips - Current ships: @BoardValues() @if (BoardValues() == _allShips)
-                                                          {
-                                                              <button><NavLink href="/InGameBattleships">Start Game!</NavLink></button>
-                                                          }
+    All ships: @_allShips - Current ships: @BoardValues()
+    @if (BoardValues() == _allShips)
+    {
+        <NavLink href="/Battleships">
+            <button>Start Game!</button>
+        </NavLink>
+    }
 </div>
-
-<button @onclick="Reset">Reset board</button>
+    <button @onclick="Reset">Reset board</button>
 </div>
 
 @code {
+    
+    private string _selectedShip = "";
+    private int _allShips;
+    
     protected override void OnInitialized()
     {
         GameComponents.CreateBoard();
@@ -59,9 +65,6 @@ else
             _allShips += ship.Value;
         }
     }
-    
-    private string _selectedShip = "";
-    private int _allShips;
 
     private void SelectShip(string ship)
     {
