@@ -104,4 +104,26 @@ public class MemberController : ControllerBase
 
         }
     }
+    
+    [AllowAnonymous]
+    [HttpGet("user-info")]
+    public string GetUserInfo()
+    {
+        var userName = HttpContext.Items["UserName"] as string;
+
+        // Fallback to use claims if Items are gone "poof"
+        if (string.IsNullOrEmpty(userName))
+        {
+            userName = User?.Identity?.Name; 
+        }
+
+        if (string.IsNullOrEmpty(userName))
+        {
+            Console.WriteLine("From user-info controller: No authenticated user found.");
+        }
+
+        return userName is null
+            ? null
+            : userName;
+    }
 }
