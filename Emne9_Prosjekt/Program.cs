@@ -4,8 +4,6 @@ using Emne9_Prosjekt.Components;
 using Emne9_Prosjekt.Extensions;
 using Emne9_Prosjekt.Hubs;
 using Emne9_Prosjekt.Services;
-
-using Emne9_Prosjekt.Game_components;
 using Emne9_Prosjekt.Data;
 using Emne9_Prosjekt.Extensions;
 using Emne9_Prosjekt.Features.Common.Interfaces;
@@ -13,6 +11,7 @@ using Emne9_Prosjekt.Features.Members;
 using Emne9_Prosjekt.Features.Members.Interfaces;
 using Emne9_Prosjekt.Features.Members.Mappers;
 using Emne9_Prosjekt.Features.Members.Models;
+using Emne9_Prosjekt.GameComponents;
 using Emne9_Prosjekt.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;

@@ -1,4 +1,4 @@
-﻿namespace Emne9_Prosjekt.Game_components;
+﻿namespace Emne9_Prosjekt.GameComponents;
 
 public class BattleShipComponents
 {
@@ -6,7 +6,7 @@ public class BattleShipComponents
     private bool _shipOrientation = true;
     public int HitCount { get; private set; }
     private readonly Dictionary<string,int> _board = new ();
-    private readonly Dictionary<string,int> _opponentBoard = new ();
+    private Dictionary<string,int> _opponentBoard = new ();
     private readonly Dictionary<string,int> _ships = new ()
     {
         {"Carrier", 5},
@@ -36,36 +36,56 @@ public class BattleShipComponents
         }
     }
 
-    public void PlaceShip(string position)
+    private List<string>? CheckAndStorePlacement(string position)
     {
-        if (_selectedShip == null || !_ships.ContainsKey(_selectedShip))
-        {
-            return;
-        }
+        if (_selectedShip == null || !_ships.ContainsKey(_selectedShip)) return null;
+        
         int size = _ships[_selectedShip];
         char row = position[0];
-        int column = int.Parse(position[1].ToString());
+        int column = int.Parse(position[1..]);
+        List<string> placement = new();
         
-        List<string> newPositions = new ();
         for (int i = 0; i < size; i++)
         {
-            string newPosition;
-            if (_shipOrientation)
-            {
-                newPosition = $"{row}{column + i}";
-            }
-            else
-            {
-                char newRow = (char)(row + i);
-                newPosition = $"{newRow}{column}";
-            }
-            if (_board.ContainsKey(newPosition) && _board[newPosition] == 1)
-            {
-                return;
-            }
-            newPositions.Add(newPosition);
+            string newPosition = _shipOrientation
+                ? $"{row}{column + i}"
+                : $"{(char)(row + i)}{column}";
+
+            if (_board.ContainsKey(newPosition) && _board[newPosition] == 1) return null;
+            
+            placement.Add(newPosition);
         }
-        foreach (string pos in newPositions)
+        return placement;
+    }
+
+    private List<string>? CheckAndAdjustPlacement(List<string>? positions)
+    {
+        if (positions == null || positions.Count == 0) return null;
+        
+        string position = positions[0];
+        char row = position[0];
+        int column = int.Parse(position[1..]);
+        int size = positions.Count;
+
+        if (_shipOrientation)
+        {
+            if (column + size - 1 > 10) column = 11 - size;
+        }
+        else
+        {
+            if (row + size - 1 > 'J') row = (char)('K' - size);
+        }
+        return CheckAndStorePlacement($"{row}{column}");
+    }
+
+    public void PlaceShip(string position)
+    {
+        var positions = CheckAndStorePlacement(position);
+        positions = CheckAndAdjustPlacement(positions);
+
+        if (positions == null) return;
+
+        foreach (string pos in positions)
         {
             _board[pos]++;
         }
@@ -81,15 +101,20 @@ public class BattleShipComponents
     {
         return _board;
     }
-    
-    public Dictionary<string, int> GetShips()
-    {
-        return _ships;
-    }
 
     public Dictionary<string, int> GetOpponentBoard()
     {
         return _opponentBoard;
+    }
+
+    public void SetOpponentBoard(Dictionary<string, int> board)
+    {
+        _opponentBoard = board;
+    }
+    
+    public Dictionary<string, int> GetShips()
+    {
+        return _ships;
     }
     
     public bool GetOrientation()

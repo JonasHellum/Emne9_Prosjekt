@@ -1,5 +1,7 @@
 ﻿using System.Collections.Concurrent;
-using Emne9_Prosjekt.Game_components; // Bruker en trådsikker samling for å håndtere samtidige forespørsler
+using Emne9_Prosjekt.GameComponents;
+
+// Bruker en trådsikker samling for å håndtere samtidige forespørsler
 
 namespace Emne9_Prosjekt.Services;
 
