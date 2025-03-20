@@ -3,7 +3,6 @@ using Emne9_Prosjekt.Components;
 using Emne9_Prosjekt.Extensions;
 using Emne9_Prosjekt.Hubs;
 using Emne9_Prosjekt.Services;
-using Emne9_Prosjekt.Game_components;
 using Emne9_Prosjekt.Data;
 using Emne9_Prosjekt.Features.Common.Interfaces;
 using Emne9_Prosjekt.Features.Members;
