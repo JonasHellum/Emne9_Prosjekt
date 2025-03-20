@@ -43,7 +43,7 @@ else
 <div>
     All ships: @_allShips - Current ships: @BoardValues() @if (BoardValues() == _allShips)
                                                           {
-                                                              <button><NavLink href="/InGameBattleships">Start Game!</NavLink></button>
+                                                              <button><NavLink href="/Battleshit">Start Game!</NavLink></button>
                                                           }
 </div>
 
@@ -72,7 +72,7 @@ else
     
     private void PlaceShip(string position)
     {
-        _selectedShip = "";
+        //_selectedShip = "";
         GameComponents.PlaceShip(position);
         StateHasChanged();
     }
