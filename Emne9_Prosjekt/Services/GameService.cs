@@ -123,4 +123,13 @@ public class GameService
     {
         return PlayerBoards.TryGetValue(connectionId, out var board) ? board : null;
     }
+    
+    // 🔹 Henter spill-ID og motstander-ID for en gitt spiller
+    public (string? gameId, string? opponentId) GetGameByPlayer(string connectionId)
+    {
+        if (!PlayerGames.TryGetValue(connectionId, out var gameId)) return (null, null);
+        if (!PlayerOpponents.TryGetValue(connectionId, out var opponentId)) return (gameId, null);
+        return (gameId, opponentId);
+    }
+   
 }

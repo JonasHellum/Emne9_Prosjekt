@@ -1,5 +1,5 @@
 ﻿@page "/chat"
-@inject HubConnection HubConnection
+@inject HubConnection ChatHubConnection
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
 
@@ -33,19 +33,19 @@
         {
             Console.WriteLine("---Establishing connection...");
 
-            HubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+            ChatHubConnection.On<string, string>("ReceiveMessage", (user, message) =>
             {
                 _messages.Add((user, message));
                 InvokeAsync(StateHasChanged);
             });
 
-            HubConnection.On<string>("NotifyUserConnected", (user) =>
+            ChatHubConnection.On<string>("NotifyUserConnected", (user) =>
             {
                 _messages.Add(("System", $"{user} har koblet til."));
                 InvokeAsync(StateHasChanged);
             });
 
-            HubConnection.On<string>("NotifyUserDisconnected", (user) =>
+            ChatHubConnection.On<string>("NotifyUserDisconnected", (user) =>
             {
                 _messages.Add(("System", $"{user} har forlatt chatten."));
                 InvokeAsync(StateHasChanged);
@@ -53,7 +53,7 @@
 
             try
             {
-                await HubConnection.StartAsync();
+                await ChatHubConnection.StartAsync();
                 Console.WriteLine("--Connection established!");
                 _isConnected = true;
             }
@@ -68,7 +68,7 @@
     {
         if (!string.IsNullOrEmpty(_message))
         {
-            await HubConnection.SendAsync("SendMessage", _message);
+            await ChatHubConnection.SendAsync("SendMessage", _message);
             _message = string.Empty;
         }
     }
@@ -77,7 +77,7 @@
     {
         if (_isConnected)
         {
-            await HubConnection.DisposeAsync();
+            await ChatHubConnection.DisposeAsync();
             Console.WriteLine("--Connection closed.");
         }
     }

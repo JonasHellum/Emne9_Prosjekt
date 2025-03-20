@@ -1,0 +1,190 @@
+﻿@page "/Battleshit"
+@using Emne9_Prosjekt.GameComponents
+@using Microsoft.AspNetCore.SignalR.Client
+@inject BattleShipComponents GameComponents
+@inject NavigationManager Navigation
+@inject HubConnection GameHubConnection
+
+<div style="display: flex; justify-content: center; align-items: start; position: relative">
+    <div style="justify-content: center">
+        <h5 style="text-align: center">Your board</h5>
+        <table style="margin: auto">
+            @foreach (var row in "ABCDEFGHIJ")
+            {
+                <tr>
+                    @for (int col = 1; col <= 10; col++)
+                    {
+                        var pos = $"{row}{col}";
+                        var value = GameComponents.GetBoard()[pos];
+                        <td style="width: 10px; height: 10px; border: 1px solid black;
+                            background:  @(BoardStatus(value));">
+                        </td>
+                    }
+                </tr>
+            }
+        </table>
+    </div>
+    <div style="justify-content: center; padding-left: 10px">
+        <h5 style="text-align: center">Opponents board</h5>
+        @if (!GameComponents.GetOpponentBoard().Any())
+        {
+            <p><em>Waiting for opponent to join...</em></p>
+        }
+        else
+        {
+            <table style="margin: auto">
+                @foreach (var row in "ABCDEFGHIJ")
+                {
+                    <tr>
+                        @for (int col = 1; col <= 10; col++)
+                        {
+                            var pos = $"{row}{col}";
+                            var value = GameComponents.GetOpponentBoard()[pos];
+                            <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
+                                background: @(BoardStatus(value));"
+                                @onclick="() => ShootAtTarget(pos)">
+                                @GameComponents.GetOpponentBoard()[pos]
+                            </td>
+                        }
+                    </tr>
+                }
+            </table>
+            <div style="text-align: center">
+                @if (_allShips == @GameComponents.HitCount)
+                {
+                    <h3>Win-condition met!</h3>
+                }
+            </div>
+        }
+    </div>
+</div>
+<div>
+    <h3>Live Chat</h3>
+
+    <p><strong>Tilkoblet!</strong></p>
+    <div>
+        <input @bind="_message" @bind:event="oninput" placeholder="Skriv en melding..." />
+        <button @onclick="SendMessage">Send</button>
+    </div>
+    <div id="chat-box">
+        @foreach (var msg in _messages)
+        {
+            <div class="message @(msg.Item1 == _userName ? "self" : "user")">
+                <strong>@msg.Item1</strong>: @msg.Item2
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private int _allShips;
+    private string _statusMessage = "Connecting...";
+    private bool _isMyTurn = false;
+    private readonly string _userName = "";
+    private string _message = "";
+    private bool _isConnected;
+    private List<(string, string)> _messages = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        foreach (var ship in GameComponents.GetShips())
+        {
+            _allShips += ship.Value;
+        }
+
+        // Start SignalR-forbindelsen
+        GameHubConnection.On<Dictionary<string, int>>("UpdatePlayerBoard", board =>
+        {
+          
+            GameComponents.GetOpponentBoard().Clear();
+            foreach (var kvp in board)
+            {
+                GameComponents.GetOpponentBoard()[kvp.Key] = kvp.Value;
+            }
+            StateHasChanged();
+        });
+
+        GameHubConnection.On<Dictionary<string, int>>("UpdateOpponentBoard", board =>
+        {
+            GameComponents.GetBoard().Clear();
+            foreach (var kvp in board)
+            {
+                GameComponents.GetBoard()[kvp.Key] = kvp.Value;
+            }
+            StateHasChanged();
+        });
+        
+        await GameHubConnection.StartAsync();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Console.WriteLine("---Establishing connection...");
+
+            GameHubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+            {
+                _messages.Add((user, message));
+                InvokeAsync(StateHasChanged);
+            });
+
+            GameHubConnection.On<string>("NotifyUserConnected", (user) =>
+            {
+                _messages.Add(("System", $"{user} har koblet til."));
+                InvokeAsync(StateHasChanged);
+            });
+
+            GameHubConnection.On<string>("NotifyUserDisconnected", (user) =>
+            {
+                _messages.Add(("System", $"{user} har forlatt chatten."));
+                InvokeAsync(StateHasChanged);
+            });
+
+            try
+            {
+                await GameHubConnection.StartAsync();
+                Console.WriteLine("--Connection established!");
+                _isConnected = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"--Feil ved tilkobling: {ex.Message}");
+            }
+        }
+    }
+
+
+    private void ShootAtTarget(string position)
+    {
+        GameComponents.ShootBoard(position);
+    }
+
+    private string BoardStatus(int value)
+    {
+        return value switch
+        {
+            0 => "lightblue",
+            1 => "lightgreen",
+            -1 => "darkred",
+            -2 => "blue",
+            _ => "black"
+        };
+    }
+    private async Task SendMessage()
+    {
+        if (!string.IsNullOrEmpty(_message))
+        {
+            await GameHubConnection.SendAsync("SendMessage", _message);
+            _message = string.Empty;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_isConnected)
+        {
+            await GameHubConnection.DisposeAsync();
+            Console.WriteLine("--Connection closed.");
+        }
+    }
+}

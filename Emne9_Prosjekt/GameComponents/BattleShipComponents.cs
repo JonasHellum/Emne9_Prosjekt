@@ -89,7 +89,7 @@ public class BattleShipComponents
         {
             _board[pos]++;
         }
-        _selectedShip = null;
+        //_selectedShip = null;
     }
     
     public void ToggleOrientation()
