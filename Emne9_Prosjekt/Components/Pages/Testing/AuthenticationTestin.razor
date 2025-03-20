@@ -1,7 +1,10 @@
 ﻿@page "/AuthenticationTestin"
 @using Emne9_Prosjekt.Features.Random_Tests
+@using Microsoft.AspNetCore.Authorization
 @inject HttpClient Http
 @inject ILogger<AuthenticationTestin> _logger
+@inject IHttpContextAccessor context
+@attribute [Authorize]
 
 
 <h3>AuthenticationTestin</h3>
@@ -38,6 +41,7 @@ else
     private List<WeatherForecast> testin;
     private bool editSuccess;
     private bool editFailed;
+    private string userName;
     
     
     protected override async Task OnParametersSetAsync()
@@ -56,6 +60,8 @@ else
             {
                 _logger.LogDebug("Request Authorization Header: None");
             }
+            userName = context.HttpContext?.Items["UserName"] as string;
+            Console.WriteLine($"Username from AuthenticationTestin.razor: {userName}");
 
             var response = await Http.SendAsync(request);
             if (response.IsSuccessStatusCode)

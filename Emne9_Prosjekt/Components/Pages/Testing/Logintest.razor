@@ -1,10 +1,22 @@
 ﻿@page "/logintest"
 @using Emne9_Prosjekt.Features.Members.Models
+@using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
+@inject IHttpContextAccessor context
+
+
 
 
 <h3>Logintest</h3>
-@if (memberDto != null)
+
+@* @if (!userName.IsNullOrEmpty()) *@
+@* { *@
+@*     <div class="alert alert-success"> *@
+@*         Already logged in as: ! Username: @memberDto.UserName *@
+@*         Already logged in as: @userName *@
+@*     </div> *@
+@* } *@
+@if (memberDto != null && userName.IsNullOrEmpty())
 {
     <EditForm Model="@memberDto" OnValidSubmit="LoginAsync" FormName="LoginForm">
 
@@ -33,16 +45,23 @@
             Login success! Username: @memberDto.UserName
         </div>
     }
-    else if (loginFailed)
+    @if (loginFailed)
     {
         <div class="alert alert-danger">
             Login failed.
         </div>
     }
 }
-else
+else if (memberDto == null)
 {
-    <p>loading...</p>
+    <p>loading...??</p>
+}
+@if (loggedIn)
+{
+    
+    <div class="alert alert-success" href="Home.razor">
+        Already logged in as: @userName.........
+    </div>
 }
 
 @code {
@@ -50,11 +69,27 @@ else
     private bool loginSuccess;
     private bool loginFailed;
     private string errorMessage;
-    private static string? authHeader;
+    private string? authHeader;
+    private string userName;
+    private bool loggedIn;
     
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         memberDto = new MemberDTO();
+
+        try
+        {
+            userName = await Http.GetStringAsync("http://localhost:80/api/members/user-info");
+            Console.WriteLine($"Username from Logintest: {userName}");
+            loggedIn = !string.IsNullOrEmpty(userName);
+
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        
     }
 
     protected async Task LoginAsync()
@@ -79,11 +114,16 @@ else
                 {
                     authHeader = authHeaders.FirstOrDefault();
                     Console.WriteLine($"Authorization header: {authHeader}");
+                    
+                    var token = authHeaders.FirstOrDefault()?.Split(" ").Last();
+                        
 
                     // Set the token in the default request headers for future requests
                     if (!string.IsNullOrEmpty(authHeader))
                     {
+                        loggedIn = true;
                         Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authHeader);
+                        // reload/redirect.
                     }
                 }
             }
@@ -103,5 +143,6 @@ else
             errorMessage = "Something went wrong. Please try again.";
             Console.WriteLine($"Exception: {e}");
         }
+        
     }
 }
