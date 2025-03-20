@@ -7,6 +7,7 @@ using Emne9_Prosjekt.Features.Common.Interfaces;
 using Emne9_Prosjekt.Features.Members.Interfaces;
 using Emne9_Prosjekt.Features.Members.Models;
 using Google.Apis.Auth;
+using Microsoft.AspNetCore.Http.Connections.Features;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Emne9_Prosjekt.Features.Members;
@@ -159,6 +160,9 @@ public class MemberService : IMemberService
             // IEnumerable<string>? roles = jwtSecurityToken?.Claims
             //     .Where(x => x.Type == "role")
             //     .Select(x => x.Value);
+            
+            // _httpContextAccessor.HttpContext.Items["MemberId"] = memberId;
+            // _httpContextAccessor.HttpContext.Items["UserName"] = userName;
 
             return (memberId, userName);
         }

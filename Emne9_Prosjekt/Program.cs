@@ -1,13 +1,10 @@
 using System.Text;
 using Emne9_Prosjekt.Components;
-
 using Emne9_Prosjekt.Extensions;
 using Emne9_Prosjekt.Hubs;
 using Emne9_Prosjekt.Services;
-
 using Emne9_Prosjekt.Game_components;
 using Emne9_Prosjekt.Data;
-using Emne9_Prosjekt.Extensions;
 using Emne9_Prosjekt.Features.Common.Interfaces;
 using Emne9_Prosjekt.Features.Members;
 using Emne9_Prosjekt.Features.Members.Interfaces;
@@ -17,6 +14,9 @@ using Emne9_Prosjekt.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -85,13 +85,13 @@ builder.Services.AddAuthentication(options =>
             IssuerSigningKey = new
                 SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]))
         };
+        
     })
     .AddGoogle(options =>
     {
         options.ClientId = "525416754804-5sjmgl3kc3e2q8s4s8dgvv6dajd53m7s.apps.googleusercontent.com";
         options.ClientSecret = "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";
     });
-
 
 
 builder.Services.AddAuthorization();
