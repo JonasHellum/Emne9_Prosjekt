@@ -13,6 +13,14 @@ public class JwtMiddleware : IMiddleware
         _memberService = memberService;
     }
 
+    /// <summary>
+    /// Processes an HTTP request by validating an optional JWT access token,
+    /// extracting the user information, and setting it in the current request context.
+    /// Calls the next middleware in the pipeline upon completion.
+    /// </summary>
+    /// <param name="context">The current HTTP request context.</param>
+    /// <param name="next">A delegate to invoke the next middleware in the pipeline.</param>
+    /// <returns>A task that represents the asynchronous operation of the middleware.</returns>
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         string? token = context.Request

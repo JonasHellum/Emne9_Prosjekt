@@ -17,6 +17,12 @@ public class MemberRepository : IMemberRepository
         _logger = logger;
         _dbContext = dbContext;
     }
+
+    /// <summary>
+    /// Adds a new member entity to the database.
+    /// </summary>
+    /// <param name="entity">The member entity to be added.</param>
+    /// <returns>The added member entity if successfully saved, otherwise null.</returns>
     public async Task<Member?> AddAsync(Member entity)
     {
         _logger.LogDebug($"Adding new member with Id: {entity.MemberId}, " +
@@ -34,17 +40,43 @@ public class MemberRepository : IMemberRepository
     {
         throw new NotImplementedException();
     }
-    
+
+    /// <summary>
+    /// Updates an existing member entity in the database with the provided values.
+    /// </summary>
+    /// <param name="entity">The member entity containing updated values.</param>
+    /// <returns>The updated member entity if the operation is successful and the member exists; otherwise, null.</returns>
     public async Task<Member?> UpdateAsync(Member entity)
     {
-        throw new NotImplementedException("Will be implemented later");
+        _logger.LogDebug($"Finding member based on id: {entity.MemberId}");
+        var member = await _dbContext.Member.FirstOrDefaultAsync(m => m.MemberId == entity.MemberId);
+        if (member == null) return null;
+
+        _logger.LogDebug($"Updating member with id: {entity.MemberId} with current values: " +
+                         $"from: {member.UserName} to: {entity.UserName} " +
+                         $"from: {member.FirstName} to: {entity.FirstName} " +
+                         $"from {member.LastName} to: {entity.LastName} " +
+                         $"from: {member.Email} to: {entity.Email} " +
+                         $"from: {member.BirthYear} to: {entity.BirthYear} " +
+                         $"from: {member.Updated} to: {entity.Updated}");
+        
+        _dbContext.Member.Update(member);
+        await _dbContext.SaveChangesAsync();
+        
+        _logger.LogInformation($"Updated member with id {member.MemberId}");
+        return member;
     }
 
-    public async Task<Member?> GetByIdAsync(Guid id)
+    public async Task<Member?> GetByIdAsync(Guid memberId)
     {
-        throw new NotImplementedException("Will be implemented later");
+        return await _dbContext.Member.FirstOrDefaultAsync(m => m.MemberId == memberId);
     }
 
+    /// <summary>
+    /// Finds a collection of member entities that match the specified predicate.
+    /// </summary>
+    /// <param name="predicate">An expression used to filter the member entities.</param>
+    /// <returns>A collection of member entities that satisfy the predicate.</returns>
     public async Task<IEnumerable<Member>> FindAsync(Expression<Func<Member, bool>> predicate)
     {
         return await _dbContext.Member
@@ -56,16 +88,37 @@ public class MemberRepository : IMemberRepository
     {
         throw new NotImplementedException("Will be implemented later");
     }
-    
-    public async Task<bool> UsernameExistsAsync(string username)
+
+    /// <summary>
+    /// Checks if a username already exists in the database.
+    /// </summary>
+    /// <param name="username">The username to be checked.</param>
+    /// <returns>A boolean indicating whether the username exists.</returns>
+    public async Task<bool> UserNameExistsAsync(string username)
     {
+        _logger.LogDebug($"Checking if username {username} exists in database.");
         return await _dbContext.Member.AnyAsync(m => m.UserName.ToLower() == username.ToLower());
     }
-    
+
+    /// <summary>
+    /// Retrieves a member entity from the database based on the provided email address.
+    /// </summary>
+    /// <param name="email">The email address of the member to retrieve.</param>
+    /// <returns>The member entity if found, otherwise null.</returns>
     public async Task<Member?> GetByEmailAsync(string email)
     {
-        return await _dbContext.Member.FirstOrDefaultAsync(m => m.Email == email);
+        _logger.LogDebug($"Retrieving member with email {email} from database.");
+        return await _dbContext.Member.FirstOrDefaultAsync(m => m.Email.ToLower() == email.ToLower());
     }
 
-
+    /// <summary>
+    /// Checks if an email already exists in the database.
+    /// </summary>
+    /// <param name="email">The email address to check for existence.</param>
+    /// <returns>True if the email exists, otherwise false.</returns>
+    public async Task<bool> EmailExistsAsync(string email)
+    {
+        _logger.LogDebug($"Checking if email {email} exists in database.");
+        return await _dbContext.Member.AnyAsync(m => m.Email.ToLower() == email.ToLower());
+    }
 }
