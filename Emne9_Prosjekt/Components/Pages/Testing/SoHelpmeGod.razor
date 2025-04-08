@@ -1,13 +1,20 @@
-﻿@page "/Battleshit"
+﻿@page "/Cry"
 @using Emne9_Prosjekt.GameComponents
-@using Microsoft.AspNetCore.SignalR.Client
+@inject HubConnection _hubConnection
 @inject BattleShipComponents GameComponents
-@inject NavigationManager Navigation
-@inject HubConnection GameHubConnection
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
 
-<div style="display: flex; justify-content: center; align-items: start; position: relative">
-    <div style="justify-content: center">
-        <h5 style="text-align: center">Your board</h5>
+@if (!_isConnected)
+{
+    <p>Kobler til spillet...</p>
+}
+else if (_gameState == GameState.Setup)
+{
+    <div style="text-align: center">
+        <h3>Battleships setup</h3>
+        <p>@(_opponentSetupComplete ? "Venter på at motstanderen skal sette opp sitt brett..." : "Plasser skipene dine")</p>
+
         <table style="margin: auto">
             @foreach (var row in "ABCDEFGHIJ")
             {
@@ -15,176 +22,237 @@
                     @for (int col = 1; col <= 10; col++)
                     {
                         var pos = $"{row}{col}";
-                        var value = GameComponents.GetBoard()[pos];
-                        <td style="width: 10px; height: 10px; border: 1px solid black;
-                            background:  @(BoardStatus(value));">
+                        <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
+                        background: @(GameComponents.GetBoard()[pos] == 1 ? "lightgreen" : "lightblue");"
+                            @onclick="() => PlaceShip(pos)">
+                            @GameComponents.GetBoard()[pos]
+                        </td>
+                    }
+                </tr>
+            }
+        </table>
+
+        @if (!_isSetupComplete)
+        {
+            <div>
+                @foreach (var ship in GameComponents.GetShips())
+                {
+                    <button @onclick='() => SelectShip(ship.Key)'>@ship.Key</button>
+                }
+            </div>
+
+            <h4>Valgt skip: @_selectedShip</h4>
+            @if (@GameComponents.GetOrientation())
+            {
+                <h4>Skipets retning: <button @onclick="OrientShip">Horisontal</button></h4>
+            }
+            else
+            {
+                <h4>Skipets retning: <button @onclick="OrientShip">Vertikal</button></h4>
+            }
+
+            <div>
+                Alle skip: @_allShips - Nåværende skip: @BoardValues()
+                @if (BoardValues() == _allShips)
+                {
+                    <button @onclick="CompleteSetup">Fullfør setup</button>
+                }
+            </div>
+            <button @onclick="Reset">Nullstill brett</button>
+        }
+    </div>
+}
+else
+{
+    <div>
+        <h5>Ditt Brett</h5>
+        <table>
+            @foreach (var row in "ABCDEFGHIJ")
+            {
+                <tr>
+                    @for (int col = 1; col <= 10; col++)
+                    {
+                        var pos = $"{row}{col}";
+                        <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
+                        background: @(BoardStatus(_playerBoard, pos));">
                         </td>
                     }
                 </tr>
             }
         </table>
     </div>
-    <div style="justify-content: center; padding-left: 10px">
-        <h5 style="text-align: center">Opponents board</h5>
-        @if (!GameComponents.GetOpponentBoard().Any())
-        {
-            <p><em>Waiting for opponent to join...</em></p>
-        }
-        else
-        {
-            <table style="margin: auto">
-                @foreach (var row in "ABCDEFGHIJ")
-                {
-                    <tr>
-                        @for (int col = 1; col <= 10; col++)
-                        {
-                            var pos = $"{row}{col}";
-                            var value = GameComponents.GetOpponentBoard()[pos];
-                            <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
-                                background: @(BoardStatus(value));"
-                                @onclick="() => ShootAtTarget(pos)">
-                                @GameComponents.GetOpponentBoard()[pos]
-                            </td>
-                        }
-                    </tr>
-                }
-            </table>
-            <div style="text-align: center">
-                @if (_allShips == @GameComponents.HitCount)
-                {
-                    <h3>Win-condition met!</h3>
-                }
-            </div>
-        }
-    </div>
-</div>
-<div>
-    <h3>Live Chat</h3>
 
-    <p><strong>Tilkoblet!</strong></p>
     <div>
-        <input @bind="_message" @bind:event="oninput" placeholder="Skriv en melding..." />
-        <button @onclick="SendMessage">Send</button>
+        <h5>Motstanderens Brett</h5>
+        <table>
+            @foreach (var row in "ABCDEFGHIJ")
+            {
+                <tr>
+                    @for (int col = 1; col <= 10; col++)
+                    {
+                        var pos = $"{row}{col}";
+                        <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
+                        background: @(BoardStatus(_opponentBoard, pos));"
+                            @onclick="() => ShootAtTarget(pos)">
+                        </td>
+                    }
+                </tr>
+            }
+        </table>
     </div>
-    <div id="chat-box">
-        @foreach (var msg in _messages)
-        {
-            <div class="message @(msg.Item1 == _userName ? "self" : "user")">
-                <strong>@msg.Item1</strong>: @msg.Item2
-            </div>
-        }
-    </div>
-</div>
+}
 
 @code {
-    private int _allShips;
-    private string _statusMessage = "Connecting...";
-    private bool _isMyTurn = false;
-    private readonly string _userName = "";
-    private string _message = "";
+    private enum GameState
+    {
+        Setup,
+        Playing
+    }
+
+    private GameState _gameState = GameState.Setup;
+    private Dictionary<string, int> _playerBoard = new();
+    private Dictionary<string, int> _opponentBoard = new();
     private bool _isConnected;
-    private List<(string, string)> _messages = new();
+    private int _playerNumber;
+    private string _selectedShip = "";
+    private int _allShips;
+    private bool _isSetupComplete;
+    private bool _opponentSetupComplete;
 
     protected override async Task OnInitializedAsync()
     {
+        _hubConnection.On<int, Dictionary<string, int>>("GameStarted", (playerNumber, board) =>
+        {
+            _playerNumber = playerNumber;
+            _playerBoard = board;
+            _gameState = GameState.Playing;
+            _isConnected = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.On<Dictionary<string, int>>("UpdateBoard", (board) =>
+        {
+            _playerBoard = board;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.On<Dictionary<string, int>>("UpdateOpponentBoard", (board) =>
+        {
+            _opponentBoard = board;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.On("OpponentDisconnected", () =>
+        {
+            _isConnected = false;
+            _isSetupComplete = false;
+            _opponentSetupComplete = false;
+            _gameState = GameState.Setup;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.On("OpponentConnected", () =>
+        {
+            _isConnected = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.On<string>("WaitingForOpponent", (message) =>
+        {
+            _isConnected = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.On("OpponentSetupComplete", () =>
+        {
+            _opponentSetupComplete = true;
+            _gameState = GameState.Setup;
+            InvokeAsync(StateHasChanged);
+        });
+
+        await _hubConnection.StartAsync();
+        GameComponents.CreateBoard();
+
         foreach (var ship in GameComponents.GetShips())
         {
             _allShips += ship.Value;
         }
 
-        // Start SignalR-forbindelsen
-        GameHubConnection.On<Dictionary<string, int>>("UpdatePlayerBoard", board =>
-        {
-          
-            GameComponents.GetOpponentBoard().Clear();
-            foreach (var kvp in board)
-            {
-                GameComponents.GetOpponentBoard()[kvp.Key] = kvp.Value;
-            }
-            StateHasChanged();
-        });
-
-        GameHubConnection.On<Dictionary<string, int>>("UpdateOpponentBoard", board =>
-        {
-            GameComponents.GetBoard().Clear();
-            foreach (var kvp in board)
-            {
-                GameComponents.GetBoard()[kvp.Key] = kvp.Value;
-            }
-            StateHasChanged();
-        });
-        
-        await GameHubConnection.StartAsync();
+        await base.OnInitializedAsync();
     }
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+
+    private void SelectShip(string ship)
     {
-        if (firstRender)
+        _selectedShip = ship;
+        GameComponents.SelectShip(ship);
+        StateHasChanged();
+    }
+
+    private void PlaceShip(string position)
+    {
+        if (!_isSetupComplete)
         {
-            Console.WriteLine("---Establishing connection...");
-
-            GameHubConnection.On<string, string>("ReceiveMessage", (user, message) =>
-            {
-                _messages.Add((user, message));
-                InvokeAsync(StateHasChanged);
-            });
-
-            GameHubConnection.On<string>("NotifyUserConnected", (user) =>
-            {
-                _messages.Add(("System", $"{user} har koblet til."));
-                InvokeAsync(StateHasChanged);
-            });
-
-            GameHubConnection.On<string>("NotifyUserDisconnected", (user) =>
-            {
-                _messages.Add(("System", $"{user} har forlatt chatten."));
-                InvokeAsync(StateHasChanged);
-            });
-
-            try
-            {
-                await GameHubConnection.StartAsync();
-                Console.WriteLine("--Connection established!");
-                _isConnected = true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"--Feil ved tilkobling: {ex.Message}");
-            }
+            _selectedShip = "";
+            GameComponents.PlaceShip(position);
+            StateHasChanged();
         }
     }
 
-
-    private void ShootAtTarget(string position)
+    private void OrientShip()
     {
-        GameComponents.ShootBoard(position);
+        GameComponents.ToggleOrientation();
     }
 
-    private string BoardStatus(int value)
+    private int BoardValues()
     {
-        return value switch
+        int boardValue = 0;
+        foreach (var square in GameComponents.GetBoard())
         {
-            0 => "lightblue",
-            1 => "lightgreen",
-            -1 => "darkred",
-            -2 => "blue",
-            _ => "black"
-        };
+            boardValue += square.Value;
+        }
+        return boardValue;
     }
-    private async Task SendMessage()
+
+    private void Reset()
     {
-        if (!string.IsNullOrEmpty(_message))
+        GameComponents.CreateBoard();
+    }
+
+    private async Task CompleteSetup()
+    {
+        if (_hubConnection.State == HubConnectionState.Connected)
         {
-            await GameHubConnection.SendAsync("SendMessage", _message);
-            _message = string.Empty;
+            var board = GameComponents.GetBoard();
+            await _hubConnection.SendAsync("SetupComplete", board);
+            _isSetupComplete = true;
+            await InvokeAsync(StateHasChanged);
         }
     }
+
+    private async Task ShootAtTarget(string position)
+    {
+        if (_isConnected && _gameState == GameState.Playing)
+        {
+            await _hubConnection.SendAsync("ShootAtOpponent", position);
+        }
+    }
+
+    private string BoardStatus(Dictionary<string, int> board, string pos) => board.ContainsKey(pos) switch
+    {
+        false => "gray",
+        true when board[pos] == 1 => "lightgreen",
+        true when board[pos] == -1 => "darkred",
+        true when board[pos] == -2 => "blue",
+        _ => "lightblue"
+    };
 
     public async ValueTask DisposeAsync()
     {
-        if (_isConnected)
+        if (_hubConnection != null)
         {
-            await GameHubConnection.DisposeAsync();
-            Console.WriteLine("--Connection closed.");
+            await _hubConnection.DisposeAsync();
         }
     }
 }
+
+
