@@ -112,7 +112,6 @@ else if (memberDto == null)
 
             if (response.IsSuccessStatusCode)
             {
-                loginSuccess = true;
 
                 // Extract the Authorization header
                 if (response.Headers.TryGetValues("Authorization", out var authHeaders))
@@ -128,7 +127,9 @@ else if (memberDto == null)
                     {
                         loggedIn = true;
                         Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authHeader);
+                        loginSuccess = true;
                         // reload/redirect.
+                        
                     }
                 }
             }
