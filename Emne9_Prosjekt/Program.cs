@@ -36,6 +36,7 @@ builder.Services.AddSingleton<ChatService>();
 builder.Services.AddSingleton<GameService>();
 
 builder.Services.AddSingleton<BattleShipComponents>();
+builder.Services.AddSingleton<Connect4Components>();
 
 builder.Services.AddControllers();
 

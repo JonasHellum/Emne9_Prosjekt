@@ -37,6 +37,12 @@
 
     <ItemGroup>
       <None Include="wwwroot\Assets\Battleships\TestShip.png" />
+      <None Remove="logs\logs-20250330.log" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="Components\Pages\Games\Battleships\Battleships.razor" />
+      <AdditionalFiles Include="Components\Pages\Games\Battleships\BattleshipsSetup.razor" />
     </ItemGroup>
 
 </Project>

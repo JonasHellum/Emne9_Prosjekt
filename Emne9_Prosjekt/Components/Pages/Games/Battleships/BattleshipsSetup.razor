@@ -4,7 +4,7 @@
 
 
 <div style="text-align: center">
-<h3>Battleships test</h3>
+<h3 style="padding-top: 125px">Battleships test</h3>
 
 <table style="margin: auto">
     @foreach (var row in "ABCDEFGHIJ")
@@ -16,7 +16,7 @@
                 <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
                     background: @(GameComponents.GetBoard()[pos] == 1 ? "lightgreen" : "lightblue");"
                     @onclick="() => PlaceShip(pos)">
-                    @GameComponents.GetBoard()[pos]
+                    @pos
                 </td>
             }
         </tr>
@@ -26,7 +26,10 @@
 <div>
     @foreach (var ship in GameComponents.GetShips())
     {
-        <button @onclick='() => SelectShip(ship.Key)'>@ship.Key</button>
+        if (!GameComponents.GetPlacedShips().ContainsKey(ship.Key))
+        {
+            <button @onclick='() => SelectShip(ship.Key)'>@ship.Key</button>
+        }
     }
 </div>
 
@@ -41,8 +44,11 @@ else
 }
 
 <div>
-    All ships: @_allShips - Current ships: @BoardValues()
-    @if (BoardValues() == _allShips)
+    <NavLink href="/Battleshit">
+        <button>Start Game!</button>
+    </NavLink>
+    All ships: @_shipCount - Current ships: @GameComponents.GetPlacedShips().Count
+    @if (GameComponents.GetPlacedShips().Count == GameComponents.GetShips().Count)
     {
         <NavLink href="/Battleships">
             <button>Start Game!</button>
@@ -55,15 +61,14 @@ else
 @code {
     
     private string _selectedShip = "";
-    private int _allShips;
+    private int _shipCount;
     
     protected override void OnInitialized()
     {
         GameComponents.CreateBoard();
-        foreach (var ship in GameComponents.GetShips())
-        {
-            _allShips += ship.Value;
-        }
+        GameComponents.GetPlacedShips().Clear();
+        GameComponents.SunkenShipCount = 0;
+        _shipCount = GameComponents.GetShips().Count;
     }
 
     private void SelectShip(string ship)
@@ -85,18 +90,9 @@ else
         GameComponents.ToggleOrientation();
     }
     
-    private int BoardValues()
-    {
-        int boardValue = 0;
-        foreach (var square in GameComponents.GetBoard())
-        {
-            boardValue += square.Value;
-        }
-        return boardValue;
-    }
-
     private void Reset()
     {
         GameComponents.CreateBoard();
+        GameComponents.GetPlacedShips().Clear();
     }
 }

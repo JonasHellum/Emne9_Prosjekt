@@ -1,48 +1,97 @@
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Logo / Navn her?</a>
+<div style="display: flex;
+            justify-content: center;
+            background: linear-gradient(#404040,
+                                        #323232,
+                                        #292929,
+                                        #252525,
+                                        #1b1b1b,
+                                        #1b1b1b,
+                                        #1b1b1b,
+                                        #1b1b1b,
+                                        #252525)">
+    <div style="text-align: left;
+                padding-top: 10px;
+                padding-bottom: 10px">
+        <img style="width: 120px"
+             alt=""
+             src="@_icon"
+             @onmouseover="MouseOn"
+             @onmouseout="MouseOff"/>
+    </div>
+    <div style="color: white;
+                text-align: center;
+                font-style: oblique;
+                padding-right: 85px;
+                padding-left: 85px;
+                padding-top: 13px">
+        Developed by Nubisoft™
+    </div>
+    <div style="color: white;
+                text-align: right;
+                padding-top: 12px">
+        <NavLink href="/Login"
+                 class="cool-link">
+            Login
+        </NavLink> / 
+        <NavLink href="/Register"
+                 class="cool-link">
+            Register
+        </NavLink>
+    </div>
+</div>
+<div class="nav-item px-3"
+     style="display: flex;
+            justify-content: center;
+            padding-top: 8px;
+            background: #000000">
+    <div>
+        <NavLink class="nav-link" href="">
+            <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Home
+        </NavLink>
+    </div>
+    <div>
+        <NavLink class="nav-link" href="Games">
+            <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Games
+        </NavLink>
+    </div>
+    <div>
+        <NavLink class="nav-link" href="Leaderboards">
+            <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Leaderboards
+        </NavLink>
+    </div>
+    <div>
+        <NavLink class="nav-link" href="User">
+            <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> User
+        </NavLink>
+    </div>
+    <div>
+        <NavLink class="nav-link" href="Tests">
+            <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Tests
+        </NavLink>
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler"/>
+<style>
+    .cool-link {
+        color: white;
+        text-decoration: none;
+    }
+    .cool-link:hover {
+        color: white;
+        text-shadow: 0 0 10px white;
+    }
+</style>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
+@code
+{
+    private string _icon = "/Assets/logo/BWLogo.png";
+    private void MouseOn()
+    {
+        _icon = "/Assets/logo/ColorLogo.png";
+    }
 
-        <div class="nav-item px-3">
-
-        <NavLink class="nav-link" href="chat">
-            <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Chat
-        </NavLink>
-
-        </div>
-
-        <div>
-            <NavLink href="/Games">Games</NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="login">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Login
-
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Logintest">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Logintest
-
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="AuthenticationTestin">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Authenticationtest
-
-            </NavLink>
-        </div>
-    </nav>
-</div>
+    private void MouseOff()
+    {
+        _icon = "/Assets/logo/BWLogo.png";
+    }
+}

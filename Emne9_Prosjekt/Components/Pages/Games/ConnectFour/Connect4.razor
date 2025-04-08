@@ -1,0 +1,53 @@
+﻿@page "/Connect4"
+@using Emne9_Prosjekt.GameComponents
+@inject Connect4Components GameComponents
+
+<div style="text-align: center">
+    <h3 style="padding-top: 125px">Connect 4 test</h3>
+
+    <table style="margin: auto">
+        @foreach (var row in "ABCDEF")
+        {
+            <tr>
+                @for (int col = 1; col <= 7; col++)
+                {
+                    var pos = $"{row}{col}";
+                    var value = _board[pos];
+                    <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
+                        background: @BoardStatus(value);"
+                        @onclick="() => PlacePiece(pos)">
+                        @pos
+                    </td>
+                }
+            </tr>
+        }
+    </table>
+</div>
+
+@code {
+    private Dictionary<string, int>? _board;
+
+    protected override void OnInitialized()
+    {
+        GameComponents.CreateBoard();
+        _board = GameComponents.GetBoard();
+    }
+
+    private void PlacePiece(string pos)
+    {
+        GameComponents.DropPiece(pos);
+    }
+    
+    private static string BoardStatus(int value)
+    {
+        return value switch
+        {
+            0 => "lightblue",
+            1 => "red",
+            2 => "yellow",
+            _ => "black"
+        };
+    }
+    
+}
+
