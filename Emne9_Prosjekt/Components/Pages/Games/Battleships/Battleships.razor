@@ -2,14 +2,20 @@
 @using Emne9_Prosjekt.GameComponents
 @inject BattleShipComponents GameComponents
 
-@if (!_board.Any())
+@if (_board == null || !_board.Any())
 {
-    <p><em>You RAPSCALLION!
-            Enter through the proper way and sett up your board first!</em></p>
+    <p><em style="padding-top: 125px">
+        You RAPSCALLION!
+        Enter through the proper way and sett up your board first!
+    </em></p>
 }
 else
 {
-    <div style="display: flex; justify-content: center; align-items: start; position: relative">
+    <div style="display: flex;
+                justify-content: center;
+                align-items: start;
+                position: relative;
+                padding-top: 125px">
         <div style="justify-content: center">
             <h5 style="text-align: center">Your board</h5>
                 <table style="margin: auto">
@@ -30,7 +36,7 @@ else
         </div>
         <div style="justify-content: center; padding-left: 10px">
             <h5 style="text-align: center">Opponents board</h5>
-            @if (!_opponentBoard.Any())
+            @if (!_board.Any())
             {
                 <p><em>Waiting for opponent to join...</em></p>
             }
@@ -43,18 +49,29 @@ else
                             @for (int col = 1; col <= 10; col++)
                             {
                                 var pos = $"{row}{col}";
-                                var value = _opponentBoard[pos];
+                                var value = _board[pos];
                                 <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
                                     background: @BoardStatus(value);"
                                     @onclick="() => ShootAtTarget(pos)">
-                                    @_opponentBoard[pos]
+                                    @_board[pos]
                                 </td>
                             }
                         </tr>
                     }
                 </table>
                 <div style="text-align: center">
-                    @if (_allShips == @GameComponents.HitCount)
+                    @foreach (var ship in GameComponents.GetShips())
+                    {
+                        if (GameComponents.GetPlacedShips()[ship.Key].All(pos => GameComponents.GetBoard()[pos] < 0))
+                        {
+                            <div>Dead</div>
+                        }
+                        else
+                        {
+                            <div>@ship.Key</div>
+                        }
+                    }
+                    @if (_shipCount == @GameComponents.SunkenShipCount)
                     {
                         <h3>Win-condition met!</h3>
                     }
@@ -65,17 +82,14 @@ else
 }
 @code {
     
-    private int _allShips;
+    private int _shipCount;
     private Dictionary<string, int>? _board;
     private Dictionary<string, int>? _opponentBoard;
     protected override void OnInitialized()
     {
         _board = GameComponents.GetBoard();
         _opponentBoard = GameComponents.GetOpponentBoard();
-        foreach (var ship in GameComponents.GetShips())
-        {
-            _allShips += ship.Value;
-        }
+        _shipCount = GameComponents.GetShips().Count;
     }
 
     private static string BoardStatus(int value)

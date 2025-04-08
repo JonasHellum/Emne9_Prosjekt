@@ -5,8 +5,10 @@ public class BattleShipComponents
     private string? _selectedShip;
     private bool _shipOrientation = true;
     public int HitCount { get; private set; }
+    public int SunkenShipCount { get; set; }
     private readonly Dictionary<string,int> _board = new ();
-    private Dictionary<string,int> _opponentBoard = new ();
+    private readonly Dictionary<string,int> _opponentBoard = new ();
+    private readonly Dictionary<string, List<string>> _placedShips = new ();
     private readonly Dictionary<string,int> _ships = new ()
     {
         {"Carrier", 5},
@@ -80,6 +82,8 @@ public class BattleShipComponents
 
     public void PlaceShip(string position)
     {
+        if (_selectedShip == null || _placedShips.ContainsKey(_selectedShip)) return;
+        
         var positions = CheckAndStorePlacement(position);
         positions = CheckAndAdjustPlacement(positions);
 
@@ -89,7 +93,24 @@ public class BattleShipComponents
         {
             _board[pos]++;
         }
-        //_selectedShip = null;
+        _placedShips[_selectedShip] = positions;
+        
+        _selectedShip = null;
+    }
+    
+    private void CheckShipStatus(string target)
+    {
+        foreach (var (_, positions) in _placedShips)
+        {
+            if (positions.Contains(target))
+            {
+                if (positions.All(pos => _board[pos] < 0))
+                {
+                    SunkenShipCount++;
+                }
+                break;
+            }
+        }
     }
     
     public void ToggleOrientation()
@@ -106,15 +127,15 @@ public class BattleShipComponents
     {
         return _opponentBoard;
     }
-
-    public void SetOpponentBoard(Dictionary<string, int> board)
-    {
-        _opponentBoard = board;
-    }
     
     public Dictionary<string, int> GetShips()
     {
         return _ships;
+    }
+
+    public Dictionary<string, List<string>> GetPlacedShips()
+    {
+        return _placedShips;
     }
     
     public bool GetOrientation()
@@ -122,20 +143,21 @@ public class BattleShipComponents
         return _shipOrientation;
     }
     
-    public void ShootBoard(string position)
+    public void ShootBoard(string target)
     {
-        int value = _board[position];
+        int value = _board[target];
         
-        if (_board.ContainsKey(position))
+        if (_board.ContainsKey(target))
         {
-            if (_board[position] >= 0)
+            if (_board[target] >= 0)
             {
-                _board[position] -= 2;
+                _board[target] -= 2;
             }
-
+            
             if (value == 1)
             {
                 HitCount++;
+                CheckShipStatus(target);
             }
         }
     }
