@@ -11,10 +11,11 @@ public interface IMemberService : IBaseService<MemberDTO>
     Task<MemberDTO?> LoginMemberAsync(string username, string password);
     Task<MemberDTO?> GoogleLoginAsync(GoogleJsonWebSignature.Payload googleUser);
     (string memberId, string userName) ValidateAccessToken(string accessToken);
-    
+    Task<MemberDTO?> UpdateAsync(Guid memberId, MemberUpdateDTO updateDTO);
+    Task<MemberDTO?> GetByIdAsync(Guid memberId);
     string MakeToken(MemberDTO member);
     
     //(string? userId, IEnumerable<string>? roles) ValidateAccessToken(string accessToken);
-    //Task<MemberDTO?> UpdateAsync(int id, MemberUpdateDTO updateDTO);
+    //
 //     Task<IEnumerable<MemberDTO?>> GetPagedAsync(int pageNumber, int pageSize);
 }

@@ -17,7 +17,6 @@ public class Member
     public string LastName { get; set; } = string.Empty;
     
     [EmailAddress]
-    // UNIQUE
     public string Email { get; set; } = string.Empty;
     
     public DateOnly BirthYear { get; set; }

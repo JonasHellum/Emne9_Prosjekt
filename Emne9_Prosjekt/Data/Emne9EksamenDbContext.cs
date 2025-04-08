@@ -21,6 +21,7 @@ public class Emne9EksamenDbContext : IdentityDbContext<IdentityUser>
         modelBuilder.Entity<Member>(entity =>
         {
             entity.HasIndex(m => m.UserName).IsUnique();
+            entity.HasIndex(m => m.Email).IsUnique();
         });
     }
 }

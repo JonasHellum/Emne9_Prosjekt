@@ -42,6 +42,12 @@ public class MemberService : IMemberService
         throw new NotImplementedException("Will be implemented later");
     }
 
+    /// <summary>
+    /// Registers a new member using the provided registration information.
+    /// </summary>
+    /// <param name="registrationDTO">The registration information for the new member.</param>
+    /// <returns>An instance of <see cref="MemberDTO"/> representing the newly registered member, or null if the registration fails.</returns>
+    /// <exception cref="DataException">Thrown if there is a failure in adding the new member to the database.</exception>
     public async Task<MemberDTO?> RegistrationAsync(MemberRegistrationDTO registrationDTO)
     {
         var member = _registrationMapper.MapToModel(registrationDTO);
@@ -60,17 +66,17 @@ public class MemberService : IMemberService
         
         return _memberMapper.MapToDTO(addedMember);
     }
-    
+
+    /// <summary>
+    /// Logs in or registers a member using their Google account information.
+    /// </summary>
+    /// <param name="googleUser">The Google user's info payload obtained during authentication.</param>
+    /// <returns>An instance of <see cref="MemberDTO"/> representing the Google-logged-in member.</returns>
+    /// <exception cref="DataException">Thrown when there is a failure in adding the new Google member to the database.</exception>
     public async Task<MemberDTO?> GoogleLoginAsync(GoogleJsonWebSignature.Payload googleUser)
     {
-
-        var googleId = googleUser.Subject;
-        var firstName = googleUser.GivenName;
-        var lastName = googleUser.FamilyName;
+        _logger.LogInformation("Logging in with Google.");
         var email = googleUser.Email;
-
-        var baseUsername = GenerateBaseUsername(firstName, lastName);
-        var uniqueUsername = await UniqueUsernameAsync(baseUsername);
 
         var existingMember = await _memberRepository.GetByEmailAsync(email);
         if (existingMember != null)
@@ -80,6 +86,14 @@ public class MemberService : IMemberService
             
             return _memberMapper.MapToDTO(existingMember); 
         }
+        
+        _logger.LogInformation("Creating a new member from Google account.");
+        var googleId = googleUser.Subject;
+        var firstName = googleUser.GivenName;
+        var lastName = googleUser.FamilyName;
+        
+        var baseUsername = GenerateBaseUsername(firstName, lastName);
+        var uniqueUsername = await UniqueUsernameAsync(baseUsername);
 
         var newGoogleMember = new Member()
         {
@@ -103,7 +117,14 @@ public class MemberService : IMemberService
         GenerateJwtToken(newMember);
         return _memberMapper.MapToDTO(newMember);
     }
-    
+
+    /// <summary>
+    /// Authenticates a member using the provided username and password.
+    /// </summary>
+    /// <param name="username">The username of the member attempting to log in.</param>
+    /// <param name="password">The password associated with the member's username.</param>
+    /// <returns>An instance of <see cref="MemberDTO"/> if login is successful; otherwise, null.</returns>
+    /// <exception cref="DataException">Thrown if the member does not exist or the password is incorrect.</exception>
     public async Task<MemberDTO?> LoginMemberAsync(string username, string password)
     {
         _logger.LogInformation($"Trying to login member with username: {username}");
@@ -114,6 +135,12 @@ public class MemberService : IMemberService
         {
             _logger.LogWarning($"Member with username: {username} does not exist.");
             throw new DataException($"Member with username: {username} does not exist.");
+        }
+
+        if (memb.HashedPassword.IsNullOrEmpty())
+        {
+            _logger.LogWarning("Member does not have a password set.");
+            throw new InvalidOperationException("Member does not have a password set.");
         }
         
         if (!BCrypt.Net.BCrypt.Verify(password, memb.HashedPassword))
@@ -127,6 +154,11 @@ public class MemberService : IMemberService
         return _memberMapper.MapToDTO(memb);
     }
 
+    /// <summary>
+    /// Validates the provided access token and extracts the associated member ID and username.
+    /// </summary>
+    /// <param name="accessToken">The access token to be validated.</param>
+    /// <returns>A tuple containing the member ID and username if validation is successful.</returns>
     public (string memberId, string userName) ValidateAccessToken(string accessToken)
     {
         try
@@ -168,11 +200,78 @@ public class MemberService : IMemberService
         }
         catch (Exception e)
         {
-            // Legg til logging !!!
+            _logger.LogError($"An error occurred during token validation: {e}");
             return (null!, null!);
         }
     }
 
+    /// <summary>
+    /// Updates an existing member with the provided information.
+    /// </summary>
+    /// <param name="memberId">The unique identifier of the member to be updated.</param>
+    /// <param name="updateDTO">The updated properties for the member.</param>
+    /// <returns>An instance of <see cref="MemberDTO"/> representing the updated member, or null if the update fails.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown if a member with the specified ID is not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown if the caller is not authorized to update the specified member.</exception>
+    /// <exception cref="DataException">Thrown if the update operation fails due to a data persistence issue.</exception>
+    public async Task<MemberDTO?> UpdateAsync(Guid memberId, MemberUpdateDTO updateDTO)
+    {
+        var loggedMember = await GetLoggedInMemberAsync();
+        _logger.LogInformation($"Trying to update member by memberId: {memberId} by logged in member memberId: {loggedMember.MemberId}");
+
+        _logger.LogDebug($"Trying to find member to update based on memberId: {memberId}");
+        var memberToUpdate = await _memberRepository.GetByIdAsync(memberId);
+        if (memberToUpdate is null)
+        {
+            _logger.LogWarning($"Member with memberId: {memberId} not found.");
+            throw new KeyNotFoundException($"Member with memberId: {memberId} not found.");
+        }
+        
+        _logger.LogDebug($"Checking if member with memberId: {loggedMember.MemberId} is " +
+                         $"authorized to update member with memberId: {memberToUpdate.MemberId}");
+        if (memberToUpdate.MemberId != loggedMember.MemberId)
+        {
+            _logger.LogWarning($"Member with memberId: {loggedMember.MemberId} is not authorized to update " +
+                               $"member with memberId: {memberToUpdate.MemberId}");
+            throw new UnauthorizedAccessException($"Member with memberId: {loggedMember.MemberId} is not authorized to update " +
+                                                  $"member with memberId: {memberToUpdate.MemberId}");
+        }
+        
+        memberToUpdate.UserName = updateDTO.UserName;
+        memberToUpdate.FirstName = updateDTO.FirstName;
+        memberToUpdate.LastName = updateDTO.LastName;
+        memberToUpdate.BirthYear = updateDTO.BirthYear;
+        memberToUpdate.Email = updateDTO.Email;
+        memberToUpdate.Updated = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (!string.IsNullOrWhiteSpace(updateDTO.Password))
+        {
+            memberToUpdate.HashedPassword = BCrypt.Net.BCrypt.HashPassword(updateDTO.Password);
+        }
+        
+        var updatedMember = await _memberRepository.UpdateAsync(memberToUpdate);
+        
+        if (updatedMember == null)
+        {
+            _logger.LogWarning($"Did not update member with memberId: {memberId}.");
+            throw new DataException($"Did not update member with memberId: {memberId}.");
+        }
+        
+        return _memberMapper.MapToDTO(updatedMember);
+    }
+
+    public async Task<MemberDTO?> GetByIdAsync(Guid memberId)
+    {
+        var member = await _memberRepository.GetByIdAsync(memberId);
+        return member is null
+            ? null
+            : _memberMapper.MapToDTO(member);
+    }
+
+    /// <summary>
+    /// Generates a JWT token for the given member.
+    /// </summary>
+    /// <param name="member">The member for whom the token will be generated.</param>
+    /// <returns>A string containing the generated JWT token.</returns>
     public string MakeToken(MemberDTO member)
     {
         var memberModel = _memberMapper.MapToModel(member);
@@ -181,11 +280,19 @@ public class MemberService : IMemberService
 
 
     #region Private methods
+
+    /// <summary>
+    /// Generates a base username by combining the provided first name and last name.
+    /// </summary>
+    /// <param name="firstName">The first name of the user.</param>
+    /// <param name="lastName">The last name of the user.</param>
+    /// <returns>A base username in lowercase format derived from the names, or "googleUser" if both names are empty.</returns>
     private string GenerateBaseUsername(string firstName, string lastName)
     {
         if (!string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(lastName))
         {
-            return $"{firstName.ToLower()}.{lastName.ToLower()}";
+            
+            return $"{firstName.ToLower().Replace(" ","")}.{lastName.ToLower()}";
         }
 
         if (!string.IsNullOrEmpty(firstName))
@@ -195,13 +302,19 @@ public class MemberService : IMemberService
 
         return "googleUser"; 
     }
-    
+
+    /// <summary>
+    /// Generates a unique username by appending a counter to the provided base username
+    /// if the base username already exists in the system.
+    /// </summary>
+    /// <param name="baseUsername">The initial username to be checked for uniqueness.</param>
+    /// <returns>A unique username that does not already exist in the system.</returns>
     private async Task<string> UniqueUsernameAsync(string baseUsername)
     {
         var username = baseUsername;
         var counter = 1;
 
-        while (await _memberRepository.UsernameExistsAsync(username))
+        while (await _memberRepository.UserNameExistsAsync(username))
         {
             username = $"{baseUsername}{counter}";
             counter++;
@@ -210,8 +323,14 @@ public class MemberService : IMemberService
         return username;
     }
 
+    /// <summary>
+    /// Generates a JWT token for the specified member.
+    /// </summary>
+    /// <param name="member">The member for whom the JWT token is to be generated.</param>
+    /// <returns>A string representing the generated JWT token.</returns>
     private string GenerateJwtToken(Member member)
     {
+        _logger.LogInformation("Generating JWT token for member.");
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
@@ -243,6 +362,28 @@ public class MemberService : IMemberService
         Console.WriteLine(tokenHandler.WriteToken(token));
         return tokenHandler.WriteToken(token);
     }
+
+    private async Task<Member?> GetLoggedInMemberAsync()
+    {
+        var loggedInMemberId = _httpContextAccessor.HttpContext?.Items["MemberId"] as string;
+        _logger.LogInformation("Logged in member ID: {LoggedInMemberId}", loggedInMemberId);
+    
+        if (string.IsNullOrEmpty(loggedInMemberId))
+        {
+            _logger.LogWarning("No logged in member.");
+            throw new UnauthorizedAccessException("No logged in member.");
+        }
+        
+        var loggedInMember = (await _memberRepository.FindAsync(m => m.MemberId.ToString() == loggedInMemberId)).FirstOrDefault();
+        if (loggedInMember == null)
+        {
+            _logger.LogWarning("Logged in member not found: {LoggedInMemberId}", loggedInMemberId);
+            throw new UnauthorizedAccessException("Logged in member ID not found.");
+        }
+        
+        return loggedInMember;
+    }
+    
     #endregion
 
 }

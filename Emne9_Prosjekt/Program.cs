@@ -11,6 +11,10 @@ using Emne9_Prosjekt.Features.Members.Mappers;
 using Emne9_Prosjekt.Features.Members.Models;
 using Emne9_Prosjekt.GameComponents;
 using Emne9_Prosjekt.Middleware;
+using Emne9_Prosjekt.Validators.Interfaces;
+using Emne9_Prosjekt.Validators.MemberValidators;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -51,6 +55,20 @@ builder.Services
     .AddScoped<IMemberRepository, MemberRepository>()
     .AddScoped<IMapper<Member, MemberDTO>, MemberMapper>()
     .AddScoped<IMapper<Member, MemberRegistrationDTO>, MemberRegistrationMapper>();
+
+builder.Services
+    .AddValidatorsFromAssemblyContaining<Program>(
+        lifetime: ServiceLifetime.Scoped,
+        filter: filterType => filterType.ValidatorType != typeof(AsyncMemberRegistrationDTOValidator) &&
+                              filterType.ValidatorType != typeof(AsyncMemberUpdateDTOValidator)
+    )
+    .AddFluentValidationAutoValidation(config =>
+        config.DisableDataAnnotationsValidation = true);
+
+
+builder.Services.AddScoped<IAsyncMemberRegistrationValidator, AsyncMemberRegistrationDTOValidator>();
+builder.Services.AddScoped<IAsyncMemberUpdateValidator, AsyncMemberUpdateDTOValidator>();
+
 
 builder.Services.AddDbContext<Emne9EksamenDbContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -106,7 +124,8 @@ var app = builder.Build();
 //app.UseHttpsRedirection();
 
 app.UseRouting();
-app.UseMiddleware<JwtMiddleware>();
+app.UseMiddleware<JwtMiddleware>()
+    .UseMiddleware<ApiExceptionHandling>();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -138,3 +157,5 @@ app.MapHub<GameHub>("/gameHub");
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }
