@@ -1,3 +1,6 @@
+@using Microsoft.IdentityModel.Tokens
+@inject HttpClient Http
+
 <div style="display: flex;
             justify-content: center;
             background: linear-gradient(#404040,
@@ -26,18 +29,28 @@
                 padding-top: 13px">
         Developed by Nubisoft™
     </div>
-    <div style="color: white;
+    @if (_userName.IsNullOrEmpty())
+    {
+        <div style="color: white;
                 text-align: right;
                 padding-top: 12px">
-        <NavLink href="/Login"
-                 class="cool-link">
-            Login
-        </NavLink> / 
-        <NavLink href="/Register"
-                 class="cool-link">
-            Register
-        </NavLink>
-    </div>
+            <NavLink href="/Login"
+                     class="cool-link">
+                Login
+            </NavLink> / 
+            <NavLink href="/Register"
+                     class="cool-link">
+                Register
+            </NavLink>
+        </div>
+    }
+    else
+    {
+        <div>
+            Welcome @_userName
+        </div>
+    }
+    
 </div>
 <div class="nav-item px-3"
      style="display: flex;
@@ -86,6 +99,22 @@
 @code
 {
     private string _icon = "/Assets/logo/BWLogo.png";
+    private string? _userName;
+    
+    protected override async Task OnInitializedAsync()
+    {
+
+        try
+        {
+            _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        
+    }
     private void MouseOn()
     {
         _icon = "/Assets/logo/ColorLogo.png";
