@@ -1,0 +1,153 @@
+@page "/GitShips"
+@using Emne9_Prosjekt.GameComponents
+@inject BattleShipComponents GameComponents
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager Navigation
+@inject HubConnection _hubConnection
+@implements IAsyncDisposable
+
+<div style="display: flex; justify-content: center; align-items: start; position: relative">
+    <div style="justify-content: center">
+        <h5 style="text-align: center">Your board</h5>
+        <table style="margin: auto">
+            @foreach (var row in "ABCDEFGHIJ")
+            {
+                <tr>
+                    @for (int col = 1; col <= 10; col++)
+                    {
+                        var pos = $"{row}{col}";
+                        var value = GameComponents.GetBoard()[pos];
+                        <td style="width: 10px; height: 10px; border: 1px solid black;
+                            background:  @(BoardStatus(value));">
+                        </td>
+                    }
+                </tr>
+            }
+        </table>
+    </div>
+    <div style="justify-content: center; padding-left: 10px">
+        <h5 style="text-align: center">Opponents board</h5>
+        @if (!GameComponents.GetOpponentBoard().Any())
+        {
+            <p><em>Waiting for opponent to join...</em></p>
+        }
+        else
+        {
+            <table style="margin: auto">
+                @foreach (var row in "ABCDEFGHIJ")
+                {
+                    <tr>
+                        @for (int col = 1; col <= 10; col++)
+                        {
+                            var pos = $"{row}{col}";
+                            var value = GameComponents.GetOpponentBoard()[pos];
+                            <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
+                                background: @(BoardStatus(value));"
+                                @onclick="() => ShootAtTarget(pos)">
+                                @GameComponents.GetOpponentBoard()[pos]
+                            </td>
+                        }
+                    </tr>
+                }
+            </table>
+            <div style="text-align: center">
+                @if (_allShips == @GameComponents.HitCount)
+                {
+                    <h3>Win-condition met!</h3>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<button @onclick="JoinGame">Join Game</button>
+
+<div>
+    @if (!string.IsNullOrEmpty(_playerStatus))
+    {
+        <p>@_playerStatus</p>
+    }
+</div>
+
+@code {
+    private string? _playerStatus;
+    private int _allShips;
+    private Dictionary<string, int>? _board;
+    private Dictionary<string, int>? _opponentBoard;
+
+    protected override async Task OnInitializedAsync()
+    {
+        foreach (var ship in GameComponents.GetShips())
+        {
+            _allShips += ship.Value;
+        }
+        
+        _hubConnection.On<string>("GameStarted", (message) =>
+        {
+            _playerStatus = message;
+            StateHasChanged();
+        });
+
+        _hubConnection.On<Dictionary<string, int>>("ReceiveBoard", (newBoard) =>
+        {
+            _board = newBoard;
+            StateHasChanged();
+        });
+
+        _hubConnection.On<string>("OpponentPlacedShip", (pos) =>
+        {
+            // Handle opponent placing ships
+            StateHasChanged();
+        });
+
+        _hubConnection.On<string>("OpponentShot", (pos) =>
+        {
+            // Handle opponent's shot
+            StateHasChanged();
+        });
+
+        _hubConnection.On<string>("ShotResult", (result) =>
+        {
+            // Handle shot result
+            StateHasChanged();
+        });
+
+        _hubConnection.On<string>("Error", (message) =>
+        {
+            _playerStatus = message;
+            StateHasChanged();
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+    private static string BoardStatus(int value)
+    {
+        return value switch
+        {
+            0 => "lightblue",
+            1 => "lightgreen",
+            -1 => "darkred",
+            -2 => "blue",
+            _ => "black"
+        };
+    }
+
+    private async Task JoinGame()
+    {
+        await _hubConnection.SendAsync("JoinGame");
+    }
+
+    private async Task ShootAtTarget(string position)
+    {
+        await _hubConnection.SendAsync("Shoot", position);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}

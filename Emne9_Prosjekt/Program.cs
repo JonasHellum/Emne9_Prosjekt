@@ -31,11 +31,12 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddSignalR();
-builder.Services.AddSignalRHubConnection("/chatHub");
+/*builder.Services.AddSignalRHubConnection("/chatHub"); */
+builder.Services.AddSignalRHubConnection("/gameHub"); 
 builder.Services.AddSingleton<ChatService>();
 builder.Services.AddSingleton<GameService>();
 
-builder.Services.AddSingleton<BattleShipComponents>();
+builder.Services.AddScoped<BattleShipComponents>();
 
 builder.Services.AddControllers();
 
@@ -129,7 +130,9 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-app.MapHub<ChatHub>("/chatHub");
+app.MapHub<ChatHub>("/chatHub"); 
+app.MapHub<GameHub>("/gameHub");
+
 
 
 app.MapControllers();

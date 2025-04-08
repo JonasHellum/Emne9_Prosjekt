@@ -41,10 +41,13 @@ else
 }
 
 <div>
+    <NavLink href="/Battleshit">
+        <button>Start Game!</button>
+    </NavLink>
     All ships: @_allShips - Current ships: @BoardValues()
     @if (BoardValues() == _allShips)
     {
-        <NavLink href="/Battleships">
+        <NavLink href="/Battleshit">
             <button>Start Game!</button>
         </NavLink>
     }
