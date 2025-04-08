@@ -1,79 +1,176 @@
-﻿using Emne9_Prosjekt.Services;
+﻿using Emne9_Prosjekt.GameComponents;
+using Emne9_Prosjekt.Services;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Emne9_Prosjekt.Hubs;
 
 public class GameHub : Hub
 {
-    private readonly ILogger<GameHub> _logger;
     private readonly GameService _gameService;
+    private readonly BattleShipComponents _battleShipComponents;
+    private readonly ILogger<GameHub> _logger;
 
-    public GameHub(ILogger<GameHub> logger, GameService gameService)
+    public GameHub(GameService gameService, BattleShipComponents battleShipComponents, ILogger<GameHub> logger)
     {
-        _logger = logger;
         _gameService = gameService;
+        _battleShipComponents = battleShipComponents;
+        _logger = logger;
     }
 
+    // Håndterer når en spiller kobler seg til
     public override async Task OnConnectedAsync()
     {
-        var connectionId = Context.ConnectionId;
-        _logger.LogInformation($"User connected. ConnectionId: {connectionId}");
-        var (gameId, opponentId) = _gameService.AssignPlayerToGame(connectionId);
-        if (gameId != null && opponentId != null)
+        string connectionId = Context.ConnectionId;
+        _logger.LogInformation("Ny spiller koblet til: {ConnectionId}", connectionId);
+
+        // Tildel spiller til gruppe
+        string groupName = _gameService.AssignPlayerToGroup(connectionId);
+        await Groups.AddToGroupAsync(connectionId, groupName);
+
+        // Opprett og lagre nytt brett
+        var board = _battleShipComponents.GetBoard();
+        _gameService.SaveBoard(connectionId, board);
+
+        // Sjekk for motstander
+        string? opponentId = _gameService.GetOpponent(connectionId);
+        if (opponentId != null)
         {
-            await Groups.AddToGroupAsync(connectionId, gameId);
-            await Groups.AddToGroupAsync(opponentId, gameId);
-            
-            await Clients.Caller.SendAsync("GameStarted", "Welcome to the game!");
-            await Clients.Client(opponentId).SendAsync("GameStarted", "Welcome to the game");
-            
-            await SendBoardUpdates(connectionId, opponentId);
-            
-            var firstTurn = _gameService.GetCurrentTurn(gameId);
-            await Clients.Client(firstTurn).SendAsync("YourTurn", "It's your turn");
+            // Koble spillere sammen
+            _gameService.SetOpponents(connectionId, opponentId);
+            await Clients.Caller.SendAsync("OpponentConnected");
+            await Clients.Client(opponentId).SendAsync("OpponentConnected");
+
+            // Sjekk om motstanderen er klar
+            if (_gameService.IsSetupCompleted(opponentId))
+            {
+                await Clients.Caller.SendAsync("OpponentSetupComplete");
+            }
         }
         else
         {
-            await Clients.Caller.SendAsync("Waiting", "Waiting for another player to join the game");
+            // Vent på motstander
+            await Clients.Caller.SendAsync("WaitingForOpponent", "Venter på at en motstander skal koble til...");
         }
+
         await base.OnConnectedAsync();
     }
-    public async Task Shoot(string position)
-    {
-        var connectionId = Context.ConnectionId;
-        var (gameId, opponentId) = _gameService.GetGameByPlayer(connectionId);
-        if (gameId == null || opponentId == null) return;
 
-        if (_gameService.GetCurrentTurn(gameId) != connectionId)
+    // Håndterer når en spiller kobler seg fra
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        string connectionId = Context.ConnectionId;
+        _logger.LogInformation("Spiller koblet fra: {ConnectionId}", connectionId);
+
+        // Sjekk om vi skal beholde setup
+        bool keepSetup = _gameService.IsSetupCompleted(connectionId);
+
+        // Fjern fra gruppe hvis ikke setup er fullført
+        if (!keepSetup)
         {
-            await Clients.Caller.SendAsync("NotYourTurn", "It's not your turn!");
-            return;
+            if (_gameService.TryGetPlayerGroup(connectionId, out string? groupName) && groupName != null)
+            {
+                await Groups.RemoveFromGroupAsync(connectionId, groupName);
+            }
         }
 
-        _logger.LogInformation($"Player {connectionId} shot at {position}.");
-    
-        // Skyt på motstanderens brett
-        var opponentBoard = _gameService.GetPlayerBoard(opponentId);
-        opponentBoard?.ShootBoard(position);
+        // Varsle motstander
+        if (_gameService.TryGetPlayerOpponent(connectionId, out string? opponentId) && opponentId != null)
+        {
+            await Clients.Client(opponentId).SendAsync("OpponentDisconnected");
+        }
 
-        // Oppdater begge spillere
-        await SendBoardUpdates(connectionId, opponentId);
+        // Fjern spillerdata
+        _gameService.RemovePlayer(connectionId, keepSetup);
 
-        // Bytt tur
-        _gameService.SwitchTurn(gameId);
-        var nextPlayer = _gameService.GetCurrentTurn(gameId);
-        await Clients.Client(nextPlayer).SendAsync("YourTurn", "It's your turn!");
+        await base.OnDisconnectedAsync(exception);
     }
 
-    private async Task SendBoardUpdates(string player1, string player2)
+    // Håndterer skudd mot motstander
+    public async Task ShootAtOpponent(string position)
     {
-        var player1Board = _gameService.GetPlayerBoard(player1);
-        var player2Board = _gameService.GetPlayerBoard(player2);
+        string shooterId = Context.ConnectionId;
+        _logger.LogInformation("Spiller {ShooterId} skyter på posisjon {Position}", shooterId, position);
 
-        await Clients.Client(player1).SendAsync("UpdatePlayerBoard", player1Board?.GetBoard());
-        await Clients.Client(player1).SendAsync("UpdateOpponentBoard", player2Board?.GetBoard());
+        if (_gameService.TryGetPlayerOpponent(shooterId, out string? opponentId) && opponentId != null)
+        {
+            bool success = _gameService.ProcessShot(position, opponentId, shooterId);
+            
+            if (success)
+            {
+                if (_gameService.TryGetBoard(opponentId, out var opponentBoard) && opponentBoard != null)
+                {
+                    // Oppdater begge spilleres visning
+                    await Clients.Client(opponentId).SendAsync("UpdateBoard", opponentBoard);
+                    await Clients.Caller.SendAsync("UpdateOpponentBoard", opponentBoard);
+                }
+            }
+            else
+            {
+                await Clients.Caller.SendAsync("NotYourTurn");
+            }
+        }
+    }
 
-        await Clients.Client(player2).SendAsync("UpdatePlayerBoard", player2Board?.GetBoard());
-        await Clients.Client(player2).SendAsync("UpdateOpponentBoard", player1Board?.GetBoard());
+    // Håndterer når en spiller er ferdig med setup
+    public async Task SetupComplete(Dictionary<string, int> board)
+    {
+        string connectionId = Context.ConnectionId;
+        _logger.LogInformation("Spiller {ConnectionId} fullførte setup", connectionId);
+
+        // Lagre setup
+        _gameService.CompleteSetup(connectionId, board);
+
+        // Sjekk motstander
+        if (_gameService.TryGetPlayerOpponent(connectionId, out string? opponentId) && opponentId != null)
+        {
+            if (_gameService.IsSetupCompleted(opponentId))
+            {
+                // Begge spillere er klare, start spillet
+                if (_gameService.TryGetBoard(connectionId, out var playerBoard) && 
+                    _gameService.TryGetBoard(opponentId, out var opponentBoard) &&
+                    playerBoard != null && opponentBoard != null)
+                {
+                    // Initialiser første tur
+                    if (_gameService.TryGetPlayerGroup(connectionId, out string? groupName) && groupName != null)
+                    {
+                        _gameService.InitializeFirstTurn(groupName);
+                    }
+
+                    await Clients.Caller.SendAsync("GameStarted", 1, playerBoard);
+                    await Clients.Client(opponentId).SendAsync("GameStarted", 2, opponentBoard);
+                }
+            }
+            else
+            {
+                // Varsle motstander at setup er fullført
+                await Clients.Client(opponentId).SendAsync("OpponentSetupComplete");
+            }
+        }
+    }
+
+    // Håndterer reconnect av spiller
+    public async Task ReconnectPlayer(string connectionId)
+    {
+        _logger.LogInformation("Spiller {ConnectionId} prøver å koble til igjen", connectionId);
+
+        if (_gameService.TryGetPlayerGroup(connectionId, out string? groupName) && groupName != null)
+        {
+            // Gjenopprett gruppetilkobling
+            await Groups.AddToGroupAsync(connectionId, groupName);
+
+            // Sjekk motstander
+            if (_gameService.TryGetPlayerOpponent(connectionId, out string? opponentId) && opponentId != null)
+            {
+                // Gjenopprett motstandertilkobling
+                await Clients.Caller.SendAsync("OpponentConnected");
+                await Clients.Client(opponentId).SendAsync("OpponentConnected");
+
+                // Sjekk om motstanderen er klar
+                if (_gameService.IsSetupCompleted(opponentId))
+                {
+                    await Clients.Caller.SendAsync("OpponentSetupComplete");
+                }
+            }
+        }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using Emne9_Prosjekt.GameComponents;
 
 // Bruker en trådsikker samling for å håndtere samtidige forespørsler
 
@@ -8,128 +7,194 @@ namespace Emne9_Prosjekt.Services;
 public class GameService
 {
     // En tråd-sikker kø som holder spillere som venter på en opponent
-    private static readonly ConcurrentQueue<string> WaitingQueue = new ();
+    private readonly ILogger<GameService> _logger;
+    // Lagrer gruppe-tilkoblinger for spillere
+    private readonly ConcurrentDictionary<string, string> _playerGroups = new();
+    // Lagrer brett-tilstand for hver spiller
+    private readonly ConcurrentDictionary<string, Dictionary<string, int>> _playerBoards = new();
+    // Lagrer motstander-tilkoblinger
+    private readonly ConcurrentDictionary<string, string> _playerOpponents = new();
+    // Lagrer setup-status for hver spiller
+    private readonly ConcurrentDictionary<string, bool> _setupCompleted = new();
+    // Lagrer hvis tur det er for hver gruppe
+    private readonly ConcurrentDictionary<string, string> _currentTurn = new();
+    // Lagrer antall treff for hver spiller
+    private readonly ConcurrentDictionary<string, int> _hitCounts = new();
 
-    // En tråd-sikker ordbok som lagrer hvilke spillere som er i hvilke spill
-    private static readonly ConcurrentDictionary<string, string> PlayerGames = new ();
-
-    // En tråd-sikker ordbok som lagrer hvem som er motstanderen til hver spiller
-    private static readonly ConcurrentDictionary<string, string> PlayerOpponents = new ();
-    //  Holder styr på hvert spillers BattleShipComponents-objekt
-    private static readonly ConcurrentDictionary<string, BattleShipComponents> PlayerBoards = new();
-    private static readonly ConcurrentDictionary<string, string> CurrentTurn = new(); // Hvem sin tur det er
-    
-
-    /// <summary>
-    /// Tildeler en spiller til et spill. Dersom en annen spiller allerede venter, kobles de sammen.
-    /// Hvis ikke, legges spilleren i ventekøen.
-    /// </summary>
-    /// <param name="connectionId">Tilkoblings-ID for spilleren</param>
-    /// <returns>Spill-ID og motstanderens tilkoblings-ID hvis en match finnes, ellers null</returns>
-    public (string? gameId, string? opponentId) AssignPlayerToGame(string connectionId)
+    public GameService(ILogger<GameService> logger)
     {
-        lock (WaitingQueue) // Sikrer at flere tråder ikke kan endre køen samtidig
+        _logger = logger;
+    }
+
+    // Tildeler en spiller til en eksisterende gruppe eller oppretter ny
+    public string AssignPlayerToGroup(string playerId)
+    {
+        _logger.LogInformation("Tildeler spiller {PlayerId} til gruppe", playerId);
+        
+        var openGame = _playerGroups.Values
+            .GroupBy(g => g)
+            .FirstOrDefault(g => g.Count() == 1);
+
+        if (openGame != null)
         {
-            if (WaitingQueue.TryDequeue(out var opponentId)) // Sjekker om det allerede finnes en spiller som venter
+            _playerGroups[playerId] = openGame.Key;
+            _logger.LogInformation("Spiller {PlayerId} koblet til eksisterende gruppe {GroupId}", playerId, openGame.Key);
+            return openGame.Key;
+        }
+
+        string newGroup = Guid.NewGuid().ToString();
+        _playerGroups[playerId] = newGroup;
+        _logger.LogInformation("Opprettet ny gruppe {GroupId} for spiller {PlayerId}", newGroup, playerId);
+        return newGroup;
+    }
+
+    // Finner motstanderen for en gitt spiller
+    public string? GetOpponent(string playerId)
+    {
+        var opponent = _playerGroups
+            .Where(kv => kv.Value == _playerGroups[playerId])
+            .Select(kv => kv.Key)
+            .FirstOrDefault(id => id != playerId);
+
+        if (opponent != null)
+        {
+            _logger.LogInformation("Fant motstander {OpponentId} for spiller {PlayerId}", opponent, playerId);
+        }
+        return opponent;
+    }
+
+    // Lagrer et brett for en spiller
+    public void SaveBoard(string playerId, Dictionary<string, int> board)
+    {
+        _playerBoards[playerId] = board;
+        _logger.LogInformation("Lagret brett for spiller {PlayerId}", playerId);
+    }
+
+    // Kobler to spillere sammen som motstandere
+    public void SetOpponents(string player1Id, string player2Id)
+    {
+        _playerOpponents[player1Id] = player2Id;
+        _playerOpponents[player2Id] = player1Id;
+        _logger.LogInformation("Koblet spiller {Player1Id} og {Player2Id} sammen som motstandere", player1Id, player2Id);
+    }
+
+    // Sjekker om en spiller har fullført setup
+    public bool IsSetupCompleted(string playerId)
+    {
+        return _setupCompleted.TryGetValue(playerId, out bool completed) && completed;
+    }
+
+    // Markerer at en spiller har fullført setup
+    public void CompleteSetup(string playerId, Dictionary<string, int> board)
+    {
+        _setupCompleted[playerId] = true;
+        _playerBoards[playerId] = board;
+        _logger.LogInformation("Spiller {PlayerId} fullførte setup", playerId);
+    }
+
+    // Henter brettet for en spiller
+    public bool TryGetBoard(string playerId, out Dictionary<string, int>? board)
+    {
+        return _playerBoards.TryGetValue(playerId, out board);
+    }
+
+    // Sjekker om det er spilleren sin tur
+    public bool IsPlayerTurn(string playerId)
+    {
+        if (_playerGroups.TryGetValue(playerId, out string? groupId) && groupId != null)
+        {
+            return _currentTurn.TryGetValue(groupId, out string? currentPlayer) && 
+                   currentPlayer == playerId;
+        }
+        return false;
+    }
+
+    // Setter neste spiller sin tur
+    private void SetNextTurn(string groupId)
+    {
+        if (_currentTurn.TryGetValue(groupId, out string? currentPlayer) && 
+            _playerOpponents.TryGetValue(currentPlayer, out string? nextPlayer))
+        {
+            _currentTurn[groupId] = nextPlayer;
+            _logger.LogInformation("Neste tur: {NextPlayer} i gruppe {GroupId}", nextPlayer, groupId);
+        }
+        else
+        {
+            _logger.LogWarning("Kunne ikke sette neste tur for gruppe {GroupId}", groupId);
+        }
+    }
+
+    // Initialiserer første tur når spillet starter
+    public void InitializeFirstTurn(string groupId)
+    {
+        var players = _playerGroups
+            .Where(kv => kv.Value == groupId)
+            .Select(kv => kv.Key)
+            .ToList();
+            
+        if (players.Count == 2)
+        {
+            _currentTurn[groupId] = players[0];
+            _logger.LogInformation("Første tur: {FirstPlayer} i gruppe {GroupId}", players[0], groupId);
+        }
+        else
+        {
+            _logger.LogWarning("Kunne ikke initialisere første tur for gruppe {GroupId}: {PlayerCount} spillere", groupId, players.Count);
+        }
+    }
+
+    // Prosesserer et skudd mot en spiller
+    public bool ProcessShot(string position, string targetPlayerId, string shooterId)
+    {
+        // Sjekk om det er skytteren sin tur
+        if (!IsPlayerTurn(shooterId))
+        {
+            _logger.LogWarning("Spiller {ShooterId} prøvde å skyte utenfor sin tur", shooterId);
+            return false;
+        }
+
+        if (_playerBoards.TryGetValue(targetPlayerId, out var board))
+        {
+            if (board.ContainsKey(position))
             {
-                var gameId = $"game_{Guid.NewGuid()}"; // Oppretter et unikt spill-ID
-
-                // Lagre spill-ID for begge spillerne
-                PlayerGames[connectionId] = gameId;
-                PlayerGames[opponentId] = gameId;
-                /* PlayerGames["Player1"] = "game_123";
-                PlayerGames["Player2"] = "game_123";*/
-
-                // Lagre hvem som er motstandere
-                PlayerOpponents[connectionId] = opponentId;
-                PlayerOpponents[opponentId] = connectionId;
-                /*Sånn her
-                PlayerOpponents["Player1"] = "Player2";
-                PlayerOpponents["Player2"] = "Player1"; */
-                // Opprett BattleShipComponents for begge spillerne
-                PlayerBoards[connectionId] = new BattleShipComponents();
-                PlayerBoards[opponentId] = new BattleShipComponents();
+                board[position] = board[position] == 1 ? -1 : -2;
                 
-                CurrentTurn[gameId] = connectionId; //Første spiller starter
-                // Returnerer spill-ID og motstanderens tilkoblings-ID
-                return (gameId, opponentId);
+                // Sett neste tur
+                if (_playerGroups.TryGetValue(shooterId, out string? groupId) && groupId != null)
+                {
+                    SetNextTurn(groupId);
+                }
+
+                return true;
             }
-
-            // Hvis ingen motstander er tilgjengelig, legges spilleren i køen
-            WaitingQueue.Enqueue(connectionId);
-            return (null, null);
         }
+        _logger.LogWarning("Kunne ikke prosessere skudd på posisjon {Position} mot spiller {PlayerId}", position, targetPlayerId);
+        return false;
     }
 
-    public bool IsPlayerTurn(string gameId, string connectionId)
+    
+    public void RemovePlayer(string playerId, bool keepSetup = false)
     {
-        return CurrentTurn.TryGetValue(gameId, out var currentPlayer) && currentPlayer == connectionId;
-    }
-
-    public void SwitchTurn(string gameId)
-    {
-        if (!CurrentTurn.TryGetValue(gameId, out var currentPlayer)) return;
-        var opponentId = PlayerOpponents[currentPlayer];
-        CurrentTurn[gameId] = opponentId;
-    }
-
-    public string GetCurrentTurn(string gameId)
-    {
-        return CurrentTurn.TryGetValue(gameId, out var currentPlayer) ? currentPlayer : "";
-    }
-
-    /// <summary>
-    /// Fjerner en spiller fra et spill ved frakobling.
-    /// </summary>
-    /// <param name="connectionId">Tilkoblings-ID for spilleren</param>
-    /// <param name="gameId">Ut-param som returnerer spill-ID'en</param>
-    /// <returns>True hvis spilleren ble funnet og fjernet, ellers false</returns>
-    public bool RemovePlayer(string connectionId, out string? gameId)
-    {
-        if (PlayerGames.TryRemove(connectionId, out gameId)) // Forsøker å fjerne spilleren fra spillet
+        if (!keepSetup)
         {
-            // Sjekker om spilleren hadde en motstander
-            if (PlayerOpponents.TryRemove(connectionId, out var opponentId))
-            {
-                // Fjerner motstanderen fra spillet også
-                PlayerGames.TryRemove(opponentId, out _);
-                PlayerOpponents.TryRemove(opponentId, out _);
-                PlayerBoards.TryRemove(connectionId, out _);
-            }
-            PlayerBoards.TryRemove(connectionId, out _);
-            return true; // Spilleren ble fjernet
+            _playerGroups.TryRemove(playerId, out _);
+            _playerBoards.TryRemove(playerId, out _);
+            _setupCompleted.TryRemove(playerId, out _);
+            _logger.LogInformation("Fjernet all data for spiller {PlayerId}", playerId);
         }
-        return false; // Spilleren var ikke registrert i noe spill
+        _playerOpponents.TryRemove(playerId, out _);
+        _logger.LogInformation("Fjernet motstander-tilkobling for spiller {PlayerId}", playerId);
     }
 
-    /// <summary>
-    /// Henter spill-ID for en gitt spiller.
-    /// </summary>
-    /// <param name="connectionId">Tilkoblings-ID</param>
-    /// <returns>Spill-ID eller null hvis spilleren ikke er i et spill</returns>
-    public string? GetGameId(string connectionId)
-        => PlayerGames.TryGetValue(connectionId, out var gameId) ? gameId : null;
+    // Henter gruppen for en spiller
+    public bool TryGetPlayerGroup(string playerId, out string? groupName)
+    {
+        return _playerGroups.TryGetValue(playerId, out groupName);
+    }
 
-    /// <summary>
-    /// Henter motstanderen til en gitt spiller.
-    /// </summary>
-    /// <param name="connectionId">Tilkoblings-ID</param>
-    /// <returns>Motstanderens tilkoblings-ID eller null hvis ingen motstander er tilordnet</returns>
-    public string? GetOpponent(string connectionId)
-        => PlayerOpponents.TryGetValue(connectionId, out var opponentId) ? opponentId : null;
-    
-    // Henter en spillers BattleShipComponents
-    public BattleShipComponents? GetPlayerBoard(string connectionId)
+    // Henter motstanderen for en spiller
+    public bool TryGetPlayerOpponent(string playerId, out string? opponentId)
     {
-        return PlayerBoards.TryGetValue(connectionId, out var board) ? board : null;
+        return _playerOpponents.TryGetValue(playerId, out opponentId);
     }
-    
-    // 🔹 Henter spill-ID og motstander-ID for en gitt spiller
-    public (string? gameId, string? opponentId) GetGameByPlayer(string connectionId)
-    {
-        if (!PlayerGames.TryGetValue(connectionId, out var gameId)) return (null, null);
-        if (!PlayerOpponents.TryGetValue(connectionId, out var opponentId)) return (gameId, null);
-        return (gameId, opponentId);
-    }
-   
 }
