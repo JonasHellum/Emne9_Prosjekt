@@ -14,6 +14,8 @@ public interface IMemberService : IBaseService<MemberDTO>
     Task<MemberDTO?> UpdateAsync(Guid memberId, MemberUpdateDTO updateDTO);
     Task<MemberDTO?> GetByIdAsync(Guid memberId);
     string MakeToken(MemberDTO member);
+    Task<bool> UserNameExistsAsync(string username);
+    Task<bool> EmailExistsAsync(string email);
     
     //(string? userId, IEnumerable<string>? roles) ValidateAccessToken(string accessToken);
     //

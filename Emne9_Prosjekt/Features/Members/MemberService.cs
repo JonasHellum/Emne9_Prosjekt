@@ -52,7 +52,7 @@ public class MemberService : IMemberService
     {
         var member = _registrationMapper.MapToModel(registrationDTO);
         
-        _logger.LogInformation($"trying to add a new member with id: {member.MemberId}");
+        _logger.LogInformation($"Trying to add a new member with username: {member.UserName}");
         member.Created = DateOnly.FromDateTime(DateTime.UtcNow);
         member.Updated = DateOnly.FromDateTime(DateTime.UtcNow);
         member.HashedPassword = BCrypt.Net.BCrypt.HashPassword(registrationDTO.Password);
@@ -236,17 +236,37 @@ public class MemberService : IMemberService
             throw new UnauthorizedAccessException($"Member with memberId: {loggedMember.MemberId} is not authorized to update " +
                                                   $"member with memberId: {memberToUpdate.MemberId}");
         }
+
+        if (!string.IsNullOrWhiteSpace(updateDTO.UserName) && updateDTO.UserName != memberToUpdate.UserName)
+        {
+            memberToUpdate.UserName = updateDTO.UserName;
+        }
         
-        memberToUpdate.UserName = updateDTO.UserName;
-        memberToUpdate.FirstName = updateDTO.FirstName;
-        memberToUpdate.LastName = updateDTO.LastName;
-        memberToUpdate.BirthYear = updateDTO.BirthYear;
-        memberToUpdate.Email = updateDTO.Email;
-        memberToUpdate.Updated = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (!string.IsNullOrWhiteSpace(updateDTO.FirstName) && updateDTO.FirstName != memberToUpdate.FirstName)
+        {
+            memberToUpdate.FirstName = updateDTO.FirstName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(updateDTO.LastName) && updateDTO.LastName != memberToUpdate.LastName)
+        {
+            memberToUpdate.LastName = updateDTO.LastName;
+        }
+
+        if (!default(DateOnly).Equals(updateDTO.BirthYear) && updateDTO.BirthYear != memberToUpdate.BirthYear)
+        {
+            memberToUpdate.BirthYear = updateDTO.BirthYear;
+        }
+
+        if (!string.IsNullOrWhiteSpace(updateDTO.Email) && updateDTO.Email != memberToUpdate.Email)
+        {
+            memberToUpdate.Email = updateDTO.Email;
+        }
+        
         if (!string.IsNullOrWhiteSpace(updateDTO.Password))
         {
             memberToUpdate.HashedPassword = BCrypt.Net.BCrypt.HashPassword(updateDTO.Password);
         }
+        memberToUpdate.Updated = DateOnly.FromDateTime(DateTime.UtcNow);
         
         var updatedMember = await _memberRepository.UpdateAsync(memberToUpdate);
         
@@ -259,6 +279,12 @@ public class MemberService : IMemberService
         return _memberMapper.MapToDTO(updatedMember);
     }
 
+    /// <summary>
+    /// Retrieves a member by their unique identifier.
+    /// </summary>
+    /// <param name="memberId">The unique identifier of the member to retrieve.</param>
+    /// <returns>An instance of <see cref="MemberDTO"/> representing the member if found, or null if the member does not exist.</returns>
+    /// <exception cref="DataException">Thrown if there is an issue accessing the data source.</exception>
     public async Task<MemberDTO?> GetByIdAsync(Guid memberId)
     {
         var member = await _memberRepository.GetByIdAsync(memberId);
@@ -276,6 +302,28 @@ public class MemberService : IMemberService
     {
         var memberModel = _memberMapper.MapToModel(member);
         return GenerateJwtToken(memberModel);
+    }
+
+    public async Task<bool> UserNameExistsAsync(string username)
+    {
+        if (username.IsNullOrEmpty())
+        {
+            return false;
+        }
+        var exists = await _memberRepository.EmailExistsAsync(username);
+        _logger.LogDebug($"UserName exists: {exists}");
+        return exists;
+    }
+
+    public async Task<bool> EmailExistsAsync(string email)
+    {
+        if (email.IsNullOrEmpty())
+        {
+            return false;
+        }
+        var exists = await _memberRepository.EmailExistsAsync(email);
+        _logger.LogDebug($"Email exists: {exists}");
+        return exists;
     }
 
 
@@ -363,6 +411,11 @@ public class MemberService : IMemberService
         return tokenHandler.WriteToken(token);
     }
 
+    /// <summary>
+    /// Retrieves the currently logged-in member based on the information stored in the HTTP context.
+    /// </summary>
+    /// <returns>An instance of <see cref="Member"/> representing the logged-in member, or throws an exception if no member is logged in.</returns>
+    /// <exception cref="UnauthorizedAccessException">Thrown when no member is logged in or the member cannot be found.</exception>
     private async Task<Member?> GetLoggedInMemberAsync()
     {
         var loggedInMemberId = _httpContextAccessor.HttpContext?.Items["MemberId"] as string;
