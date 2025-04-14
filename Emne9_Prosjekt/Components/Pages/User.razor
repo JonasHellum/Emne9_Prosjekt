@@ -107,7 +107,8 @@
             }
             else
             {
-                RedirectToLogin();
+                await Task.Delay(3500);
+                NavManager.NavigateTo("/login");
             }
         }
         catch (Exception e)
@@ -115,12 +116,6 @@
             Console.WriteLine(e);
             throw;
         }
-    }
-
-    private async void RedirectToLogin()
-    {
-        await Task.Delay(3500);
-        NavManager.NavigateTo("/login");
     }
 
     private void ShowEditForm()
@@ -136,6 +131,7 @@
 
         showEditForm = true;
     }
+
     
     private async Task LoadUserAfterChangeAsync()
     {

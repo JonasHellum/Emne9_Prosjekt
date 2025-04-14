@@ -40,24 +40,36 @@ public class MemberUpdateDTOValidator : AbstractValidator<MemberUpdateDTO>
 
 public class AsyncMemberUpdateDTOValidator : AbstractValidator<MemberUpdateDTO>, IAsyncMemberUpdateValidator
 {
-    private readonly IMemberRepository MemberRepository;
+    private readonly IMemberRepository _memberRepository;
+    
     public AsyncMemberUpdateDTOValidator(IMemberRepository memberRepository)
     {
-        MemberRepository = memberRepository;
+        _memberRepository = memberRepository;
         
         RuleFor(x => x.UserName)
             .MustAsync(
-                async (username, _) =>
+                async (dto, username, _) =>
                 {
-                    return !await MemberRepository.UserNameExistsAsync(username);
+                    var existingMember = await _memberRepository.GetByEmailAsync(dto.Email);
+                    if (existingMember == null || existingMember.UserName == username)
+                    {
+                        return true;
+                    }
+                    
+                    return !await _memberRepository.UserNameExistsAsync(username);
                 })
             .WithMessage("Username already exists, choose another one");
         
         RuleFor(x => x.Email)
             .MustAsync(
-                async (email, _) =>
+                async (dto, email, _) =>
                 {
-                    return !await MemberRepository.EmailExistsAsync(email);
+                    var existingMember = await _memberRepository.GetByEmailAsync(dto.Email);
+                    if (existingMember == null || existingMember.Email == email)
+                    {
+                        return true;
+                    }
+                    return !await _memberRepository.EmailExistsAsync(email);
                 })
             .WithMessage("Email already exists, choose another one");
     }

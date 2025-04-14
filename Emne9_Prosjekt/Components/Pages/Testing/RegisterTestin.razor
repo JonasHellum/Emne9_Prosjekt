@@ -1,0 +1,188 @@
+﻿@page "/registertestin"
+@using System.Text.Json
+@using Emne9_Prosjekt.Features.Members.Models
+@using Microsoft.IdentityModel.Tokens
+@inject HttpClient Http
+
+
+<h3 style="padding-top: 125px">RegisterTestin</h3>
+
+@if (registrationDto != null && !loggedIn)
+{
+    <EditForm Model="@registrationDto" OnValidSubmit="RegistrationAsync" FormName="registerForm">
+        <div>
+            <label>Username:</label>
+            <InputText @bind-Value="@registrationDto.UserName" class="form-control" name="UserName" @onblur="CheckUserNameAsync"/>
+            @if (userNameTaken)
+            {
+                <div class="alert alert-danger">
+                    Username is already taken.
+                </div>
+            }
+        </div>
+
+        <div>
+            <label>First name:</label>
+            <InputText @bind-Value="registrationDto.FirstName" class="form-control" name="FirstName"/>
+        </div>
+
+        <div>
+            <label>Last name:</label>
+            <InputText @bind-Value="registrationDto.LastName" class="form-control" name="LastName"/>
+        </div>
+
+        <div>
+            <label>Date of Birth:</label>
+            <InputDate @bind-Value="registrationDto.BirthYear" class="form-control" name="BirthYear"/>
+        </div>
+
+        <div>
+            <label>Email:</label>
+            <InputText @bind-Value="registrationDto.Email" class="form-control" name="Email" @onblur="CheckEmailAsync"/>
+            @if (emailTaken)
+            {
+                <div class="alert alert-danger">
+                    Email is already taken.
+                </div>
+            }
+        </div>
+
+        <div>
+            <label>Password:</label>
+            <InputText @bind-Value="@registrationDto.Password" type="password" class="form-control" name="Password"/>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Register</button>
+    </EditForm>
+
+    @if (registrationSuccess)
+    {
+        <div class="alert alert-success">
+            Registration success! Username: @registrationDto.UserName
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">
+            @errorMessage
+        </div>
+    }
+
+    else if (registrationFailed)
+    {
+        <div class="alert alert-danger">
+            Registration failed.
+        </div>
+    }
+}
+else if (registrationDto == null)
+{
+    <p>Loading...</p>
+}
+
+@if (loggedIn)
+{
+    <div class="alert alert-success" href="Home.razor">
+        Already logged in as: @userName
+    </div>
+}
+
+
+@code {
+    private MemberRegistrationDTO registrationDto { get; set; }
+    private bool registrationSuccess;
+    private bool registrationFailed;
+    private bool userNameTaken;
+    private bool emailTaken;
+    private string errorMessage;
+    private string userName;
+    private bool loggedIn;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        registrationDto = new MemberRegistrationDTO();
+
+        try
+        {
+            userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+            Console.WriteLine($"Username from registerTestin: {userName}");
+            loggedIn = !string.IsNullOrEmpty(userName);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        
+    }
+
+    private async Task CheckUserNameAsync()
+    {
+        var response = await Http.GetAsync($"http://localhost:80/api/members/username/{registrationDto.UserName}");
+        if (response.IsSuccessStatusCode)
+        {
+            userNameTaken = await response.Content.ReadFromJsonAsync<bool>();
+        }
+        else
+        {
+            userNameTaken = false;
+        }
+    }
+
+    private async Task CheckEmailAsync()
+    {
+        var response = await Http.GetAsync($"http://localhost:80/api/members/email/{registrationDto.Email}");
+        if (response.IsSuccessStatusCode)
+        {
+            emailTaken = await response.Content.ReadFromJsonAsync<bool>();
+        }
+        else
+        {
+            emailTaken = false;
+        }
+    }
+
+    protected async Task RegistrationAsync()
+    {
+        var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/Register", registrationDto);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            registrationSuccess = true;
+        }
+        else
+        {
+            
+            // Extract validation errors from the response... Might not need if the validating is in blazor page?
+            var responseContent = await response.Content.ReadAsStringAsync();
+            try
+            {
+                // Try to parse error messages from response body
+                var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (errorResponse?.Errors != null)
+                {
+                    errorMessage = string.Join(", ", errorResponse.Errors);
+                }
+                else
+                {
+                    errorMessage = "An unknown error occurred.";
+                }
+            }
+            catch
+            {
+                errorMessage = "Failed to parse error response: " + responseContent;
+            }
+            registrationFailed = true;
+        }
+    }
+    private class ErrorResponse
+    {
+        public List<string> Errors { get; set; }
+    }
+
+}

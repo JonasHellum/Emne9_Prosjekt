@@ -67,6 +67,11 @@ public class MemberRepository : IMemberRepository
         return member;
     }
 
+    /// <summary>
+    /// Retrieves a member entity by its unique identifier.
+    /// </summary>
+    /// <param name="memberId">The unique identifier of the member to be retrieved.</param>
+    /// <returns>A task representing the asynchronous operation. The task result contains the member entity if found, otherwise null.</returns>
     public async Task<Member?> GetByIdAsync(Guid memberId)
     {
         return await _dbContext.Member.FirstOrDefaultAsync(m => m.MemberId == memberId);
