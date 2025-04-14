@@ -1,5 +1,5 @@
-﻿using Emne9_Prosjekt.Hubs.Interfaces;
-using Emne9_Prosjekt.Services;
+﻿using Emne9_Prosjekt.Hubs.HubServices;
+using Emne9_Prosjekt.Hubs.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Emne9_Prosjekt.Hubs;

@@ -2,7 +2,6 @@ using System.Text;
 using Emne9_Prosjekt.Components;
 using Emne9_Prosjekt.Extensions;
 using Emne9_Prosjekt.Hubs;
-using Emne9_Prosjekt.Services;
 using Emne9_Prosjekt.Data;
 using Emne9_Prosjekt.Features.Common.Interfaces;
 using Emne9_Prosjekt.Features.Members;
@@ -10,6 +9,8 @@ using Emne9_Prosjekt.Features.Members.Interfaces;
 using Emne9_Prosjekt.Features.Members.Mappers;
 using Emne9_Prosjekt.Features.Members.Models;
 using Emne9_Prosjekt.GameComponents;
+using Emne9_Prosjekt.Hubs.HubServices;
+using Emne9_Prosjekt.Hubs.HubServices.Interfaces;
 using Emne9_Prosjekt.Middleware;
 using Emne9_Prosjekt.Validators.Interfaces;
 using Emne9_Prosjekt.Validators.MemberValidators;
@@ -35,9 +36,11 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddSignalR();
-builder.Services.AddSignalRHubConnection("/gameHub");
+builder.Services.AddSignalRHubs();
 builder.Services.AddSingleton<ChatService>();
-builder.Services.AddSingleton<GameService>();
+builder.Services.AddSingleton<IGameService, GameService>();
+builder.Services.AddSingleton<IForumService, ForumService>();
+
 
 builder.Services.AddScoped<BattleShipComponents>();
 // CHANGES
@@ -152,6 +155,7 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapHub<ChatHub>("/chatHub"); 
 app.MapHub<GameHub>("/gameHub");
+app.MapHub<ForumHub>("/forumHub");
 
 
 

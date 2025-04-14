@@ -45,4 +45,8 @@
       <AdditionalFiles Include="Components\Pages\Games\Battleships\BattleshipsSetup.razor" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Services\" />
+    </ItemGroup>
+
 </Project>

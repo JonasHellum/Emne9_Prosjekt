@@ -1,9 +1,10 @@
-﻿@page "/Cryme"
+@page "/Shipped"
 @using Emne9_Prosjekt.GameComponents
 @using Emne9_Prosjekt.Hubs.Interfaces
-@inject IGameHubConnection _hubConnection
-@inject BattleShipComponents GameComponents
 @using Microsoft.AspNetCore.SignalR.Client
+@inject BattleShipComponents GameComponents
+@inject IGameHubConnection GameHubConnection
+@inject NavigationManager Navigation
 @implements IAsyncDisposable
 
 <h3 style="padding-top: 125px">SoHelpMeGod</h3>
@@ -67,6 +68,10 @@ else if (_gameState == GameState.Setup)
 }
 else
 {
+    <div style="text-align: center">
+        <h3>Battleship Game</h3>
+        <h4>@(_isMyTurn ? "Din tur!" : "Venter på motstanderen...")</h4>
+    </div>
     <div>
         <h5>Ditt Brett</h5>
         <table>
@@ -104,6 +109,10 @@ else
         </table>
     </div>
 }
+@if(_isSetupComplete && _opponentSetupComplete)
+{
+    <Chat/>
+}
 
 @code {
     private enum GameState
@@ -121,10 +130,11 @@ else
     private int _allShips;
     private bool _isSetupComplete;
     private bool _opponentSetupComplete;
+    private bool _isMyTurn;
 
     protected override async Task OnInitializedAsync()
     {
-        _hubConnection.Connection.On<int, Dictionary<string, int>>("GameStarted", (playerNumber, board) =>
+        GameHubConnection.Connection.On<int, Dictionary<string, int>>("GameStarted", (playerNumber, board) =>
         {
             _playerNumber = playerNumber;
             _playerBoard = board;
@@ -133,47 +143,70 @@ else
             InvokeAsync(StateHasChanged);
         });
 
-        _hubConnection.Connection.On<Dictionary<string, int>>("UpdateBoard", (board) =>
+        GameHubConnection.Connection.On<Dictionary<string, int>>("UpdateBoard", (board) =>
         {
             _playerBoard = board;
             InvokeAsync(StateHasChanged);
         });
 
-        _hubConnection.Connection.On<Dictionary<string, int>>("UpdateOpponentBoard", (board) =>
+        GameHubConnection.Connection.On<Dictionary<string, int>>("UpdateOpponentBoard", (board) =>
         {
             _opponentBoard = board;
             InvokeAsync(StateHasChanged);
         });
 
-        _hubConnection.Connection.On("OpponentDisconnected", () =>
+        GameHubConnection.Connection.On("OpponentDisconnected", () =>
         {
-            _isConnected = false;
-            _isSetupComplete = false;
+            // Opponent disconnected during setup
             _opponentSetupComplete = false;
-            _gameState = GameState.Setup;
             InvokeAsync(StateHasChanged);
         });
 
-        _hubConnection.Connection.On("OpponentConnected", () =>
+        GameHubConnection.Connection.On("OpponentDisconnectedDuringGame", () =>
+        {
+            // Opponent disconnected during game - redirect to win page
+            Navigation.NavigateTo("/battleship-win");
+        });
+
+        GameHubConnection.Connection.On("OpponentConnected", () =>
+        {
+            _isConnected = true;
+            _opponentSetupComplete = false;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On<string>("WaitingForOpponent", (_) =>
         {
             _isConnected = true;
             InvokeAsync(StateHasChanged);
         });
 
-        _hubConnection.Connection.On<string>("WaitingForOpponent", (message) =>
-        {
-            _isConnected = true;
-            InvokeAsync(StateHasChanged);
-        });
-
-        _hubConnection.Connection.On("OpponentSetupComplete", () =>
+        GameHubConnection.Connection.On("OpponentSetupComplete", () =>
         {
             _opponentSetupComplete = true;
             _gameState = GameState.Setup;
             InvokeAsync(StateHasChanged);
         });
 
-        await _hubConnection.Connection.StartAsync();
+        GameHubConnection.Connection.On<string>("GameReady", (_) =>
+        {
+            _isConnected = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On<string>("JoinedGroup", (_) =>
+        {
+            _isConnected = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On<bool>("TurnUpdate", (isYourTurn) =>
+        {
+            _isMyTurn = isYourTurn;
+            InvokeAsync(StateHasChanged);
+        });
+
+        await GameHubConnection.Connection.StartAsync();
         GameComponents.CreateBoard();
 
         foreach (var ship in GameComponents.GetShips())
@@ -223,10 +256,10 @@ else
 
     private async Task CompleteSetup()
     {
-        if (_hubConnection.Connection.State == HubConnectionState.Connected)
+        if (GameHubConnection.Connection.State == HubConnectionState.Connected)
         {
             var board = GameComponents.GetBoard();
-            await _hubConnection.Connection.SendAsync("SetupComplete", board);
+            await GameHubConnection.Connection.SendAsync("SetupComplete", board);
             _isSetupComplete = true;
             await InvokeAsync(StateHasChanged);
         }
@@ -234,9 +267,9 @@ else
 
     private async Task ShootAtTarget(string position)
     {
-        if (_isConnected && _gameState == GameState.Playing)
+        if (_isConnected && _gameState == GameState.Playing && _isMyTurn)
         {
-            await _hubConnection.Connection.SendAsync("ShootAtOpponent", position);
+            await GameHubConnection.Connection.SendAsync("ShootAtOpponent", position);
         }
     }
 
@@ -251,11 +284,13 @@ else
 
     public async ValueTask DisposeAsync()
     {
-        if (_hubConnection != null)
+        if (GameHubConnection != null)
         {
-            await _hubConnection.DisposeAsync();
+            await GameHubConnection.DisposeAsync();
         }
     }
 }
+
+
 
 
