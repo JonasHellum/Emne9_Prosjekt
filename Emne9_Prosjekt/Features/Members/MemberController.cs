@@ -89,14 +89,14 @@ public class MemberController : ControllerBase
         // Response.Headers.Add("Authorization", memberToken);
         
         // Set the JWT in a cookie
-        Response.Cookies.Append("AuthToken", memberToken, new CookieOptions
+        Response.Cookies.Append("AuthTokenCOMON", memberToken, new CookieOptions
         {
             HttpOnly = true,    // Ensures JavaScript cannot access the cookie
-            SameSite = SameSiteMode.Lax, // Prevent cross-site requests if strict
-            Secure = false,      // True ensures the cookie is only sent over HTTPS, but we on HTTP now
-            Path = "/",         // Ensures the cookie is sent to all pages on the site
-            Expires = DateTime.UtcNow.AddHours(2) // Set expiration explicitly
-
+            SameSite = SameSiteMode.Lax,
+            Secure = true,      // True ensures the cookie is only sent over HTTPS, but we on HTTP now
+            Expires = DateTime.UtcNow.AddHours(2),
+            Domain = "localhost",
+            Path = "/"
         });
 
 

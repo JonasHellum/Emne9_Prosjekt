@@ -188,6 +188,8 @@ public class MemberService : IMemberService
             
             string? userName = jwtSecurityToken?.Claims
                 .FirstOrDefault(claim => claim.Type == "unique_name")?.Value;
+            
+            Console.WriteLine($"[ValidateAccessToken] memberId: {memberId}, userName: {userName}");
 
             // IEnumerable<string>? roles = jwtSecurityToken?.Claims
             //     .Where(x => x.Type == "role")

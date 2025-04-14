@@ -74,25 +74,28 @@ builder.Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped(sp =>
 {
-    var httpContext = sp.GetRequiredService<IHttpContextAccessor>().HttpContext!;
-    var client = new HttpClient(new HttpClientHandler
+    var handler = new HttpClientHandler
     {
-        UseCookies = true // Let the browser store cookies
-    });
-    client.BaseAddress = new Uri("http://localhost:80"); // API base URL
-    return client;
+        UseCookies = true, // Ensures cookies are stored and sent
+    };
+
+    return new HttpClient(handler)
+    {
+        BaseAddress = new Uri("https://localhost:80") // Same base URL as your API
+    };
 });
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowBlazor", policy =>
-    {
-        policy.WithOrigins("http://localhost")
-            .AllowCredentials()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
+
+// builder.Services.AddCors(options =>
+// {
+//     options.AddPolicy("AllowBlazor", policy =>
+//     {
+//         policy.WithOrigins("http://localhost")
+//             .AllowCredentials()
+//             .AllowAnyHeader()
+//             .AllowAnyMethod();
+//     });
+// });
 
 // NO CLUE WHAT IM DOING
 
@@ -122,7 +125,7 @@ builder.Services.AddDbContext<Emne9EksamenDbContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
         new MySqlServerVersion(new Version(8, 0, 33))));
 
-// builder.Services.AddScoped<JwtMiddleware>();
+builder.Services.AddScoped<JwtMiddleware>();
 
 
 
@@ -138,79 +141,7 @@ builder.Services.AddAuthentication(options =>
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; 
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme; 
     })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["JWT:Issuer"],
-            ValidAudience = builder.Configuration["JWT:Audience"],
-            IssuerSigningKey = new
-                SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"])),
-        };
-        options.Events = new JwtBearerEvents()
-        {
-            OnMessageReceived = context =>
-            {
-                // Read token from 'AuthToken' cookie if the header is empty
-                if (string.IsNullOrEmpty(context.Token))
-                {
-                    var token = context.Request.Cookies["AuthToken"];
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        context.Token = token;
-                        Console.WriteLine($"Token from cookie: {token}");
-                    }
-                    else
-                    {
-                        Console.WriteLine("No token found in cookie or header.");
-                    }
-                }
-                return Task.CompletedTask;
-            },
-            
-            OnTokenValidated = context =>
-            {
-                var claimsPrincipal = context.Principal;
-                var identity = claimsPrincipal.Identity as ClaimsIdentity;
-
-                // Extract username claim (debug purposes)
-                var memberId = identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userName = identity?.FindFirst(ClaimTypes.Name)?.Value;
-
-                Console.WriteLine($"[OnTokenValidated] MemberId: {memberId}");
-                Console.WriteLine($"[OnTokenValidated] Username: {userName}");
-
-
-                // Add to HttpContext.Items for later manual use
-                if (!string.IsNullOrEmpty(memberId) && !string.IsNullOrEmpty(userName))
-                {
-                    context.HttpContext.Items["MemberId"] = memberId;
-                    context.HttpContext.Items["UserName"] = userName;
-                    
-                    Console.WriteLine($"[OnTokenValidated] SET MemberId: {memberId}");
-                    Console.WriteLine($"[OnTokenValidated] SET Username: {userName}");
-                }
-
-                return Task.CompletedTask;
-
-            },
-            
-            OnAuthenticationFailed = context =>
-            {
-                Console.WriteLine($"Authentication failed: {context.Exception.Message}");
-                if (context.Exception.InnerException != null)
-                {
-                    Console.WriteLine($"Inner exception: {context.Exception.InnerException.Message}");
-                }
-                return Task.CompletedTask;
-            }
-        };
-
-    })
+    .AddJwtBearer()
     .AddGoogle(options =>
     {
         options.ClientId = "525416754804-5sjmgl3kc3e2q8s4s8dgvv6dajd53m7s.apps.googleusercontent.com";
@@ -230,7 +161,7 @@ var app = builder.Build();
 //app.UseHttpsRedirection();
 
 app.UseRouting();
-// app.UseMiddleware<JwtMiddleware>()
+app.UseMiddleware<JwtMiddleware>();
 //     .UseMiddleware<ApiExceptionHandling>();
 app.UseMiddleware<ApiExceptionHandling>();
 app.UseAuthentication();
@@ -284,7 +215,7 @@ app.Use(async (context, next) =>
     }
 });
 
-app.UseCors("AllowBlazor");
+// app.UseCors("AllowBlazor");
 
 
 app.MapControllers();

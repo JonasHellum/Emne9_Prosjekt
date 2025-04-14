@@ -17,11 +17,13 @@ public class JwtMiddleware : IMiddleware
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         string? token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+        Console.WriteLine($"Token PLEASE FROM MIDDLEWARE BEFORE COOKIE CHECK: {token}");
 
         // If no Authorization header exists, fallback to cookies
         if (string.IsNullOrEmpty(token))
         {
-            token = context.Request.Cookies["AuthToken"];
+            token = context.Request.Cookies["AuthTokenCOMON"];
+            Console.WriteLine($"Token PLEASE FROM MIDDLEWARE WHEN COOKIE CHECK: {token}");
         }
 
         if (!string.IsNullOrEmpty(token))
@@ -45,6 +47,9 @@ public class JwtMiddleware : IMiddleware
                 };
                 var identity = new ClaimsIdentity(claims, "Bearer");
                 context.User = new ClaimsPrincipal(identity);
+                
+                Console.WriteLine($"HttpContext.User initialized with Name: {context.User.Identity?.Name}");
+
             }
             else
             {
