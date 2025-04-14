@@ -22,6 +22,10 @@
             </tr>
         }
     </table>
+    @if (GameComponents.GameEnd())
+    {
+        <h3>Win-condition met!</h3>
+    }
 </div>
 
 @code {
