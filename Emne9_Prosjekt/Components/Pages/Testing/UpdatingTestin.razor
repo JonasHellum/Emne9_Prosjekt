@@ -8,67 +8,67 @@
 <h3 style="padding-top: 125px">UpdatingTestin</h3>
 
 @if (memberDto != null && !memberId.IsNullOrEmpty())
+{
+    <p>@memberDto.UserName</p>
+    <p>@memberDto.FirstName</p>
+    <p>@memberDto.LastName</p>
+    <p>@memberDto.Email</p>
+    <p>@memberDto.BirthYear</p>
+
+    <button @onclick="ShowEditForm" class="btn btn-primary">Edit</button>
+
+    @if (showEditForm)
     {
-        <p>@memberDto.UserName</p>
-        <p>@memberDto.FirstName</p>
-        <p>@memberDto.LastName</p>
-        <p>@memberDto.Email</p>
-        <p>@memberDto.BirthYear</p>
-        
-        <button @onclick="ShowEditForm" class="btn btn-primary">Edit</button>
-        
-        @if (showEditForm)
+        <EditForm Model="@memberUpdateDto" OnValidSubmit="EditMemberAsync" FormName="editForm">
+
+            <div class="form-group">
+                <label for="Name">Username:</label>
+                <InputText @bind-Value="memberUpdateDto.UserName" class="form-control" name="UserName"/>
+            </div>
+
+            <div class="form-group">
+                <label for="Name">First name:</label>
+                <InputText @bind-Value="memberUpdateDto.FirstName" class="form-control" name="FirstName"/>
+            </div>
+
+            <div class="form-group">
+                <label for="Name">Last name:</label>
+                <InputText @bind-Value="memberUpdateDto.LastName" class="form-control" name="LastName"/>
+            </div>
+
+            <div class="form-group">
+                <label for="Content">Email:</label>
+                <InputText @bind-Value="memberUpdateDto.Email" class="form-control" name="Email"/>
+            </div>
+
+            <div class="form-group">
+                <label for="Name">Birth year:</label>
+                <InputDate @bind-Value="memberUpdateDto.BirthYear" class="form-control" name="BirthYear"/>
+            </div>
+
+            <div class="form-group">
+                <label for="Address">Password:</label>
+                <InputText @bind-Value="memberUpdateDto.Password" type="password" class="form-control" name="Password"/>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save</button>
+        </EditForm>
+
+        @if (editSuccess)
         {
-            <EditForm Model="@memberUpdateDto" OnValidSubmit="EditMemberAsync" FormName="editForm">
-
-                <div class="form-group">
-                    <label for="Name">Username:</label>
-                    <InputText @bind-Value="memberUpdateDto.UserName" class="form-control" name="UserName"/>
-                </div>
-                
-                <div class="form-group">
-                    <label for="Name">First name:</label>
-                    <InputText @bind-Value="memberUpdateDto.FirstName" class="form-control" name="FirstName"/>
-                </div>
-                
-                <div class="form-group">
-                    <label for="Name">Last name:</label>
-                    <InputText @bind-Value="memberUpdateDto.LastName" class="form-control" name="LastName"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="Content">Email:</label>
-                    <InputText @bind-Value="memberUpdateDto.Email" class="form-control" name="Email"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="Name">Birth year:</label>
-                    <InputDate @bind-Value="memberUpdateDto.BirthYear" class="form-control" name="BirthYear"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="Address">Password:</label>
-                    <InputText @bind-Value="memberUpdateDto.Password" type="password" class="form-control" name="Password"/>
-                </div>
-
-                <button type="submit" class="btn btn-primary">Save</button>
-            </EditForm>
-        
-            @if (editSuccess)
-            {
-                <div class="alert alert-success">
-                    Edit successfull.
-                </div>
-            }
-            else if (editFailed)
-            {
-                <div class="alert alert-danger">
-                    Edit failed.
-                    <p>@errorMessage</p>
-                </div>
-            }
+            <div class="alert alert-success">
+                Edit successfull.
+            </div>
+        }
+        else if (editFailed)
+        {
+            <div class="alert alert-danger">
+                Edit failed.
+                <p>@errorMessage</p>
+            </div>
         }
     }
+}
 else
 {
     <p>Loading...</p>
@@ -116,7 +116,7 @@ else
 
         showEditForm = true;
     }
-    
+
     private async Task LoadUserAfterChangeAsync()
     {
         memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
@@ -132,23 +132,12 @@ else
             };
         }
     }
-    
+
     private async Task EditMemberAsync()
     {
         Guid memberId = memberDto.MemberId;
-        
-        var updateDto = new MemberUpdateDTO
-        {
-            UserName = memberDto.UserName != memberUpdateDto.UserName ? memberUpdateDto.UserName : string.Empty,
-            FirstName = memberDto.FirstName != memberUpdateDto.FirstName ? memberUpdateDto.FirstName : null,
-            LastName = memberDto.LastName != memberUpdateDto.LastName ? memberUpdateDto.LastName : null,
-            Email = memberDto.Email != memberUpdateDto.Email ? memberUpdateDto.Email : string.Empty,
-            BirthYear = memberDto.BirthYear != memberUpdateDto.BirthYear ? memberUpdateDto.BirthYear : default(DateOnly),
-            Password = !string.IsNullOrWhiteSpace(memberUpdateDto.Password) ? memberUpdateDto.Password : null
-        };
 
-        
-        var response = await Http.PutAsJsonAsync($"http://localhost:80/api/members/update/{memberId}", updateDto);
+        var response = await Http.PutAsJsonAsync($"http://localhost:80/api/members/update/{memberId}", memberUpdateDto);
         if (response.IsSuccessStatusCode)
         {
             editSuccess = true;
@@ -179,7 +168,7 @@ else
             {
                 errorMessage = "Failed to parse error response: " + responseContent;
             }
-            
+
             editFailed = true;
         }
     }

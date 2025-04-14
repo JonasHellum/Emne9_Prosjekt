@@ -92,10 +92,11 @@ public class MemberController : ControllerBase
         Response.Cookies.Append("AuthToken", memberToken, new CookieOptions
         {
             HttpOnly = true,    // Ensures JavaScript cannot access the cookie
-            Secure = false,      // True ensures the cookie is only sent over HTTPS, but we on HTTP now
-            Path = "/",
             SameSite = SameSiteMode.Lax, // Prevent cross-site requests if strict
-            Expires = DateTime.UtcNow.AddHours(2) // Match token expiry
+            Secure = false,      // True ensures the cookie is only sent over HTTPS, but we on HTTP now
+            Path = "/",         // Ensures the cookie is sent to all pages on the site
+            Expires = DateTime.UtcNow.AddHours(2) // Set expiration explicitly
+
         });
 
 
@@ -217,6 +218,7 @@ public class MemberController : ControllerBase
 
         
         var userName = HttpContext.Items["UserName"] as string;
+        Console.WriteLine($"[Controller] ITEMS: {HttpContext.Items["UserName"]}");
 
         // Fallback to use claims if Items are gone "poof"
         if (string.IsNullOrEmpty(userName))

@@ -105,7 +105,7 @@ else if (memberDto == null)
             errorMessage = "Username and Password are required.";
             return;
         }
-
+        
         try
         {
             var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/login", memberDto);
@@ -113,38 +113,77 @@ else if (memberDto == null)
 
             if (response.IsSuccessStatusCode)
             {
-                // At this point, the cookie is set by the backend
-                loggedIn = true;
-                loginSuccess = true;
-                Console.WriteLine("Login successful, cookie has been set.");
+                Console.WriteLine("Login successful. Checking response headers...");
             
-                // Optionally reload username from the API using the cookie (to verify)
-                userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-            }
-            else
-            {
-                loginFailed = true;
-
-                var errorResponse = await response.Content.ReadAsStringAsync();
-                var errorDetails = JsonSerializer.Deserialize<Dictionary<string, string>>(errorResponse);
-                if (errorDetails != null && errorDetails.ContainsKey("Detailed"))
+                foreach (var header in response.Headers)
                 {
-                    errorMessage = errorDetails["Detailed"];
-                    Console.WriteLine($"Login failed: {errorDetails["Detailed"]}");
+                    Console.WriteLine($"Header: {header.Key}: {string.Join(", ", header.Value)}");
+                }
+
+                // Log Set-Cookie specifically (case-sensitive in some environments!)
+                if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
+                {
+                    foreach (var cookie in cookies)
+                    {
+                        Console.WriteLine($"Set-Cookie Received: {cookie}");
+                    }
                 }
                 else
                 {
-                    errorMessage = errorResponse;
-                    Console.WriteLine($"Login failed: {errorResponse}");
+                    Console.WriteLine("No Set-Cookie header in response!");
                 }
+            }
+            else
+            {
+                var errorResponse = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Login failed: {errorResponse}");
             }
         }
         catch (Exception e)
         {
-            loginFailed = true;
-            errorMessage = "Something went wrong. Please try again.";
-            Console.WriteLine($"Exception: {e}");
+            Console.WriteLine($"Exception during login: {e.Message}");
         }
+
+
+        // try
+        // {
+        //     var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/login", memberDto);
+        //     Console.WriteLine($"Logging in with {memberDto.UserName} and {memberDto.Password}");
+        //
+        //     if (response.IsSuccessStatusCode)
+        //     {
+        //         // At this point, the cookie is set by the backend
+        //         loggedIn = true;
+        //         loginSuccess = true;
+        //         Console.WriteLine("Login successful, cookie has been set.");
+        //     
+        //         // Optionally reload username from the API using the cookie (to verify)
+        //         userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+        //     }
+        //     else
+        //     {
+        //         loginFailed = true;
+        //
+        //         var errorResponse = await response.Content.ReadAsStringAsync();
+        //         var errorDetails = JsonSerializer.Deserialize<Dictionary<string, string>>(errorResponse);
+        //         if (errorDetails != null && errorDetails.ContainsKey("Detailed"))
+        //         {
+        //             errorMessage = errorDetails["Detailed"];
+        //             Console.WriteLine($"Login failed: {errorDetails["Detailed"]}");
+        //         }
+        //         else
+        //         {
+        //             errorMessage = errorResponse;
+        //             Console.WriteLine($"Login failed: {errorResponse}");
+        //         }
+        //     }
+        // }
+        // catch (Exception e)
+        // {
+        //     loginFailed = true;
+        //     errorMessage = "Something went wrong. Please try again.";
+        //     Console.WriteLine($"Exception: {e}");
+        // }
 
     }
 

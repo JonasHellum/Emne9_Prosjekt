@@ -33,18 +33,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddScoped(sp =>
-{
-    var handler = new HttpClientHandler
-    {
-        UseCookies = true
-    };
-
-    return new HttpClient(handler)
-    {
-        BaseAddress = new Uri("http://localhost:80/api/members/")
-    };
-});
+// builder.Services.AddScoped(sp =>
+// {
+//     var handler = new HttpClientHandler
+//     {
+//         UseCookies = true
+//     };
+//
+//     return new HttpClient(handler)
+//     {
+//         BaseAddress = new Uri("http://localhost:80/api")
+//     };
+// });
 
 // builder.Services.AddScoped(sp => new HttpClient
 // {
@@ -67,8 +67,34 @@ builder.Services.AddSingleton<Connect4Components>();
 builder.Services.AddControllers();
 
 builder.Services
-    .AddEndpointsApiExplorer()
-    .AddHttpContextAccessor();
+    .AddEndpointsApiExplorer();
+//    .AddHttpContextAccessor();
+
+// EXPERIMENTING A LOT
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped(sp =>
+{
+    var httpContext = sp.GetRequiredService<IHttpContextAccessor>().HttpContext!;
+    var client = new HttpClient(new HttpClientHandler
+    {
+        UseCookies = true // Let the browser store cookies
+    });
+    client.BaseAddress = new Uri("http://localhost:80"); // API base URL
+    return client;
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazor", policy =>
+    {
+        policy.WithOrigins("http://localhost")
+            .AllowCredentials()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+// NO CLUE WHAT IM DOING
 
 builder.Services.AddSwaggerGen();
 
@@ -123,7 +149,7 @@ builder.Services.AddAuthentication(options =>
             ValidIssuer = builder.Configuration["JWT:Issuer"],
             ValidAudience = builder.Configuration["JWT:Audience"],
             IssuerSigningKey = new
-                SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]))
+                SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"])),
         };
         options.Events = new JwtBearerEvents()
         {
@@ -206,11 +232,12 @@ var app = builder.Build();
 app.UseRouting();
 // app.UseMiddleware<JwtMiddleware>()
 //     .UseMiddleware<ApiExceptionHandling>();
+app.UseMiddleware<ApiExceptionHandling>();
 app.UseAuthentication();
 app.UseAuthorization();
 
 // app.UseMiddleware<JwtMiddleware>()
-    app.UseMiddleware<ApiExceptionHandling>();
+//    app.UseMiddleware<ApiExceptionHandling>();
 
 
 if (!app.Environment.IsDevelopment())
@@ -236,6 +263,28 @@ app.MapRazorComponents<App>()
 app.MapHub<ChatHub>("/chatHub"); 
 app.MapHub<GameHub>("/gameHub");
 
+
+app.Use(async (context, next) =>
+{
+    // Look for Set-Cookie in responses
+    if (context.Response.Headers.ContainsKey("Set-Cookie"))
+    {
+        Console.WriteLine($"Set-Cookie header: {context.Response.Headers["Set-Cookie"]}");
+    }
+    await next();
+
+    // Look for AuthToken in the incoming requests
+    if (context.Request.Cookies.ContainsKey("AuthToken"))
+    {
+        Console.WriteLine($"Incoming AuthToken Cookie: {context.Request.Cookies["AuthToken"]}");
+    }
+    else
+    {
+        Console.WriteLine("No AuthToken cookie found in request.");
+    }
+});
+
+app.UseCors("AllowBlazor");
 
 
 app.MapControllers();
