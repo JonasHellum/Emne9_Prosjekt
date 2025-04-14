@@ -287,6 +287,7 @@ public class MemberService : IMemberService
     /// <exception cref="DataException">Thrown if there is an issue accessing the data source.</exception>
     public async Task<MemberDTO?> GetByIdAsync(Guid memberId)
     {
+        Console.WriteLine($"Getting member in service by memberId: {memberId}");
         var member = await _memberRepository.GetByIdAsync(memberId);
         return member is null
             ? null

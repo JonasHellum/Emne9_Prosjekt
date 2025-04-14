@@ -24,10 +24,6 @@
                 <div class="form-group">
                     <label for="Name">Username:</label>
                     <InputText @bind-Value="memberUpdateDto.UserName" class="form-control" name="UserName"/>
-                    @if (memberUpdateDto.UserName == memberDto.UserName)
-                    {
-                        memberUpdateDto.UserName = String.Empty;
-                    }
                 </div>
                 
                 <div class="form-group">
@@ -43,10 +39,6 @@
                 <div class="form-group">
                     <label for="Content">Email:</label>
                     <InputText @bind-Value="memberUpdateDto.Email" class="form-control" name="Email"/>
-                    @if (memberUpdateDto.Email == memberDto.Email)
-                    {
-                        memberUpdateDto.Email = String.Empty;
-                    }
                 </div>
 
                 <div class="form-group">

@@ -25,7 +25,7 @@ public class JwtMiddleware : IMiddleware
     {
         string? token = context.Request
             .Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-
+    
         if (token is not null)
         {
             var (memberId, userName) = _memberService.ValidateAccessToken(token);
@@ -41,4 +41,28 @@ public class JwtMiddleware : IMiddleware
         
         await next(context);
     }
+    
+    // public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    // {
+    //     // Debug: Check if the user is authenticated and claims exist
+    //     if (context.User?.Identity?.IsAuthenticated == true)
+    //     {
+    //         string memberId = context.User.FindFirst("nameid")?.Value;
+    //         string userName = context.User.FindFirst("unique_name")?.Value;
+    //
+    //         // Log debug information
+    //         _logger.LogInformation($"JWT Middleware: MemberId={memberId}, UserName={userName}");
+    //
+    //         // Attach data to HttpContext.Items
+    //         context.Items["MemberId"] = memberId;
+    //         context.Items["UserName"] = userName;
+    //     }
+    //     else
+    //     {
+    //         _logger.LogWarning("JWT Middleware: User is not authenticated.");
+    //     }
+    //
+    //     await next(context);
+    // }
+
 }

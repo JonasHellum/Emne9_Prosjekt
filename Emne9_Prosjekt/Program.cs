@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using Emne9_Prosjekt.Components;
 using Emne9_Prosjekt.Extensions;
@@ -21,15 +22,35 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using HttpVersion = System.Net.HttpVersion;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:80/api") });
+
+builder.Services.AddScoped(sp =>
+{
+    var handler = new HttpClientHandler
+    {
+        UseCookies = true
+    };
+
+    return new HttpClient(handler)
+    {
+        BaseAddress = new Uri("http://localhost:80/api/members/")
+    };
+});
+
+// builder.Services.AddScoped(sp => new HttpClient
+// {
+//     BaseAddress = new Uri("https://localhost:80/api/members"),
+//     DefaultRequestVersion = HttpVersion.Version20
+// });
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -75,7 +96,7 @@ builder.Services.AddDbContext<Emne9EksamenDbContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
         new MySqlServerVersion(new Version(8, 0, 33))));
 
-builder.Services.AddScoped<JwtMiddleware>();
+// builder.Services.AddScoped<JwtMiddleware>();
 
 
 
@@ -104,7 +125,65 @@ builder.Services.AddAuthentication(options =>
             IssuerSigningKey = new
                 SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]))
         };
-        
+        options.Events = new JwtBearerEvents()
+        {
+            OnMessageReceived = context =>
+            {
+                // Read token from 'AuthToken' cookie if the header is empty
+                if (string.IsNullOrEmpty(context.Token))
+                {
+                    var token = context.Request.Cookies["AuthToken"];
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        context.Token = token;
+                        Console.WriteLine($"Token from cookie: {token}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("No token found in cookie or header.");
+                    }
+                }
+                return Task.CompletedTask;
+            },
+            
+            OnTokenValidated = context =>
+            {
+                var claimsPrincipal = context.Principal;
+                var identity = claimsPrincipal.Identity as ClaimsIdentity;
+
+                // Extract username claim (debug purposes)
+                var memberId = identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = identity?.FindFirst(ClaimTypes.Name)?.Value;
+
+                Console.WriteLine($"[OnTokenValidated] MemberId: {memberId}");
+                Console.WriteLine($"[OnTokenValidated] Username: {userName}");
+
+
+                // Add to HttpContext.Items for later manual use
+                if (!string.IsNullOrEmpty(memberId) && !string.IsNullOrEmpty(userName))
+                {
+                    context.HttpContext.Items["MemberId"] = memberId;
+                    context.HttpContext.Items["UserName"] = userName;
+                    
+                    Console.WriteLine($"[OnTokenValidated] SET MemberId: {memberId}");
+                    Console.WriteLine($"[OnTokenValidated] SET Username: {userName}");
+                }
+
+                return Task.CompletedTask;
+
+            },
+            
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"Authentication failed: {context.Exception.Message}");
+                if (context.Exception.InnerException != null)
+                {
+                    Console.WriteLine($"Inner exception: {context.Exception.InnerException.Message}");
+                }
+                return Task.CompletedTask;
+            }
+        };
+
     })
     .AddGoogle(options =>
     {
@@ -125,10 +204,14 @@ var app = builder.Build();
 //app.UseHttpsRedirection();
 
 app.UseRouting();
-app.UseMiddleware<JwtMiddleware>()
-    .UseMiddleware<ApiExceptionHandling>();
+// app.UseMiddleware<JwtMiddleware>()
+//     .UseMiddleware<ApiExceptionHandling>();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// app.UseMiddleware<JwtMiddleware>()
+    app.UseMiddleware<ApiExceptionHandling>();
+
 
 if (!app.Environment.IsDevelopment())
 {

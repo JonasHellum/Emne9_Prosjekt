@@ -86,7 +86,18 @@ public class MemberController : ControllerBase
         }
         
         var memberToken = _memberService.MakeToken(member);
-        Response.Headers.Add("Authorization", memberToken);
+        // Response.Headers.Add("Authorization", memberToken);
+        
+        // Set the JWT in a cookie
+        Response.Cookies.Append("AuthToken", memberToken, new CookieOptions
+        {
+            HttpOnly = true,    // Ensures JavaScript cannot access the cookie
+            Secure = false,      // True ensures the cookie is only sent over HTTPS, but we on HTTP now
+            Path = "/",
+            SameSite = SameSiteMode.Lax, // Prevent cross-site requests if strict
+            Expires = DateTime.UtcNow.AddHours(2) // Match token expiry
+        });
+
 
         return Ok(member);
     }
@@ -201,6 +212,10 @@ public class MemberController : ControllerBase
     [HttpGet("Username-info")]
     public string GetUserNameFromJWT()
     {
+        Console.WriteLine($"[Controller] User.Identity.Name: {User?.Identity?.Name}");
+        Console.WriteLine($"[Controller] IsAuthenticated: {User?.Identity?.IsAuthenticated}");
+
+        
         var userName = HttpContext.Items["UserName"] as string;
 
         // Fallback to use claims if Items are gone "poof"
@@ -227,6 +242,9 @@ public class MemberController : ControllerBase
     [HttpGet("MemberId-info")]
     public string GetMemberIdFromJWT()
     {
+        Console.WriteLine($"[Controller] User.Claims: {string.Join(", ", User?.Claims?.Select(c => c.Type + "=" + c.Value))}");
+
+        
         var memberId = HttpContext.Items["MemberId"] as string;
 
         // Fallback to use claims if Items are gone "poof"
@@ -277,9 +295,9 @@ public class MemberController : ControllerBase
     /// <returns>An OK result indicating that the logout operation was successful.</returns>
     [Authorize]
     [HttpGet("Logout")]
-    public async Task<ActionResult> Logout()
+    public IActionResult Logout()
     {
-        await HttpContext.SignOutAsync();
-        return Ok();
+        Response.Cookies.Delete("AuthToken");
+        return Ok(new { Message = "Logged out" });
     }
 }

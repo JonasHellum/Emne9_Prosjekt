@@ -46,5 +46,10 @@ else
             Task.Delay(5000);
             NavManager.NavigateTo("/login");
         }
+        else
+        {
+            logedout = "Logout failed";
+        }
+        Console.WriteLine(logedout);
     }
 }
