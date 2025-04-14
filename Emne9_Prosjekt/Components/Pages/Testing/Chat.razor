@@ -1,5 +1,6 @@
 ﻿@page "/chat"
-@inject HubConnection ChatHubConnection
+@inject IChatHubConnection ChatHubConnection
+@using Emne9_Prosjekt.Hubs.Interfaces
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
 
@@ -33,19 +34,19 @@
         {
             Console.WriteLine("---Establishing connection...");
 
-            ChatHubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+            ChatHubConnection.Connection.On<string, string>("ReceiveMessage", (user, message) =>
             {
                 _messages.Add((user, message));
                 InvokeAsync(StateHasChanged);
             });
 
-            ChatHubConnection.On<string>("NotifyUserConnected", (user) =>
+            ChatHubConnection.Connection.On<string>("NotifyUserConnected", (user) =>
             {
                 _messages.Add(("System", $"{user} har koblet til."));
                 InvokeAsync(StateHasChanged);
             });
 
-            ChatHubConnection.On<string>("NotifyUserDisconnected", (user) =>
+            ChatHubConnection.Connection.On<string>("NotifyUserDisconnected", (user) =>
             {
                 _messages.Add(("System", $"{user} har forlatt chatten."));
                 InvokeAsync(StateHasChanged);
@@ -53,7 +54,7 @@
 
             try
             {
-                await ChatHubConnection.StartAsync();
+                await ChatHubConnection.Connection.StartAsync();
                 Console.WriteLine("--Connection established!");
                 _isConnected = true;
             }
@@ -68,7 +69,7 @@
     {
         if (!string.IsNullOrEmpty(_message))
         {
-            await ChatHubConnection.SendAsync("SendMessage", _message);
+            await ChatHubConnection.Connection.SendAsync("SendMessage", _message);
             _message = string.Empty;
         }
     }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace Emne9_Prosjekt.Services;
+namespace Emne9_Prosjekt.Hubs.HubServices;
 
 public class ChatService
 {
