@@ -1,4 +1,10 @@
 ﻿@page "/User"
+@using System.Text.Json
+@using Emne9_Prosjekt.Features.Members.Models
+@using Microsoft.IdentityModel.Tokens
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
 
 <div style="background: #ffffff;
             width: 1000px;
@@ -6,10 +12,190 @@
     <h1 style="padding-top: 150px;
                padding-bottom: 50px;
                text-align: center">
-        User
+        @if (memberDto != null && !userName.IsNullOrEmpty())
+        {
+            <p>User:</p>
+            <p>Username: @memberDto.UserName</p>
+            <p>Name: @memberDto.FirstName</p>
+            <p>Last name: @memberDto.LastName</p>
+            <p>Email: @memberDto.Email</p>
+            <p>Date of birth: @memberDto.BirthYear</p>
+
+            <button @onclick="ShowEditForm" class="btn btn-primary">Edit</button>
+
+            @if (showEditForm)
+            {
+                <EditForm Model="@memberUpdateDto" OnValidSubmit="EditMemberAsync" FormName="editForm">
+
+                    <div class="form-group">
+                        <label for="Name">Username:</label>
+                        <InputText @bind-Value="memberUpdateDto.UserName" class="form-control" name="UserName"/>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Name">First name:</label>
+                        <InputText @bind-Value="memberUpdateDto.FirstName" class="form-control" name="FirstName"/>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Name">Last name:</label>
+                        <InputText @bind-Value="memberUpdateDto.LastName" class="form-control" name="LastName"/>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Content">Email:</label>
+                        <InputText @bind-Value="memberUpdateDto.Email" class="form-control" name="Email"/>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Name">Birth year:</label>
+                        <InputDate @bind-Value="memberUpdateDto.BirthYear" class="form-control" name="BirthYear"/>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Address">Password:</label>
+                        <InputText @bind-Value="memberUpdateDto.Password" type="password" class="form-control" name="Password"/>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </EditForm>
+
+                @if (editSuccess)
+                {
+                    <div class="alert alert-success">
+                        Edit successfull.
+                    </div>
+                }
+                else if (editFailed)
+                {
+                    <div class="alert alert-danger">
+                        Edit failed.
+                        <p>@errorMessage</p>
+                    </div>
+                }
+            }
+        }
+        else
+        {
+            <p>Not logged in.</p>
+            <p>Redirecting to login page.</p>
+        }
+
     </h1>
 </div>
 
 @code {
+    public string memberId { get; set; }
+    private MemberDTO memberDto { get; set; }
+    private MemberUpdateDTO memberUpdateDto { get; set; } = new MemberUpdateDTO();
+    private bool showEditForm = false;
+    private bool editSuccess = false;
+    private bool editFailed = false;
+    private string userName;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+            Console.WriteLine($"Username from UpdatingTestin: {userName}");
+            memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+            if (!memberId.IsNullOrEmpty())
+            {
+                memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
+            }
+            else
+            {
+                RedirectToLogin();
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+
+    private async void RedirectToLogin()
+    {
+        await Task.Delay(3500);
+        NavManager.NavigateTo("/login");
+    }
+
+    private void ShowEditForm()
+    {
+        if (memberDto != null)
+        {
+            memberUpdateDto.UserName = memberDto.UserName;
+            memberUpdateDto.FirstName = memberDto.FirstName;
+            memberUpdateDto.LastName = memberDto.LastName;
+            memberUpdateDto.BirthYear = memberDto.BirthYear;
+            memberUpdateDto.Email = memberDto.Email;
+        }
+
+        showEditForm = true;
+    }
     
+    private async Task LoadUserAfterChangeAsync()
+    {
+        memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
+        if (memberDto != null)
+        {
+            memberDto = new MemberDTO()
+            {
+                UserName = memberDto.UserName,
+                FirstName = memberDto.FirstName,
+                LastName = memberDto.LastName,
+                BirthYear = memberDto.BirthYear,
+                Email = memberDto.Email
+            };
+        }
+    }
+    
+    private async Task EditMemberAsync()
+    {
+        Guid memberId = memberDto.MemberId;
+        
+        var response = await Http.PutAsJsonAsync($"http://localhost:80/api/members/update/{memberId}", memberUpdateDto);
+        if (response.IsSuccessStatusCode)
+        {
+            editSuccess = true;
+            await LoadUserAfterChangeAsync();
+        }
+        else
+        {
+            // Extract validation errors from the response... Might not need if the validating is in blazor page?
+            var responseContent = await response.Content.ReadAsStringAsync();
+            try
+            {
+                // Try to parse error messages from response body
+                var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (errorResponse?.Errors != null)
+                {
+                    errorMessage = string.Join(", ", errorResponse.Errors);
+                }
+                else
+                {
+                    errorMessage = "An unknown error occurred.";
+                }
+            }
+            catch
+            {
+                errorMessage = "Failed to parse error response: " + responseContent;
+            }
+
+            editSuccess = false;
+            editFailed = true;
+
+        }
+    }
+    private class ErrorResponse
+    {
+        public List<string> Errors { get; set; }
+    }
 }

@@ -40,8 +40,7 @@ builder.Services.AddSingleton<ChatService>();
 builder.Services.AddSingleton<GameService>();
 
 builder.Services.AddScoped<BattleShipComponents>();
-// CHANGES
-builder.Services.AddSingleton<Connect4Components>();
+builder.Services.AddScoped<Connect4Components>();
 
 builder.Services.AddControllers();
 

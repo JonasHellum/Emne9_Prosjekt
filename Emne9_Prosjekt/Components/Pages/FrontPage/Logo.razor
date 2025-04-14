@@ -1,70 +1,52 @@
-﻿<img style="position: absolute;
-          padding-left: 100px;
-          width: 800px"
+﻿<img class="logo-size"
      alt="" src="/Assets/logo/L.png"
      data-aos="fade-right"
      data-aos-duration="500"
      data-aos-delay="900"/>
 
-<img style="position: absolute;
-            padding-left: 100px;
-            width: 800px"
+<img class="logo-size"
      alt="" src="/Assets/logo/J.png"
      data-aos="fade-left"
      data-aos-duration="500"
      data-aos-delay="700"/>
 
-<img style="position: absolute;
-            padding-left: 100px;
-            width: 800px"
+<img class="logo-size"
      alt="" src="/Assets/logo/B.png"
      data-aos="fade-right"
      data-aos-duration="500"
      data-aos-delay="500"/>
 
-<img style="position: absolute;
-            padding-left: 100px;
-            width: 800px"
+<img class="logo-size"
      alt="" src="/Assets/logo/stepsL.png"
      data-aos="fade-left"
      data-aos-duration="700"
      data-aos-delay="100"/>
 
-<img style="position: absolute;
-            padding-left: 100px;
-            width: 800px"
+<img class="logo-size"
      alt="" src="/Assets/logo/stepsR.png"
      data-aos="fade-right"
      data-aos-duration="700"
      data-aos-delay="100"/>
 
-<img style="position: absolute;
-            padding-left: 100px;
-            width: 800px"
+<img class="logo-size"
      alt="" src="/Assets/logo/piece1.png"
      data-aos="fade-up-right"
      data-aos-duration="300"
      data-aos-delay="1800"/>
 
-<img style="position: absolute;
-            padding-left: 100px;
-            width: 800px"
+<img class="logo-size"
      alt="" src="/Assets/logo/piece2.png"
      data-aos="fade-right"
      data-aos-duration="250"
      data-aos-delay="2300"/>
 
-<img style="position: absolute;
-            padding-left: 100px;
-            width: 800px"
+<img class="logo-size"
      alt="" src="/Assets/logo/piece3-1.png"
      data-aos="fade-down"
      data-aos-duration="250"
      data-aos-delay="2800"/>
 
-<img style="position: absolute;
-            padding-left: 100px;
-            width: 800px"
+<img class="logo-size"
      alt="" src="/Assets/logo/piece3-2.png"
      data-aos="zoom-out-right"
      data-aos-duration="200"
@@ -74,18 +56,31 @@
             padding-top: 250px;
             font-size: 50px;
             font-family: Bahnschrift,serif;
-            font-weight: bolder"
+            font-weight: bolder;
+            z-index: 500"
      data-aos="fade-up"
      data-aos-duration="500"
      data-aos-delay="1250">
-     Games
+     <NavLink href="Games"
+              class="link-style">
+          Games
+     </NavLink>
 </div>
 
-<img style=" position: absolute;
-             justify-content: end;
-             width: 1000px;
-             padding-top: 380px;"
-     alt="" src="/Assets/PageAssets/PageBorderR.png"/>
+<style>
+    .logo-size {
+        position: absolute;
+        padding-left: 100px;
+        width: 800px
+    }
+    .link-style {
+         color: black;
+         text-decoration: none;
+    }
+    .link-style:hover {
+         color: black;
+    }
+</style>
 
 @code {
     
