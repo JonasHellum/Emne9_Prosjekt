@@ -7,7 +7,7 @@
 
 <h3 style="padding-top: 125px">UpdatingTestin</h3>
 
-@if (memberDto != null && !userName.IsNullOrEmpty())
+@if (memberDto != null && !memberId.IsNullOrEmpty())
     {
         <p>@memberDto.UserName</p>
         <p>@memberDto.FirstName</p>
@@ -24,6 +24,10 @@
                 <div class="form-group">
                     <label for="Name">Username:</label>
                     <InputText @bind-Value="memberUpdateDto.UserName" class="form-control" name="UserName"/>
+                    @if (memberUpdateDto.UserName == memberDto.UserName)
+                    {
+                        memberUpdateDto.UserName = String.Empty;
+                    }
                 </div>
                 
                 <div class="form-group">
@@ -39,6 +43,10 @@
                 <div class="form-group">
                     <label for="Content">Email:</label>
                     <InputText @bind-Value="memberUpdateDto.Email" class="form-control" name="Email"/>
+                    @if (memberUpdateDto.Email == memberDto.Email)
+                    {
+                        memberUpdateDto.Email = String.Empty;
+                    }
                 </div>
 
                 <div class="form-group">
@@ -82,16 +90,14 @@ else
     private bool showEditForm = false;
     private bool editSuccess = false;
     private bool editFailed = false;
-    private string userName;
     private string errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-            Console.WriteLine($"Username from UpdatingTestin: {userName}");
             memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+            Console.WriteLine($"MemberId from UpdateingTestin: {memberId}");
             if (!memberId.IsNullOrEmpty())
             {
                 memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
@@ -113,6 +119,7 @@ else
             memberUpdateDto.LastName = memberDto.LastName;
             memberUpdateDto.BirthYear = memberDto.BirthYear;
             memberUpdateDto.Email = memberDto.Email;
+
         }
 
         showEditForm = true;
@@ -138,7 +145,18 @@ else
     {
         Guid memberId = memberDto.MemberId;
         
-        var response = await Http.PutAsJsonAsync($"http://localhost:80/api/members/update/{memberId}", memberUpdateDto);
+        var updateDto = new MemberUpdateDTO
+        {
+            UserName = memberDto.UserName != memberUpdateDto.UserName ? memberUpdateDto.UserName : string.Empty,
+            FirstName = memberDto.FirstName != memberUpdateDto.FirstName ? memberUpdateDto.FirstName : null,
+            LastName = memberDto.LastName != memberUpdateDto.LastName ? memberUpdateDto.LastName : null,
+            Email = memberDto.Email != memberUpdateDto.Email ? memberUpdateDto.Email : string.Empty,
+            BirthYear = memberDto.BirthYear != memberUpdateDto.BirthYear ? memberUpdateDto.BirthYear : default(DateOnly),
+            Password = !string.IsNullOrWhiteSpace(memberUpdateDto.Password) ? memberUpdateDto.Password : null
+        };
+
+        
+        var response = await Http.PutAsJsonAsync($"http://localhost:80/api/members/update/{memberId}", updateDto);
         if (response.IsSuccessStatusCode)
         {
             editSuccess = true;
@@ -169,10 +187,8 @@ else
             {
                 errorMessage = "Failed to parse error response: " + responseContent;
             }
-
-            editSuccess = false;
+            
             editFailed = true;
-
         }
     }
     private class ErrorResponse

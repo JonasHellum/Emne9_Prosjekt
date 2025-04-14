@@ -158,11 +158,6 @@ public class MemberController : ControllerBase
     [HttpPut("update/{memberId}", Name = "UpdateMemberAsync")]
     public async Task<ActionResult<MemberDTO>> UpdateMemberAsync(Guid memberId, [FromBody] MemberUpdateDTO memberDTO)
     {
-        // if (!ModelState.IsValid)
-        // {
-        //     return BadRequest(ModelState);
-        // }
-        
         _logger.LogInformation($"Doing a Put on member with id: {memberId}");
         var asyncValidationResult = await _asyncUpdateValidator.ValidateAsync(memberDTO);
         if (!asyncValidationResult.IsValid)
@@ -182,6 +177,11 @@ public class MemberController : ControllerBase
             : Ok(updatedMember);
     }
 
+    /// <summary>
+    /// Retrieves a member's details by their unique identifier.
+    /// </summary>
+    /// <param name="memberId">The unique identifier of the member.</param>
+    /// <returns>The MemberDTO object containing the member's details if found; otherwise, returns a BadRequest status.</returns>
     [Authorize]
     [HttpGet("get/{memberId}", Name = "GetMemberByIdAsync")]
     public async Task<ActionResult<MemberDTO>> GetMemberByIdAsync(Guid memberId)
@@ -199,7 +199,7 @@ public class MemberController : ControllerBase
     /// <returns>The username of the authenticated user if available; otherwise, null if no user is authenticated.</returns>
     [AllowAnonymous]
     [HttpGet("Username-info")]
-    public string GetUserName()
+    public string GetUserNameFromJWT()
     {
         var userName = HttpContext.Items["UserName"] as string;
 
@@ -222,17 +222,17 @@ public class MemberController : ControllerBase
     /// <summary>
     /// Retrieves the MemberId associated with the current authenticated user.
     /// </summary>
-    /// <returns>The MemberId as a string if the user is authenticated; otherwise, null.</returns>
+    /// <returns>The MemberId as a string if the user is authenticated; otherwise, null if no user is authenticated.</returns>
     [AllowAnonymous]
     [HttpGet("MemberId-info")]
-    public string GetMemberId()
+    public string GetMemberIdFromJWT()
     {
         var memberId = HttpContext.Items["MemberId"] as string;
 
         // Fallback to use claims if Items are gone "poof"
         if (string.IsNullOrEmpty(memberId))
         {
-            memberId = User?.Identity?.Name; 
+            memberId = User?.Claims.FirstOrDefault(claim => claim.Type == "nameid")?.Value;
         }
 
         if (string.IsNullOrEmpty(memberId))
@@ -243,5 +243,43 @@ public class MemberController : ControllerBase
         return memberId is null
             ? null
             : memberId;
+    }
+
+    /// <summary>
+    /// Checks if the provided username already exists in the system.
+    /// </summary>
+    /// <param name="username">The username to check for existence.</param>
+    /// <returns>A boolean value indicating whether the username exists in the system.</returns>
+    [AllowAnonymous]
+    [HttpGet("username/{username}")]
+    public async Task<IActionResult> UserNameExistsAsync(string username)
+    {
+        var exists = await _memberService.UserNameExistsAsync(username);
+        return Ok(exists);
+    }
+
+    /// <summary>
+    /// Checks if the given email address is already registered in the system.
+    /// </summary>
+    /// <param name="email">The email address to verify for existence.</param>
+    /// <returns>A boolean value indicating whether the email address exists in the system.</returns>
+    [AllowAnonymous]
+    [HttpGet("email/{email}")]
+    public async Task<IActionResult> EmailExistsAsync(string email)
+    {
+        var exists = await _memberService.EmailExistsAsync(email);
+        return Ok(exists);
+    }
+
+    /// <summary>
+    /// Logs out the currently authenticated user by ending their session and clearing associated authentication cookies.
+    /// </summary>
+    /// <returns>An OK result indicating that the logout operation was successful.</returns>
+    [Authorize]
+    [HttpGet("Logout")]
+    public async Task<ActionResult> Logout()
+    {
+        await HttpContext.SignOutAsync();
+        return Ok();
     }
 }
