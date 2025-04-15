@@ -26,7 +26,7 @@ else
     {
         try
         {
-            userName = await Http.GetStringAsync("https://localhost:80/api/members/Username-info");
+            userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
             Console.WriteLine($"Username from LogoutTestin: {userName}");
 
         }
@@ -39,7 +39,7 @@ else
     
     private async Task Logout()
     {
-        var response = await Http.GetAsync("https://localhost:80/api/members/Logout");
+        var response = await Http.GetAsync("http://localhost:80/api/members/Logout");
         if (response.IsSuccessStatusCode)
         {
             logedout = "Logout successful";

@@ -84,24 +84,7 @@ else
     private bool editSuccess = false;
     private bool editFailed = false;
     private string errorMessage;
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            memberId = await Http.GetStringAsync("https://localhost:80/api/members/MemberId-info");
-            Console.WriteLine($"MemberId from UpdateingTestin: {memberId}");
-            if (!memberId.IsNullOrEmpty())
-            {
-                memberDto = await Http.GetFromJsonAsync<MemberDTO>($"https://localhost:80/api/members/get/{memberId}");
-            }
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
-    }
+    
     
     private bool _isClientSide;
 
@@ -123,9 +106,23 @@ else
                     Http.DefaultRequestHeaders.Authorization =
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
                 }
-
-                // Fetch the username from the API
-                memberId = await Http.GetStringAsync("https://localhost:80/api/members/MemberId-info");
+                
+                
+                
+                
+                try
+                {
+                    if (!memberId.IsNullOrEmpty())
+                    {
+                        memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+                        memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
 
                 // Trigger a re-render now that client-side data is available
                 StateHasChanged();
@@ -154,7 +151,7 @@ else
 
     private async Task LoadUserAfterChangeAsync()
     {
-        memberDto = await Http.GetFromJsonAsync<MemberDTO>($"https://localhost:80/api/members/get/{memberId}");
+        memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
         if (memberDto != null)
         {
             memberDto = new MemberDTO()
@@ -172,7 +169,7 @@ else
     {
         Guid memberId = memberDto.MemberId;
 
-        var response = await Http.PutAsJsonAsync($"https://localhost:80/api/members/update/{memberId}", memberUpdateDto);
+        var response = await Http.PutAsJsonAsync($"http://localhost:80/api/members/update/{memberId}", memberUpdateDto);
         if (response.IsSuccessStatusCode)
         {
             editSuccess = true;

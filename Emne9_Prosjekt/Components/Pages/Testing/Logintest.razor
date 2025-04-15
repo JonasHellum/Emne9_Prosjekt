@@ -85,7 +85,7 @@ else if (memberDto == null)
         
         // try
         // {
-        //     userName = await Http.GetStringAsync("https://localhost:80/api/members/Username-info");
+        //     userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
         //     Console.WriteLine($"Username from Logintest: {userName}");
         //     loggedIn = !string.IsNullOrEmpty(userName);
         //
@@ -120,7 +120,7 @@ else if (memberDto == null)
                 }
 
                 // Fetch the username from the API
-                userName = await Http.GetStringAsync("https://localhost:80/api/members/Username-info");
+                userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
                 loggedIn = !string.IsNullOrEmpty(userName);
 
                 // Trigger a re-render now that client-side data is available
@@ -143,7 +143,7 @@ else if (memberDto == null)
         
         try
         {
-            var response = await Http.PostAsJsonAsync("https://localhost:80/api/members/login", memberDto);
+            var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/login", memberDto);
             Console.WriteLine($"Logging in with {memberDto.UserName} and {memberDto.Password}");
 
             if (response.IsSuccessStatusCode)

@@ -106,7 +106,7 @@ else if (registrationDto == null)
 
         try
         {
-            userName = await Http.GetStringAsync("https://localhost:80/api/members/Username-info");
+            userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
             Console.WriteLine($"Username from registerTestin: {userName}");
             loggedIn = !string.IsNullOrEmpty(userName);
         }
@@ -140,7 +140,7 @@ else if (registrationDto == null)
                 }
 
                 // Fetch the username from the API
-                userName = await Http.GetStringAsync("https://localhost:80/api/members/Username-info");
+                userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
 
                 // Trigger a re-render now that client-side data is available
                 StateHasChanged();
@@ -154,7 +154,7 @@ else if (registrationDto == null)
 
     private async Task CheckUserNameAsync()
     {
-        var response = await Http.GetAsync($"https://localhost:80/api/members/username/{registrationDto.UserName}");
+        var response = await Http.GetAsync($"http://localhost:80/api/members/username/{registrationDto.UserName}");
         if (response.IsSuccessStatusCode)
         {
             userNameTaken = await response.Content.ReadFromJsonAsync<bool>();
@@ -167,7 +167,7 @@ else if (registrationDto == null)
 
     private async Task CheckEmailAsync()
     {
-        var response = await Http.GetAsync($"https://localhost:80/api/members/email/{registrationDto.Email}");
+        var response = await Http.GetAsync($"http://localhost:80/api/members/email/{registrationDto.Email}");
         if (response.IsSuccessStatusCode)
         {
             emailTaken = await response.Content.ReadFromJsonAsync<bool>();
@@ -180,7 +180,7 @@ else if (registrationDto == null)
 
     protected async Task RegistrationAsync()
     {
-        var response = await Http.PostAsJsonAsync("https://localhost:80/api/members/Register", registrationDto);
+        var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/Register", registrationDto);
         
         if (response.IsSuccessStatusCode)
         {

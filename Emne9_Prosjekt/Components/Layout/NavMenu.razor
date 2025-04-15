@@ -127,7 +127,7 @@
                 }
 
                 // Fetch the username from the API
-                _userName = await Http.GetStringAsync("https://localhost:80/api/members/Username-info");
+                _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
 
                 // Trigger a re-render now that client-side data is available
                 StateHasChanged();

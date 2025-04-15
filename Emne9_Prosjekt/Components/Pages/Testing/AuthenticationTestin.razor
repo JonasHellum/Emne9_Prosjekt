@@ -47,7 +47,7 @@ else
     {
         try
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, "https://localhost:80/ControllerTEST");
+            var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost:80/ControllerTEST");
 
             // Just in case it buggs, need to know if the header has info at all when it happens.
             var authorizationHeader = Http.DefaultRequestHeaders.Authorization;

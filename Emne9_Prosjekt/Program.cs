@@ -81,7 +81,7 @@ builder.Services.AddScoped(sp =>
 
     return new HttpClient(handler)
     {
-        BaseAddress = new Uri("https://localhost:80") // Same base URL as your API
+        BaseAddress = new Uri("http://localhost:80") // Same base URL as your API
     };
 });
 
