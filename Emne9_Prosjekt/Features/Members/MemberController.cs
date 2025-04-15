@@ -93,7 +93,7 @@ public class MemberController : ControllerBase
         {
             HttpOnly = true,    // Ensures JavaScript cannot access the cookie
             SameSite = SameSiteMode.Lax,
-            Secure = true,      // True ensures the cookie is only sent over HTTPS, but we on HTTP now
+            Secure = false,      // True ensures the cookie is only sent over HTTPS, but we on HTTP now
             Expires = DateTime.UtcNow.AddHours(2),
             Domain = "localhost",
             Path = "/"

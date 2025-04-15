@@ -33,25 +33,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-// builder.Services.AddScoped(sp =>
-// {
-//     var handler = new HttpClientHandler
-//     {
-//         UseCookies = true
-//     };
-//
-//     return new HttpClient(handler)
-//     {
-//         BaseAddress = new Uri("http://localhost:80/api")
-//     };
-// });
-
-// builder.Services.AddScoped(sp => new HttpClient
-// {
-//     BaseAddress = new Uri("https://localhost:80/api/members"),
-//     DefaultRequestVersion = HttpVersion.Version20
-// });
-
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -84,20 +65,6 @@ builder.Services.AddScoped(sp =>
         BaseAddress = new Uri("http://localhost:80") // Same base URL as your API
     };
 });
-
-
-// builder.Services.AddCors(options =>
-// {
-//     options.AddPolicy("AllowBlazor", policy =>
-//     {
-//         policy.WithOrigins("http://localhost")
-//             .AllowCredentials()
-//             .AllowAnyHeader()
-//             .AllowAnyMethod();
-//     });
-// });
-
-// NO CLUE WHAT IM DOING
 
 builder.Services.AddSwaggerGen();
 
@@ -214,8 +181,6 @@ app.Use(async (context, next) =>
         Console.WriteLine("No AuthToken cookie found in request.");
     }
 });
-
-// app.UseCors("AllowBlazor");
 
 
 app.MapControllers();

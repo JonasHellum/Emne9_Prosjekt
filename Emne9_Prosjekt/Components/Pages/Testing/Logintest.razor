@@ -161,7 +161,7 @@ else if (memberDto == null)
                         var tokenValue = tokenPair.Split('=')[1];
 
                         // Use JSRuntime to set the cookie in the browser
-                        await JSRuntime.InvokeVoidAsync("setCookie", tokenName, tokenValue, 2); // 2 = days before expiry
+                        await JSRuntime.InvokeVoidAsync("setCookie", tokenName, tokenValue, 2); // 2 = hours before expiry
                         Console.WriteLine($"Cookie manually set: {tokenName} = {tokenValue}");
                     }
                 }

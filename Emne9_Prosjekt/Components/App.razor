@@ -35,11 +35,11 @@
     }
 </script>
 <script>
-    window.setCookie = (name, value, days) => {
+    window.setCookie = (name, value, hours) => {
         let expires = "";
-        if (days) {
+        if (hours) {
             const date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            date.setTime(date.getTime() + (hours * 60 * 60 * 1000));
             expires = "; expires=" + date.toUTCString();
         }
         document.cookie = name + "=" + (value || "") + expires + "; path=/; Secure; SameSite=Lax";
