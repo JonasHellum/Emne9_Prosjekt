@@ -190,14 +190,7 @@ public class MemberService : IMemberService
                 .FirstOrDefault(claim => claim.Type == "unique_name")?.Value;
             
             Console.WriteLine($"[ValidateAccessToken] memberId: {memberId}, userName: {userName}");
-
-            // IEnumerable<string>? roles = jwtSecurityToken?.Claims
-            //     .Where(x => x.Type == "role")
-            //     .Select(x => x.Value);
             
-            // _httpContextAccessor.HttpContext.Items["MemberId"] = memberId;
-            // _httpContextAccessor.HttpContext.Items["UserName"] = userName;
-
             return (memberId, userName);
         }
         catch (Exception e)
@@ -307,6 +300,11 @@ public class MemberService : IMemberService
         return GenerateJwtToken(memberModel);
     }
 
+    /// <summary>
+    /// Checks if a username already exists in the system.
+    /// </summary>
+    /// <param name="username">The username to check for existence.</param>
+    /// <returns>A boolean value indicating whether the username exists.</returns>
     public async Task<bool> UserNameExistsAsync(string username)
     {
         if (username.IsNullOrEmpty())
@@ -318,6 +316,11 @@ public class MemberService : IMemberService
         return exists;
     }
 
+    /// <summary>
+    /// Checks if an email address exists in the system.
+    /// </summary>
+    /// <param name="email">The email address to be checked for existence.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a boolean value indicating whether the email exists (true) or not (false).</returns>
     public async Task<bool> EmailExistsAsync(string email)
     {
         if (email.IsNullOrEmpty())

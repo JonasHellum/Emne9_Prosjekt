@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using System.Text;
 using Emne9_Prosjekt.Components;
+using Emne9_Prosjekt.Components.Pages.Interfaces;
+using Emne9_Prosjekt.Components.Pages.Services;
 using Emne9_Prosjekt.Extensions;
 using Emne9_Prosjekt.Hubs;
 using Emne9_Prosjekt.Services;
@@ -62,7 +64,7 @@ builder.Services.AddScoped(sp =>
 
     return new HttpClient(handler)
     {
-        BaseAddress = new Uri("http://localhost:80") // Same base URL as your API
+        BaseAddress = new Uri("http://localhost:80") // Same base URL as API
     };
 });
 
@@ -73,6 +75,9 @@ builder.Services
     .AddScoped<IMemberRepository, MemberRepository>()
     .AddScoped<IMapper<Member, MemberDTO>, MemberMapper>()
     .AddScoped<IMapper<Member, MemberRegistrationDTO>, MemberRegistrationMapper>();
+
+builder.Services.AddScoped<IAuthStateService, AuthStateService>();
+
 
 builder.Services
     .AddValidatorsFromAssemblyContaining<Program>(
@@ -134,9 +139,6 @@ app.UseMiddleware<ApiExceptionHandling>();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// app.UseMiddleware<JwtMiddleware>()
-//    app.UseMiddleware<ApiExceptionHandling>();
-
 
 if (!app.Environment.IsDevelopment())
 {
@@ -162,25 +164,25 @@ app.MapHub<ChatHub>("/chatHub");
 app.MapHub<GameHub>("/gameHub");
 
 
-app.Use(async (context, next) =>
-{
-    // Look for Set-Cookie in responses
-    if (context.Response.Headers.ContainsKey("Set-Cookie"))
-    {
-        Console.WriteLine($"Set-Cookie header: {context.Response.Headers["Set-Cookie"]}");
-    }
-    await next();
-
-    // Look for AuthToken in the incoming requests
-    if (context.Request.Cookies.ContainsKey("AuthToken"))
-    {
-        Console.WriteLine($"Incoming AuthToken Cookie: {context.Request.Cookies["AuthToken"]}");
-    }
-    else
-    {
-        Console.WriteLine("No AuthToken cookie found in request.");
-    }
-});
+// app.Use(async (context, next) =>
+// {
+//     // Look for Set-Cookie in responses
+//     if (context.Response.Headers.ContainsKey("Set-Cookie"))
+//     {
+//         Console.WriteLine($"Set-Cookie header: {context.Response.Headers["Set-Cookie"]}");
+//     }
+//     await next();
+//
+//     // Look for AuthToken in the incoming requests
+//     if (context.Request.Cookies.ContainsKey("AuthTokenCOMON"))
+//     {
+//         Console.WriteLine($"Incoming AuthToken Cookie: {context.Request.Cookies["AuthToken"]}");
+//     }
+//     else
+//     {
+//         Console.WriteLine("No AuthToken cookie found in request.");
+//     }
+// });
 
 
 app.MapControllers();

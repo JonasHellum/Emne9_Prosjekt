@@ -16,113 +16,70 @@ public class JwtMiddleware : IMiddleware
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
-        string? token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-        Console.WriteLine($"Token PLEASE FROM MIDDLEWARE BEFORE COOKIE CHECK: {token}");
-
-        // If no Authorization header exists, fallback to cookies
-        if (string.IsNullOrEmpty(token))
+        if (context.Request.Path.StartsWithSegments("/api"))
         {
-            token = context.Request.Cookies["AuthTokenCOMON"];
-            Console.WriteLine($"Token PLEASE FROM MIDDLEWARE WHEN COOKIE CHECK: {token}");
-        }
+            string? token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+            Console.WriteLine($"Token PLEASE FROM MIDDLEWARE BEFORE COOKIE CHECK: {token}");
 
-        if (!string.IsNullOrEmpty(token))
-        {
-            // Validate the token using the service
-            var (memberId, userName) = _tokenValidationService.ValidateAccessToken(token);
-
-            if (!string.IsNullOrEmpty(memberId) && !string.IsNullOrEmpty(userName))
+            // If no Authorization header exists, fallback to cookies
+            if (string.IsNullOrEmpty(token))
             {
-                // Add to HttpContext.Items
-                context.Items["MemberId"] = memberId;
-                context.Items["UserName"] = userName;
+                token = context.Request.Cookies["AuthTokenCOMON"];
+                Console.WriteLine($"Token PLEASE FROM MIDDLEWARE WHEN COOKIE CHECK: {token}");
+            }
 
-                _logger.LogInformation($"Token validated. MemberId: {memberId}, Username: {userName}");
+            if (!string.IsNullOrEmpty(token))
+            {
+                // if (await IsTokenBlacklisted(token))
+                // {
+                //     _logger.LogWarning("Token is blacklisted. Removing authentication context.");
+                //     context.User = new ClaimsPrincipal(); // Clear the user claims
+                //     await next(context);
+                //     return;
+                // }
 
-                // Create a ClaimsPrincipal and attach it to HttpContext.User
-                var claims = new List<Claim>
+            
+                // Validate the token using the service
+                var (memberId, userName) = _tokenValidationService.ValidateAccessToken(token);
+
+                if (!string.IsNullOrEmpty(memberId) && !string.IsNullOrEmpty(userName))
                 {
-                    new Claim(ClaimTypes.NameIdentifier, memberId),
-                    new Claim(ClaimTypes.Name, userName)
-                };
-                var identity = new ClaimsIdentity(claims, "Bearer");
-                context.User = new ClaimsPrincipal(identity);
-                
-                Console.WriteLine($"HttpContext.User initialized with Name: {context.User.Identity?.Name}");
+                    // Add to HttpContext.Items
+                    context.Items["MemberId"] = memberId;
+                    context.Items["UserName"] = userName;
 
+                    _logger.LogInformation($"Token validated. MemberId: {memberId}, Username: {userName}");
+
+                    // Create a ClaimsPrincipal and attach it to HttpContext.User
+                    var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, memberId),
+                        new Claim(ClaimTypes.Name, userName)
+                    };
+                    var identity = new ClaimsIdentity(claims, "Bearer");
+                    context.User = new ClaimsPrincipal(identity);
+                    
+                    Console.WriteLine($"HttpContext.User initialized with Name: {context.User.Identity?.Name}");
+
+                }
+                else
+                {
+                    _logger.LogWarning("Invalid token or missing claims.");
+                } 
             }
             else
             {
-                _logger.LogWarning("Invalid token or missing claims.");
+                _logger.LogWarning("No token found in headers or cookies.");
             }
         }
-        else
-        {
-            _logger.LogWarning("No token found in headers or cookies.");
-        }
-
         await next(context);
     }
-
-    // private readonly ILogger<JwtMiddleware> _logger;
-    // private readonly IMemberService _memberService;
-    //
-    // public JwtMiddleware(ILogger<JwtMiddleware> logger, IMemberService memberService)
-    // {
-    //     _logger = logger;
-    //     _memberService = memberService;
-    // }
-    //
-    // /// <summary>
-    // /// Processes an HTTP request by validating an optional JWT access token,
-    // /// extracting the user information, and setting it in the current request context.
-    // /// Calls the next middleware in the pipeline upon completion.
-    // /// </summary>
-    // /// <param name="context">The current HTTP request context.</param>
-    // /// <param name="next">A delegate to invoke the next middleware in the pipeline.</param>
-    // /// <returns>A task that represents the asynchronous operation of the middleware.</returns>
-    // public async Task InvokeAsync(HttpContext context, RequestDelegate next)
-    // {
-    //     string? token = context.Request
-    //         .Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-    //
-    //     if (token is not null)
-    //     {
-    //         var (memberId, userName) = _memberService.ValidateAccessToken(token);
-    //         _logger.LogInformation($"User: {memberId}" 
-    //                                //$"Roles: {roles}"
-    //                                );
-    //         context.Items["MemberId"] = memberId;
-    //         context.Items["UserName"] = userName;
-    //         // context.Items["Roles"] = roles;
-    //         Console.WriteLine($"Member ID from middleware: {context.Items["MemberId"]}");
-    //         Console.WriteLine($"Username from middleware: {context.Items["UserName"]}");
-    //     }
-    //     
-    //     await next(context);
-    // }
-    //
-    // // public async Task InvokeAsync(HttpContext context, RequestDelegate next)
-    // // {
-    // //     // Debug: Check if the user is authenticated and claims exist
-    // //     if (context.User?.Identity?.IsAuthenticated == true)
-    // //     {
-    // //         string memberId = context.User.FindFirst("nameid")?.Value;
-    // //         string userName = context.User.FindFirst("unique_name")?.Value;
-    // //
-    // //         // Log debug information
-    // //         _logger.LogInformation($"JWT Middleware: MemberId={memberId}, UserName={userName}");
-    // //
-    // //         // Attach data to HttpContext.Items
-    // //         context.Items["MemberId"] = memberId;
-    // //         context.Items["UserName"] = userName;
-    // //     }
-    // //     else
-    // //     {
-    // //         _logger.LogWarning("JWT Middleware: User is not authenticated.");
-    // //     }
-    // //
-    // //     await next(context);
-    // // }
-
 }
+
+// private async Task<bool> IsTokenBlacklisted(string token)
+// {
+//     // Implement a mechanism to check if the token has been invalidated or blacklisted.
+//     // For example, calling a database or in-memory cache (e.g., Redis or MemoryCache).
+//     // This ensures that even valid tokens cannot be reused after logout.
+//     return await Task.FromResult(false); // Replace with actual logic
+// }

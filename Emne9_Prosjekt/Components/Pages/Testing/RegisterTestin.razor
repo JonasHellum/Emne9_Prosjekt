@@ -8,7 +8,7 @@
 
 <h3 style="padding-top: 125px">RegisterTestin</h3>
 
-@if (registrationDto != null && !loggedIn)
+@if (registrationDto != null && userName.IsNullOrEmpty())
 {
     <EditForm Model="@registrationDto" OnValidSubmit="RegistrationAsync" FormName="registerForm">
         <div>
@@ -103,7 +103,7 @@ else if (registrationDto == null)
     protected override async Task OnInitializedAsync()
     {
         registrationDto = new MemberRegistrationDTO();
-
+    
         try
         {
             userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
@@ -124,30 +124,35 @@ else if (registrationDto == null)
     {
         if (firstRender)
         {
-            // Perform JavaScript interop only after prerendering
-            _isClientSide = true;
 
-            try
+            if (loggedIn == false)
             {
-                // Retrieve the token from cookies using JSInterop
-                var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
+                // Perform JavaScript interop only after prerendering
+                _isClientSide = true;
 
-                if (!string.IsNullOrEmpty(token))
+                try
                 {
-                    // Add the JWT token to the Authorization header of HttpClient
-                    Http.DefaultRequestHeaders.Authorization =
-                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                    // Retrieve the token from cookies using JSInterop
+                    var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
+
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        // Add the JWT token to the Authorization header of HttpClient
+                        Http.DefaultRequestHeaders.Authorization =
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                    }
+
+                    // Fetch the username from the API
+                    userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+                    loggedIn = !string.IsNullOrEmpty(userName);
+                
+                    // Trigger a re-render now that client-side data is available
+                    StateHasChanged();
                 }
-
-                // Fetch the username from the API
-                userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-
-                // Trigger a re-render now that client-side data is available
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error during initialization: {ex.Message}");
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error during initialization: {ex.Message}");
+                }
             }
         }
     }

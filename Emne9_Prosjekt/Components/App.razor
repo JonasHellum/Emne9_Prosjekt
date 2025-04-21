@@ -51,6 +51,12 @@
         if (parts.length === 2) return parts.pop().split(";").shift();
         return null;
     };
+
+    window.deleteCookie = (name) => {
+        // Set the expiration date to a past value to remove the cookie
+        document.cookie = name + "=; Max-Age=0; path=/; Secure; SameSite=Lax";
+    };
+
 </script>
 
 

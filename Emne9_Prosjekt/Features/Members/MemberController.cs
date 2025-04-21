@@ -148,7 +148,17 @@ public class MemberController : ControllerBase
             }
             
             var memberToken = _memberService.MakeToken(member!);
-            Response.Headers.Add("Authorization", memberToken);
+            // Response.Headers.Add("Authorization", memberToken);
+            
+            Response.Cookies.Append("AuthTokenCOMON", memberToken, new CookieOptions
+            {
+                HttpOnly = true,    // Ensures JavaScript cannot access the cookie
+                SameSite = SameSiteMode.Lax,
+                Secure = false,      // True ensures the cookie is only sent over HTTPS, but we on HTTP now
+                Expires = DateTime.UtcNow.AddHours(2),
+                Domain = "localhost",
+                Path = "/"
+            });
             
             return Ok(member);
         }
@@ -299,7 +309,11 @@ public class MemberController : ControllerBase
     [HttpGet("Logout")]
     public IActionResult Logout()
     {
-        Response.Cookies.Delete("AuthToken");
+        Response.Cookies.Delete("AuthTokenCOMON");
+        HttpContext.SignOutAsync();
+        HttpContext.User = null;
+        Response.Headers.Append("Set-Cookie", "AuthTokenCOMON=; Max-Age=0; path=/; Secure; HttpOnly; SameSite=Lax");
+
         return Ok(new { Message = "Logged out" });
     }
 }

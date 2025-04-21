@@ -1,6 +1,9 @@
+@using Emne9_Prosjekt.Components.Pages.Interfaces
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
+@inject IAuthStateService AuthState
+
 
 <div style="display: flex;
             justify-content: center;
@@ -31,7 +34,8 @@
         Developed by Nubisoft™
     </div>
     
-    @if (_userName.IsNullOrEmpty())
+
+        @if (AuthState.UserName.IsNullOrEmpty())
     {
 
         <div style="color: white;
@@ -52,7 +56,7 @@
         <div style="color: white;
             text-align: right;
             padding-top: 12px">
-            Welcome @_userName
+            Welcome @AuthState.UserName
         </div>
     }
 </div>
@@ -106,7 +110,18 @@
     private string _userName;
 
     private bool _isClientSide;
+    
+    protected override void OnInitialized()
+    {
+        AuthState.OnChange += StateHasChanged;
+    }
 
+    public void Dispose()
+    {
+        AuthState.OnChange -= StateHasChanged;
+    }
+
+    
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -118,7 +133,7 @@
             {
                 // Retrieve the token from cookies using JSInterop
                 var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
-
+                
                 if (!string.IsNullOrEmpty(token))
                 {
                     // Add the JWT token to the Authorization header of HttpClient
@@ -129,6 +144,7 @@
                 // Fetch the username from the API
                 _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
 
+                AuthState.SetUserName(_userName);
                 // Trigger a re-render now that client-side data is available
                 StateHasChanged();
             }

@@ -3,6 +3,7 @@
 @using Emne9_Prosjekt.Features.Members.Models
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
+@inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
 
 
@@ -84,8 +85,6 @@ else
     private bool editSuccess = false;
     private bool editFailed = false;
     private string errorMessage;
-    
-    
     private bool _isClientSide;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -107,23 +106,17 @@ else
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
                 }
                 
-                
-                
-                
-                try
+                memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+                if (!memberId.IsNullOrEmpty())
                 {
-                    if (!memberId.IsNullOrEmpty())
-                    {
-                        memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
-                        memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
-                    }
+                    memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
                 }
-                catch (Exception e)
+                else
                 {
-                    Console.WriteLine(e);
-                    throw;
+                    await Task.Delay(2000);
+                    NavManager.NavigateTo("/login");
                 }
-
+                
                 // Trigger a re-render now that client-side data is available
                 StateHasChanged();
             }
