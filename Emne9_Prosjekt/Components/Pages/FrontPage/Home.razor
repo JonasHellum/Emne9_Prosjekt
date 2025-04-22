@@ -1,40 +1,39 @@
 ﻿@page "/"
 
-<div style="background: white;
-            width: 1000px;
-            margin: 0 auto;
-            display: flex;
+<div class="page-element"
+     style="background: white;
             justify-content: center;
-            padding-top: 250px;
-            padding-bottom: 150px">
+            padding-top: 200px;
+            padding-bottom: 140px">
     <Logo/>
 </div>
 
-<div style="background: #800000;
-            width: 1000px;
-            margin: 0 auto;
-            display: flex;">
+<div class="page-element"
+     style="background: #800000">
     <About/>
 </div>
 
-<div style="background: #165016;
-            width: 1000px;
-            margin: 0 auto;
-            display: flex;">
+<div class="page-element"
+     style="background: #165016">
     <News/>
 </div>
 
-<div style="background: #212178;
-            width: 1000px;
-            margin: 0 auto;
-            display: flex;">
+<div class="page-element"
+     style="background: #212178">
     <Recommended/>
 </div>
 
-<div style="background: #ffffff;
-            width: 1000px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: center">
+<div class="page-element"
+     style="background: #ffffff;
+            justify-content: center;
+            z-index: 500">
     <Credit/>
 </div>
+
+<style>
+    .page-element {
+        width: 1000px;
+        margin: 0 auto;
+        display: flex;
+    }
+</style>

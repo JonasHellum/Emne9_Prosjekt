@@ -311,7 +311,7 @@ public class MemberService : IMemberService
         {
             return false;
         }
-        var exists = await _memberRepository.EmailExistsAsync(username);
+        var exists = await _memberRepository.UserNameExistsAsync(username);
         _logger.LogDebug($"UserName exists: {exists}");
         return exists;
     }

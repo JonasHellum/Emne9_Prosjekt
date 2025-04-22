@@ -1,3 +1,4 @@
+
 @using Emne9_Prosjekt.Components.Pages.Interfaces
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
@@ -6,6 +7,7 @@
 
 
 <div style="display: flex;
+            gap: 235px;
             justify-content: center;
             background: linear-gradient(#404040,
                                         #323232,
@@ -19,21 +21,21 @@
     <div style="text-align: left;
                 padding-top: 10px;
                 padding-bottom: 10px">
-        <img style="width: 120px"
-             alt=""
-             src="@_icon"
-             @onmouseover="MouseOn"
-             @onmouseout="MouseOff"/>
+        <NavLink href="">
+            <img style="width: 120px"
+                 alt=""
+                 src="@_icon"
+                 @onmouseover="MouseOn"
+                 @onmouseout="MouseOff"/>
+        </NavLink>
     </div>
     <div style="color: white;
                 text-align: center;
                 font-style: oblique;
-                padding-right: 85px;
-                padding-left: 85px;
                 padding-top: 13px">
-        Developed by Nubisoft™
+        Published by Nubisoft™
     </div>
-    
+
 
         @if (AuthState.UserName.IsNullOrEmpty())
     {
@@ -59,48 +61,70 @@
             Welcome @AuthState.UserName
         </div>
     }
+
 </div>
-<div class="nav-item px-3"
-     style="display: flex;
+<div style="display: flex;
             justify-content: center;
-            padding-top: 8px;
+            padding-top: 10px;
+            padding-bottom: 10px;
             background: #000000">
     <div>
-        <NavLink class="nav-link" href="">
-            <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Home
+        <NavLink href="Games"
+                 class="page-links">
+            All Games
         </NavLink>
     </div>
+    <div style="border-left: 1px solid white;
+                        height: auto"></div>
     <div>
-        <NavLink class="nav-link" href="Games">
-            <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Games
+        <NavLink href="Leaderboards"
+                 class="page-links">
+            Leaderboards
         </NavLink>
     </div>
+    <div style="border-left: 1px solid white;
+                        height: auto"></div>
     <div>
-        <NavLink class="nav-link" href="Leaderboards">
-            <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Leaderboards
+        <NavLink href="Chat"
+                 class="page-links">
+            Big Chat
         </NavLink>
     </div>
+    <div style="border-left: 1px solid white;
+                        height: auto"></div>
     <div>
-        <NavLink class="nav-link" href="User">
-            <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> User
+        <NavLink href="MessageBoard"
+                 class="page-links">
+            Message Board
         </NavLink>
     </div>
+    <div style="border-left: 1px solid white;
+                        height: auto"></div>
     <div>
-        <NavLink class="nav-link" href="Tests">
-            <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Tests
+        <NavLink href="Tests"
+                 class="page-links">
+             Prototypes
         </NavLink>
     </div>
-    
 </div>
 
 <style>
-    .cool-link {
+    .user-links {
         color: white;
         text-decoration: none;
     }
-    .cool-link:hover {
+    .user-links:hover {
         color: white;
         text-shadow: 0 0 10px white;
+    }
+    .page-links {
+        color: white;
+        text-decoration: none;
+        padding-right: 50px;
+        padding-left: 50px;
+    }
+    .page-links:hover {
+        color: white;
     }
 </style>
 
