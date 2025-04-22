@@ -3,6 +3,7 @@
 @using Emne9_Prosjekt.Hubs.Interfaces
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
+@inject HttpClient Http
 
 
 <h3 style="padding-top: 125px">Live Chat</h3>
@@ -22,10 +23,30 @@
 </div>
 
 @code {
-    private readonly string _userName = "";
+    private  string _userName;
     private string _message = "";
     private bool _isConnected;
     private List<(string, string)> _messages = new();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        
+        try
+        {
+            _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+            if (_userName is null)
+            {
+                _userName = "guest";
+            }
+
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -33,21 +54,21 @@
         {
             Console.WriteLine("---Establishing connection...");
 
-            BigChatHubConnection.Connection.On<string, string>("ReceiveMessage", (user, message) =>
+            BigChatHubConnection.Connection.On<string, string>("ReceiveMessage", (_, message) =>
             {
-                _messages.Add((user, message));
+                _messages.Add((_userName, message));
                 InvokeAsync(StateHasChanged);
             });
 
-            BigChatHubConnection.Connection.On<string>("UserConnected", (user) =>
+            BigChatHubConnection.Connection.On<string>("UserConnected", (_) =>
             {
-                _messages.Add(("System", $"{user} har koblet til."));
+                _messages.Add(("System", $"{_userName} har koblet til."));
                 InvokeAsync(StateHasChanged);
             });
 
-            BigChatHubConnection.Connection.On<string>("UserDisconnected", (user) =>
+            BigChatHubConnection.Connection.On<string>("UserDisconnected", (_) =>
             {
-                _messages.Add(("System", $"{user} har forlatt chatten."));
+                _messages.Add(("System", $"{_userName} har forlatt chatten."));
                 InvokeAsync(StateHasChanged);
             });
 
