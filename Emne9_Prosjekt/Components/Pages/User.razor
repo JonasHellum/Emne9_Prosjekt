@@ -4,6 +4,7 @@
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
 @inject NavigationManager NavManager
+@inject IJSRuntime JSRuntime
 
 
 <div style="background: #ffffff;
@@ -12,7 +13,7 @@
     <h1 style="padding-top: 150px;
                padding-bottom: 50px;
                text-align: center">
-        @if (memberDto != null && !userName.IsNullOrEmpty())
+        @if (memberDto != null && !memberId.IsNullOrEmpty())
         {
             <p>User:</p>
             <p>Username: @memberDto.UserName</p>
@@ -77,8 +78,7 @@
         }
         else
         {
-            <p>Not logged in.</p>
-            <p>Redirecting to login page.</p>
+            <p>Loading.</p>
         }
 
     </h1>
@@ -91,30 +91,71 @@
     private bool showEditForm = false;
     private bool editSuccess = false;
     private bool editFailed = false;
-    private string userName;
     private string errorMessage;
-
+    private bool _isClientSide;
+    private bool loggedIn;
+    
     protected override async Task OnInitializedAsync()
     {
+        memberDto = new MemberDTO();
+        
         try
         {
-            userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-            Console.WriteLine($"Username from UpdatingTestin: {userName}");
             memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+            Console.WriteLine($"memberId from User: {memberId}");
             if (!memberId.IsNullOrEmpty())
             {
                 memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
+                StateHasChanged();
             }
-            else
-            {
-                await Task.Delay(3500);
-                NavManager.NavigateTo("/login");
-            }
+            loggedIn = !string.IsNullOrEmpty(memberId);
+        
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
             throw;
+        }
+        
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (loggedIn == false)
+            {
+                // Perform JavaScript interop only after prerendering
+                _isClientSide = true;
+
+                try
+                {
+                    // Retrieve the token from cookies using JSInterop
+                    var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
+
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        // Add the JWT token to the Authorization header of HttpClient
+                        Http.DefaultRequestHeaders.Authorization =
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                    }
+                
+                    memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+                    if (!memberId.IsNullOrEmpty())
+                    {
+                        memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
+                        StateHasChanged();
+                    }
+                    else
+                    {
+                        NavManager.NavigateTo("/login");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error during initialization: {ex.Message}");
+                }    
+            }
         }
     }
 
@@ -127,12 +168,12 @@
             memberUpdateDto.LastName = memberDto.LastName;
             memberUpdateDto.BirthYear = memberDto.BirthYear;
             memberUpdateDto.Email = memberDto.Email;
+
         }
 
         showEditForm = true;
     }
 
-    
     private async Task LoadUserAfterChangeAsync()
     {
         memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
@@ -148,11 +189,11 @@
             };
         }
     }
-    
+
     private async Task EditMemberAsync()
     {
         Guid memberId = memberDto.MemberId;
-        
+
         var response = await Http.PutAsJsonAsync($"http://localhost:80/api/members/update/{memberId}", memberUpdateDto);
         if (response.IsSuccessStatusCode)
         {
@@ -185,13 +226,12 @@
                 errorMessage = "Failed to parse error response: " + responseContent;
             }
 
-            editSuccess = false;
             editFailed = true;
-
         }
     }
     private class ErrorResponse
     {
         public List<string> Errors { get; set; }
     }
+
 }

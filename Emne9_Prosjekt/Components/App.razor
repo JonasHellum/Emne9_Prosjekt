@@ -34,6 +34,32 @@
         google.accounts.id.prompt(); // also display the One Tap sign-in prompt
     }
 </script>
+<script>
+    window.setCookie = (name, value, hours) => {
+        let expires = "";
+        if (hours) {
+            const date = new Date();
+            date.setTime(date.getTime() + (hours * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "") + expires + "; path=/; Secure; SameSite=Lax";
+    };
+
+    window.getCookie = (name) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(";").shift();
+        return null;
+    };
+
+    window.deleteCookie = (name) => {
+        // Set the expiration date to a past value to remove the cookie
+        document.cookie = name + "=; Max-Age=0; path=/; Secure; SameSite=Lax";
+    };
+
+</script>
+
+
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script>
     AOS.init();

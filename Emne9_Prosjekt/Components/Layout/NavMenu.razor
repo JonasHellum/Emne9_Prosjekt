@@ -1,5 +1,10 @@
+
+@using Emne9_Prosjekt.Components.Pages.Interfaces
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject IAuthStateService AuthState
+
 
 <div style="display: flex;
             gap: 235px;
@@ -30,28 +35,33 @@
                 padding-top: 13px">
         Published by Nubisoft™
     </div>
-    @if (_userName.IsNullOrEmpty())
+
+
+        @if (AuthState.UserName.IsNullOrEmpty())
     {
+
         <div style="color: white;
                 text-align: right;
-                padding-top: 13px">
+                padding-top: 12px">
             <NavLink href="/Login"
-                     class="user-links">
+                     class="cool-link">
                 Login
-            </NavLink> / 
+            </NavLink> /
             <NavLink href="/Register"
-                     class="user-links">
+                     class="cool-link">
                 Register
             </NavLink>
         </div>
     }
     else
     {
-        <div>
-            Welcome @_userName
+        <div style="color: white;
+            text-align: right;
+            padding-top: 12px">
+            Welcome @AuthState.UserName
         </div>
     }
-    
+
 </div>
 <div style="display: flex;
             justify-content: center;
@@ -121,22 +131,54 @@
 @code
 {
     private string _icon = "/Assets/logo/BWLogo.png";
-    private string? _userName;
-    
-    protected override async Task OnInitializedAsync()
-    {
+    private string _userName;
 
-        try
-        {
-            _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
-        
+    private bool _isClientSide;
+    
+    protected override void OnInitialized()
+    {
+        AuthState.OnChange += StateHasChanged;
     }
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= StateHasChanged;
+    }
+
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Perform JavaScript interop only after prerendering
+            _isClientSide = true;
+
+            try
+            {
+                // Retrieve the token from cookies using JSInterop
+                var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
+                
+                if (!string.IsNullOrEmpty(token))
+                {
+                    // Add the JWT token to the Authorization header of HttpClient
+                    Http.DefaultRequestHeaders.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+
+                // Fetch the username from the API
+                _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+
+                AuthState.SetUserName(_userName);
+                // Trigger a re-render now that client-side data is available
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during initialization: {ex.Message}");
+            }
+        }
+    }
+
     private void MouseOn()
     {
         _icon = "/Assets/logo/ColorLogo.png";

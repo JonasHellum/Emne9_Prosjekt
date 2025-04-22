@@ -4,6 +4,7 @@
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
 @inject IHttpContextAccessor context
+@inject IJSRuntime JSRuntime
 
 
 
@@ -11,14 +12,6 @@
 <h3 style="padding-top: 125px">Logintest</h3>
 
 
-
-@* @if (!userName.IsNullOrEmpty()) *@
-@* { *@
-@*     <div class="alert alert-success"> *@
-@*         Already logged in as: ! Username: @memberDto.UserName *@
-@*         Already logged in as: @userName *@
-@*     </div> *@
-@* } *@
 @if (memberDto != null && userName.IsNullOrEmpty())
 {
     <Login />
@@ -74,20 +67,20 @@ else if (memberDto == null)
     private bool loginSuccess;
     private bool loginFailed;
     private string errorMessage;
-    private string? authHeader;
     private string userName;
     private bool loggedIn;
+    private bool _isClientSide;
     
     protected override async Task OnInitializedAsync()
     {
         memberDto = new MemberDTO();
-
+        
         try
         {
             userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
             Console.WriteLine($"Username from Logintest: {userName}");
             loggedIn = !string.IsNullOrEmpty(userName);
-
+        
         }
         catch (Exception e)
         {
@@ -96,7 +89,44 @@ else if (memberDto == null)
         }
         
     }
-    
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (loggedIn == false)
+            {
+                // Perform JavaScript interop only after prerendering
+                _isClientSide = true;
+
+                try
+                {
+                    // Retrieve the token from cookies using JSInterop
+                    var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
+
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        // Add the JWT token to the Authorization header of HttpClient
+                        Http.DefaultRequestHeaders.Authorization =
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                    }
+
+                    // Fetch the username from the API
+                    userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+                    loggedIn = !string.IsNullOrEmpty(userName);
+
+                    // Trigger a re-render now that client-side data is available
+                    StateHasChanged();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error during initialization: {ex.Message}");
+                }
+            }
+            
+        }
+    }
+
     protected async Task LoginAsync()
     {
         if (string.IsNullOrEmpty(memberDto.UserName) || string.IsNullOrEmpty(memberDto.Password))
@@ -104,7 +134,7 @@ else if (memberDto == null)
             errorMessage = "Username and Password are required.";
             return;
         }
-        
+
         try
         {
             var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/login", memberDto);
@@ -112,54 +142,147 @@ else if (memberDto == null)
 
             if (response.IsSuccessStatusCode)
             {
+                Console.WriteLine("Login successful!");
 
-                // Extract the Authorization header
-                if (response.Headers.TryGetValues("Authorization", out var authHeaders))
+                // Manually parse the Set-Cookie header
+                if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
                 {
-                    authHeader = authHeaders.FirstOrDefault();
-                    Console.WriteLine($"Authorization header: {authHeader}");
-                    
-                    // var token = authHeaders.FirstOrDefault()?.Split(" ").Last();
-                        
-
-                    // Set the token in the default request headers for future requests
-                    if (!string.IsNullOrEmpty(authHeader))
+                    foreach (var cookie in cookies)
                     {
-                        loggedIn = true;
-                        Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authHeader);
-                        loginSuccess = true;
-                        // reload/redirect.
-                        
+                        // Extract the token value (parsing can be improved; assuming standard structure here)
+                        var tokenPair = cookie.Split(';')[0]; // e.g., "AuthTokenCOMON=jwt_token_value"
+                        var tokenName = tokenPair.Split('=')[0]; // AuthTokenCOMON
+                        var tokenValue = tokenPair.Split('=')[1];
+
+                        // Use JSRuntime to set the cookie in the browser
+                        await JSRuntime.InvokeVoidAsync("setCookie", tokenName, tokenValue, 2); // 2 = hours before expiry
+                        Console.WriteLine($"Cookie manually set: {tokenName} = {tokenValue}");
                     }
                 }
+
+                loginSuccess = true;
+                StateHasChanged();
             }
             else
             {
-                loginFailed = true;
-
-                var errorResponse = await response.Content.ReadAsStringAsync();
-                
-                var errorDetails = JsonSerializer.Deserialize<Dictionary<string, string>>(errorResponse);
-                if (errorDetails != null && errorDetails.ContainsKey("Detailed"))
-                {
-                    errorMessage = errorDetails["Detailed"];
-                    Console.WriteLine($"Login failed: {errorDetails["Detailed"]}");
-                }
-                else
-                {
-                    errorMessage = errorResponse;
-                    Console.WriteLine($"Login failed: {errorResponse}.");
-                }
-
+                errorMessage = "Login failed. Please check your credentials.";
+                Console.WriteLine($"Login failed with status: {response.StatusCode}");
             }
         }
         catch (Exception e)
         {
-            loginFailed = true;
-
-            errorMessage = "Something went wrong. Please try again.";
-            Console.WriteLine($"Exception: {e}");
+            errorMessage = "Something went wrong. Please try again later.";
+            Console.WriteLine($"Exception during login: {e.Message}");
         }
-        
     }
+
+
+    // try
+        // {
+        //     var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/login", memberDto);
+        //     Console.WriteLine($"Logging in with {memberDto.UserName} and {memberDto.Password}");
+        //
+        //     if (response.IsSuccessStatusCode)
+        //     {
+        //         // At this point, the cookie is set by the backend
+        //         loggedIn = true;
+        //         loginSuccess = true;
+        //         Console.WriteLine("Login successful, cookie has been set.");
+        //     
+        //         // Optionally reload username from the API using the cookie (to verify)
+        //         userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+        //     }
+        //     else
+        //     {
+        //         loginFailed = true;
+        //
+        //         var errorResponse = await response.Content.ReadAsStringAsync();
+        //         var errorDetails = JsonSerializer.Deserialize<Dictionary<string, string>>(errorResponse);
+        //         if (errorDetails != null && errorDetails.ContainsKey("Detailed"))
+        //         {
+        //             errorMessage = errorDetails["Detailed"];
+        //             Console.WriteLine($"Login failed: {errorDetails["Detailed"]}");
+        //         }
+        //         else
+        //         {
+        //             errorMessage = errorResponse;
+        //             Console.WriteLine($"Login failed: {errorResponse}");
+        //         }
+        //     }
+        // }
+        // catch (Exception e)
+        // {
+        //     loginFailed = true;
+        //     errorMessage = "Something went wrong. Please try again.";
+        //     Console.WriteLine($"Exception: {e}");
+        // }
+
+    // }
+
+    
+    // protected async Task LoginAsync()
+    // {
+    //     if (string.IsNullOrEmpty(memberDto.UserName) || string.IsNullOrEmpty(memberDto.Password))
+    //     {
+    //         errorMessage = "Username and Password are required.";
+    //         return;
+    //     }
+    //     
+    //     try
+    //     {
+    //         var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/login", memberDto);
+    //         Console.WriteLine($"Logging in with {memberDto.UserName} and {memberDto.Password}");
+    //
+    //         if (response.IsSuccessStatusCode)
+    //         {
+    //
+    //             // Extract the Authorization header
+    //             if (response.Headers.TryGetValues("Authorization", out var authHeaders))
+    //             {
+    //                 authHeader = authHeaders.FirstOrDefault();
+    //                 Console.WriteLine($"Authorization header: {authHeader}");
+    //                 
+    //                 // var token = authHeaders.FirstOrDefault()?.Split(" ").Last();
+    //                     
+    //
+    //                 // Set the token in the default request headers for future requests
+    //                 if (!string.IsNullOrEmpty(authHeader))
+    //                 {
+    //                     loggedIn = true;
+    //                     Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authHeader);
+    //                     loginSuccess = true;
+    //                     // reload/redirect.
+    //                     
+    //                 }
+    //             }
+    //         }
+    //         else
+    //         {
+    //             loginFailed = true;
+    //
+    //             var errorResponse = await response.Content.ReadAsStringAsync();
+    //             
+    //             var errorDetails = JsonSerializer.Deserialize<Dictionary<string, string>>(errorResponse);
+    //             if (errorDetails != null && errorDetails.ContainsKey("Detailed"))
+    //             {
+    //                 errorMessage = errorDetails["Detailed"];
+    //                 Console.WriteLine($"Login failed: {errorDetails["Detailed"]}");
+    //             }
+    //             else
+    //             {
+    //                 errorMessage = errorResponse;
+    //                 Console.WriteLine($"Login failed: {errorResponse}.");
+    //             }
+    //
+    //         }
+    //     }
+    //     catch (Exception e)
+    //     {
+    //         loginFailed = true;
+    //
+    //         errorMessage = "Something went wrong. Please try again.";
+    //         Console.WriteLine($"Exception: {e}");
+    //     }
+    //     
+    // }
 }

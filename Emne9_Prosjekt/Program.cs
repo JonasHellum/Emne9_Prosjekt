@@ -1,5 +1,8 @@
+using System.Security.Claims;
 using System.Text;
 using Emne9_Prosjekt.Components;
+using Emne9_Prosjekt.Components.Pages.Interfaces;
+using Emne9_Prosjekt.Components.Pages.Services;
 using Emne9_Prosjekt.Extensions;
 using Emne9_Prosjekt.Hubs;
 using Emne9_Prosjekt.Data;
@@ -22,15 +25,16 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using HttpVersion = System.Net.HttpVersion;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:80/api") });
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -48,8 +52,23 @@ builder.Services.AddScoped<Connect4Components>();
 builder.Services.AddControllers();
 
 builder.Services
-    .AddEndpointsApiExplorer()
-    .AddHttpContextAccessor();
+    .AddEndpointsApiExplorer();
+//    .AddHttpContextAccessor();
+
+// EXPERIMENTING A LOT
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped(sp =>
+{
+    var handler = new HttpClientHandler
+    {
+        UseCookies = true, // Ensures cookies are stored and sent
+    };
+
+    return new HttpClient(handler)
+    {
+        BaseAddress = new Uri("http://localhost:80") // Same base URL as API
+    };
+});
 
 builder.Services.AddSwaggerGen();
 
@@ -58,6 +77,9 @@ builder.Services
     .AddScoped<IMemberRepository, MemberRepository>()
     .AddScoped<IMapper<Member, MemberDTO>, MemberMapper>()
     .AddScoped<IMapper<Member, MemberRegistrationDTO>, MemberRegistrationMapper>();
+
+builder.Services.AddScoped<IAuthStateService, AuthStateService>();
+
 
 builder.Services
     .AddValidatorsFromAssemblyContaining<Program>(
@@ -93,21 +115,7 @@ builder.Services.AddAuthentication(options =>
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; 
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme; 
     })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["JWT:Issuer"],
-            ValidAudience = builder.Configuration["JWT:Audience"],
-            IssuerSigningKey = new
-                SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]))
-        };
-        
-    })
+    .AddJwtBearer()
     .AddGoogle(options =>
     {
         options.ClientId = "525416754804-5sjmgl3kc3e2q8s4s8dgvv6dajd53m7s.apps.googleusercontent.com";
@@ -127,10 +135,12 @@ var app = builder.Build();
 //app.UseHttpsRedirection();
 
 app.UseRouting();
-app.UseMiddleware<JwtMiddleware>()
-    .UseMiddleware<ApiExceptionHandling>();
+app.UseMiddleware<JwtMiddleware>();
+//     .UseMiddleware<ApiExceptionHandling>();
+app.UseMiddleware<ApiExceptionHandling>();
 app.UseAuthentication();
 app.UseAuthorization();
+
 
 if (!app.Environment.IsDevelopment())
 {
@@ -156,6 +166,26 @@ app.MapHub<ChatHub>("/chatHub");
 app.MapHub<GameHub>("/gameHub");
 app.MapHub<ForumHub>("/forumHub");
 
+
+// app.Use(async (context, next) =>
+// {
+//     // Look for Set-Cookie in responses
+//     if (context.Response.Headers.ContainsKey("Set-Cookie"))
+//     {
+//         Console.WriteLine($"Set-Cookie header: {context.Response.Headers["Set-Cookie"]}");
+//     }
+//     await next();
+//
+//     // Look for AuthToken in the incoming requests
+//     if (context.Request.Cookies.ContainsKey("AuthTokenCOMON"))
+//     {
+//         Console.WriteLine($"Incoming AuthToken Cookie: {context.Request.Cookies["AuthToken"]}");
+//     }
+//     else
+//     {
+//         Console.WriteLine("No AuthToken cookie found in request.");
+//     }
+// });
 
 
 app.MapControllers();
