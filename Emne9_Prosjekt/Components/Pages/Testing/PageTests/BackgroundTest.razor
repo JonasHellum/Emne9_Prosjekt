@@ -1,0 +1,65 @@
+﻿@page "/Background"
+
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    #ripple-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    #ripple-container video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    .page-content {
+        position: relative;
+        z-index: 3;
+        padding: 40px;
+        color: white;
+    }
+
+</style>
+
+
+<div id="ripple-container">
+    <video autoplay muted loop playsinline>
+        <source src="Assets/Battleships/WaterBackground.mp4" type="video/mp4">
+    </video>
+</div>
+
+
+<div class="page-content"
+     style="padding-top: 150px; padding-left: 150px">
+    <h2>Page content displays above background and effect.</h2>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/sirxemic/jquery.ripples/dist/jquery.ripples-min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#ripple-container').ripples({
+            resolution: 256,
+            dropRadius: 20,
+            perturbance: 0.04
+        });
+    });
+</script>

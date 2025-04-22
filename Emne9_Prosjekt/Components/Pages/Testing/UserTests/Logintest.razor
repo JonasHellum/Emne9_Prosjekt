@@ -1,0 +1,165 @@
+﻿@page "/logintest"
+@using System.Text.Json
+@using Emne9_Prosjekt.Features.Members.Models
+@using Microsoft.IdentityModel.Tokens
+@inject HttpClient Http
+@inject IHttpContextAccessor context
+
+
+
+
+<h3 style="padding-top: 125px">Logintest</h3>
+
+
+
+@* @if (!userName.IsNullOrEmpty()) *@
+@* { *@
+@*     <div class="alert alert-success"> *@
+@*         Already logged in as: ! Username: @memberDto.UserName *@
+@*         Already logged in as: @userName *@
+@*     </div> *@
+@* } *@
+@if (memberDto != null && userName.IsNullOrEmpty())
+{
+    <Login />
+    
+    <EditForm Model="@memberDto" OnValidSubmit="LoginAsync" FormName="LoginForm">
+
+        <div>
+            <label>Username:</label>
+            <InputText @bind-Value="memberDto.UserName" class="form-control" name="Username"/>
+        </div>
+
+        <div>
+            <label>Password:</label>
+            <InputText @bind-Value="memberDto.Password" type="password" class="form-control" name="Password"/>
+        </div>
+        <button type="submit" class="btn btn-primary">Login</button>
+    </EditForm>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">
+            test??? @errorMessage
+        </div>
+    }
+
+    @if (loginSuccess)
+    {
+        <div class="alert alert-success">
+            Login success! Username: @memberDto.UserName
+        </div>
+    }
+    @if (loginFailed)
+    {
+        <div class="alert alert-danger">
+            Login failed.
+        </div>
+    }
+}
+else if (memberDto == null)
+{
+    <p>loading...??</p>
+}
+@if (loggedIn)
+{
+    
+    <div class="alert alert-success" href="Home.razor">
+        Already logged in as: @userName
+    </div>
+}
+
+@code {
+    private MemberDTO memberDto { get; set; }
+    private bool loginSuccess;
+    private bool loginFailed;
+    private string errorMessage;
+    private string? authHeader;
+    private string userName;
+    private bool loggedIn;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        memberDto = new MemberDTO();
+
+        try
+        {
+            userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+            Console.WriteLine($"Username from Logintest: {userName}");
+            loggedIn = !string.IsNullOrEmpty(userName);
+
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        
+    }
+    
+    protected async Task LoginAsync()
+    {
+        if (string.IsNullOrEmpty(memberDto.UserName) || string.IsNullOrEmpty(memberDto.Password))
+        {
+            errorMessage = "Username and Password are required.";
+            return;
+        }
+        
+        try
+        {
+            var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/login", memberDto);
+            Console.WriteLine($"Logging in with {memberDto.UserName} and {memberDto.Password}");
+
+            if (response.IsSuccessStatusCode)
+            {
+
+                // Extract the Authorization header
+                if (response.Headers.TryGetValues("Authorization", out var authHeaders))
+                {
+                    authHeader = authHeaders.FirstOrDefault();
+                    Console.WriteLine($"Authorization header: {authHeader}");
+                    
+                    // var token = authHeaders.FirstOrDefault()?.Split(" ").Last();
+                        
+
+                    // Set the token in the default request headers for future requests
+                    if (!string.IsNullOrEmpty(authHeader))
+                    {
+                        loggedIn = true;
+                        Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authHeader);
+                        loginSuccess = true;
+                        // reload/redirect.
+                        
+                    }
+                }
+            }
+            else
+            {
+                loginFailed = true;
+
+                var errorResponse = await response.Content.ReadAsStringAsync();
+                
+                var errorDetails = JsonSerializer.Deserialize<Dictionary<string, string>>(errorResponse);
+                if (errorDetails != null && errorDetails.ContainsKey("Detailed"))
+                {
+                    errorMessage = errorDetails["Detailed"];
+                    Console.WriteLine($"Login failed: {errorDetails["Detailed"]}");
+                }
+                else
+                {
+                    errorMessage = errorResponse;
+                    Console.WriteLine($"Login failed: {errorResponse}.");
+                }
+
+            }
+        }
+        catch (Exception e)
+        {
+            loginFailed = true;
+
+            errorMessage = "Something went wrong. Please try again.";
+            Console.WriteLine($"Exception: {e}");
+        }
+        
+    }
+}
