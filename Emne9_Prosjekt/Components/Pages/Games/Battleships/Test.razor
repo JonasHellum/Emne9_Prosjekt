@@ -1,0 +1,685 @@
+﻿@page "/test"
+@using Emne9_Prosjekt.GameComponents
+@using Emne9_Prosjekt.Hubs.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.IdentityModel.Tokens
+@using Emne9_Prosjekt.Components.Pages.SocialFeatures
+@inject BattleShipComponents GameComponents
+@inject IGameHubConnection GameHubConnection
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+<video class="Background" autoplay muted loop playsinline
+       style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+              object-fit: cover; z-index: -1; pointer-events: none">
+    <source src="Assets/Battleships/WaterBackground.mp4" type="video/mp4">
+</video>
+
+<div id="ripple-container"
+     style="background: transparent">
+
+    @if (_gameOver)
+    {
+        <div style="text-align: center;
+                    margin: 20px;
+                    padding: 20px;
+                    background-color: @(_playerWon ? "#d4edda" : "#f8d7da");
+                    color: @(_playerWon ? "#155724" : "#721c24");
+                    border-radius: 10px;
+                    border: 3px solid @(_playerWon ? "#c3e6cb" : "#f5c6cb");">
+            <h2>@(_playerWon ? "You Won!" : "You Lost...")</h2>
+            <p>@(_playerWon ? "You have demolished your opponents fleet!" : "Your opponent has demolished your fleet.")</p>
+            <button @onclick="ForceReload">Leave match</button>
+        </div>
+    }
+    
+    <div style="justify-content: center;
+            padding-top: 125px;
+            padding-bottom: 100px">
+        @if (!_isConnected)
+        {
+            <p>Connecting to the game...</p>
+        }
+        else if (_gameState == GameState.Setup)
+        {
+            <div style="text-align: center">
+                @if (!_opponentSetupComplete && _isSetupComplete)
+                {
+                    <h3 data-aos="fade-down"
+                        data-aos-delay="500"
+                        style="color: white">
+                        Waiting for your opponent to set up their board
+                    </h3>
+                }
+                else
+                {
+                    <h3 data-aos="fade-up"
+                        data-aos-delay="600"
+                        data-aos-duration="500"
+                        style="color: white">
+                        Place your Battleships!
+                    </h3>
+                }
+                <div style="display: flex;
+                    justify-content: center;">
+
+                    <div style="width: 400px; display: flex; justify-content: flex-end">
+                        @if (!_isSetupComplete)
+                        {
+                            @if (GameComponents.GetPlacedShips().Count == GameComponents.GetShips().Count && !_isSetupComplete)
+                            {
+                                <button data-aos="fade-left"
+                                        @onclick="CompleteSetup"
+                                        style="font-weight: bolder">
+                                    Ready<br/>
+                                    For<br/>
+                                    Combat!<br/>
+                                </button>
+                            }
+
+                            <div style="display: flex; flex-direction: column"
+                                 data-aos="fade-left"
+                                 data-aos-delay="500">
+                                @foreach (var ship in GameComponents.GetShips())
+                                {
+                                    if (!GameComponents.GetPlacedShips().ContainsKey(ship.Key))
+                                    {
+                                        <model-viewer src="@($"Assets/Battleships/{@ship.Key}.glb")"
+                                                      alt="Ship model"
+                                                      bounds="tight"
+                                                      auto-rotate
+                                                      min-camera-orbit="auto auto 4m"
+                                                      max-camera-orbit="auto auto 4m"
+                                                      field-of-view="60deg"
+                                                      exposure="0.5"
+                                                      scale="0.6 0.6 0.6"
+                                                      style="height: 100px"
+                                                      @onclick='() => SelectShip(ship.Key)'>
+                                            <h6 style="color: white">
+                                                @ship.Key
+                                            </h6>
+                                        </model-viewer>
+                                    }
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="display: flex; flex-direction: column">
+                                <model-viewer src="@($"Assets/Battleships/Battleship.glb")"
+                                              alt="Ship model"
+                                              camera-controls
+                                              auto-rotate
+                                              camera-orbit="30deg 30deg"
+                                              interaction-prompt="none"
+                                              exposure="0.1"
+                                              scale="0.6 0.6 0.6"
+                                              style="height: 250px; width: 250px"
+                                              data-aos="fade-up-left"
+                                              data-aos-delay="1000">
+                                </model-viewer>
+                                <model-viewer src="@($"Assets/Battleships/Destroyer.glb")"
+                                              alt="Ship model"
+                                              camera-controls
+                                              auto-rotate
+                                              camera-orbit="-30deg 30deg"
+                                              interaction-prompt="none"
+                                              exposure="0.1"
+                                              scale="0.6 0.6 0.6"
+                                              style="height: 250px; width: 250px"
+                                              data-aos="fade-down-left"
+                                              data-aos-delay="1200">
+                                </model-viewer>
+                            </div>
+                        }
+                    </div>
+
+                    <div data-aos="fade-up"
+                         data-aos-delay="300"
+                         style="position: relative; z-index: 100">
+                        <div class="board-rotator" style="width: 400px; display: flex; justify-content: flex-end">
+                            <div class="@(_isSetupComplete ? "opponent-board" : "opponent-board-active")">
+                                <table class="Board">
+                                    @foreach (var row in "ABCDEFGHIJ")
+                                    {
+                                        <tr>
+                                            @for (int col = 1; col <= 10; col++)
+                                            {
+                                                var pos = $"{row}{col}";
+                                                <td style="width: 40px; height: 40px; text-align: center; border: 1px solid white; color: white;
+                                                    background: @(GameComponents.GetBoard()[pos] == 1 ? "#d3d3d3" : "#2c5aa0");"
+                                                    @onclick="() => PlaceShip(pos)">
+                                                    @pos 
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="width: 400px; position: relative; z-index: 50"
+                         data-aos="fade-right"
+                         data-aos-delay="500">
+                        @if (!_isSetupComplete)
+                        {
+                            <h4 style="color: white">
+                                Currently modifying:
+                            </h4>
+                            <a style="color: white;
+                                      font-size: x-large">
+                                @_selectedShip
+                            </a>
+                            @if (@GameComponents.GetOrientation())
+                            {
+                                <h4 >Ship orientation: <button @onclick="OrientShip">Horizontal</button></h4>
+                            }
+                            else
+                            {
+                                <h4>Ship orientation: <button @onclick="OrientShip">Vertical</button></h4>
+                            }
+
+                            <button @onclick="Reset">Reset board</button>
+                            <button @onclick="OrientShip">Orient Ship</button>
+                        }
+                        else
+                        {
+                            <model-viewer src="@($"Assets/Battleships/Cruiser.glb")"
+                                          alt="Ship model"
+                                          camera-controls
+                                          auto-rotate
+                                          camera-orbit="140deg 30deg"
+                                          interaction-prompt="none"
+                                          exposure="0.1"
+                                          scale="0.6 0.6 0.6"
+                                          style="height: 250px; width: 250px"
+                                          data-aos="fade-up-right"
+                                          data-aos-delay="1400">
+                            </model-viewer>
+                            <model-viewer src="@($"Assets/Battleships/Submarine.glb")"
+                                          alt="Ship model"
+                                          camera-controls
+                                          auto-rotate
+                                          camera-orbit="-140deg 30deg"
+                                          interaction-prompt="none"
+                                          exposure="0.1"
+                                          scale="0.6 0.6 0.6"
+                                          style="height: 250px; width: 250px"
+                                          data-aos="fade-down-right"
+                                          data-aos-delay="1600">
+                            </model-viewer>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div style="justify-content: center">
+                <div style="text-align: center">
+                    <h4 style="color: white">@(_isMyTurn ? "Take your shot!" : "Your opponent is planning their attack...")</h4>
+                </div>
+            </div>
+
+            <div style="display: flex;
+                        gap: 50px;
+                        align-items: flex-end;
+                        justify-content: center"
+                 class="board-container">
+
+                <div style="display: flex;
+                            flex-direction: column;
+                            align-items: flex-end">
+                    <div class="board-rotator"
+                         style="width: 400px;
+                                display: flex;
+                                padding-bottom: 50px;
+                                justify-content: center">
+                        <div class="@(_isMyTurn ? "player-board" : "player-board-active")">
+                            <table class="Board">
+                                @foreach (var row in "ABCDEFGHIJ")
+                                {
+                                    <tr>
+                                        @for (int col = 1; col <= 10; col++)
+                                        {
+                                            var pos = $"{row}{col}";
+                                            <td style="width: 20px; height: 20px; text-align: center; border: 1px solid white;
+                                                background: @(BoardStatus(_playerBoard, pos));">
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </table>
+                            <h6 style="color: white">Your Board</h6>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex;
+                                position: relative; 
+                                justify-content: center;
+                                color: white;
+                                align-items: center">
+                        <div style="display: inline-block; position: relative">
+                            @foreach (var ship in GameComponents.GetShips())
+                            {
+                                var check = CheckShip(ship.Key);
+                                
+                                <model-viewer class="ship-transition"
+                                              src="@($"Assets/Battleships/{@ship.Key}.glb")"
+                                              alt="Ship model"
+                                              bounds="tight"
+                                              min-camera-orbit="@check.cameraOrbit"
+                                              max-camera-orbit="@check.cameraOrbit"
+                                              field-of-view="30deg"
+                                              exposure="0.5"
+                                              scale="1 1 1 1"
+                                              style="height: 40px; width: 40px;">
+                                    <h6 style="color: white;
+                                               text-decoration: @(check.sunkenShip ? "line-through" : "none")">
+                                        @ship.Key
+                                    </h6>
+                                </model-viewer>
+                            }
+                            <h5>Your ships:</h5>
+                        </div>
+                        <div>
+                            @foreach (var ship in GameComponents.GetShips())
+                            {
+                                var check = CheckShip(ship.Key);
+                                
+                                <model-viewer class="ship-transition"
+                                              src="@($"Assets/Battleships/{@ship.Key}.glb")"
+                                              alt="Ship model"
+                                              min-camera-orbit="@check.cameraOrbit"
+                                              max-camera-orbit="@check.cameraOrbit"
+                                              field-of-view="30deg"
+                                              exposure="0.1"
+                                              scale="1 1 1 1"
+                                              style="height: 40px; width: 40px;">
+                                    <h6 style="color: white;
+                                               text-decoration: @(check.sunkenShip ? "line-through" : "none")">
+                                        @ship.Key
+                                    </h6>
+                                </model-viewer>
+                            }
+                            <h5>Opponents ships:</h5>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex;
+                            padding-right: 50px;
+                            flex-direction: column;
+                            align-items: flex-end">
+                    <div class="board-rotator" style="width: 400px; display: flex; justify-content: flex-end">
+                        <div class="@(_isMyTurn ? "opponent-board-active" : "opponent-board")">
+                            <table class="Board">
+                                @foreach (var row in "ABCDEFGHIJ")
+                                {
+                                    <tr>
+                                        @for (int col = 1; col <= 10; col++)
+                                        {
+                                            var pos = $"{row}{col}";
+                                            <td style="width: 40px; height: 40px; text-align: center; border: 1px solid white;
+                                                background: @(BoardStatus(_opponentBoard, pos));"
+                                                @onclick="() => ShootAtTarget(pos)">
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </table>
+                            <h6 style="color: white">Opponent board</h6>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="width: 400px;
+                            height: 500px;
+                            background: rgb(0, 0, 0, 0.5);
+                            border: 1px solid white">
+                    @if (_isSetupComplete && _opponentSetupComplete)
+                    {
+                        <GameChatFunction/>
+                    }
+                </div>
+
+            </div>
+        }
+    </div>
+    
+</div>
+
+
+
+<style>
+    .board-container {
+        position: relative;
+        z-index: 0;
+    }
+    
+    .player-board {
+        transform: perspective(1000px) rotate3d(1, 1, 0, 45deg);
+        transform-origin: center center;
+        transform-style: preserve-3d;
+        border-collapse: collapse;
+        position: relative;
+        transition: transform 0.3s ease;
+        z-index: 50;
+    }
+    
+    .player-board-active {
+        transform: perspective(800px) rotateX(0deg) rotateY(0deg) rotateZ(45deg) scale(1.5);
+        position: relative;
+        transition: transform 0.3s ease;
+        z-index: 100;
+    }
+    
+    .opponent-board {
+        transform: perspective(1000px) rotate3d(1, 1, 0, 45deg);
+        transform-origin: center center;
+        transform-style: preserve-3d;
+        border-collapse: collapse;
+        position: relative;
+        transition: transform 0.3s ease;
+        z-index: 50;
+    }
+
+    .opponent-board-active {
+        transform: perspective(800px) rotateZ(45deg);
+        position: relative;
+        transition: transform 0.3s ease;
+        z-index: 100;
+    }
+    
+    .board-rotator {
+        transform: rotateZ(-45deg);
+        transition: transform 0.3s ease;
+    }
+    
+    .opponent-board td {
+        transform: translateZ(0);
+    }
+
+    .Board {
+        border-collapse: collapse;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+    
+    .ship-orientation-horizontal {
+        
+        transition: transform 0.3s ease;
+    }
+    
+    .ship-orientation-vertical {
+        
+        transition: transform 0.3s ease;
+    }
+    
+    .ship-transition {
+        transition: transform 10s ease;
+    }
+    
+    .Background {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: -1;
+        pointer-events: none;
+    }
+    
+    #ripple-container {
+        position: relative;
+        min-height: 100vh;
+    }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/sirxemic/jquery.ripples/dist/jquery.ripples-min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#ripple-container').ripples({
+            resolution: 400,
+            dropRadius: 20,
+            perturbance: 0.5
+        });
+    });
+</script>
+
+@code {
+    private enum GameState
+    {
+        Setup,
+        Playing
+    }
+
+    private GameState _gameState = GameState.Setup;
+    private Dictionary<string, int> _playerBoard = new();
+    private Dictionary<string, int> _opponentBoard = new();
+    private string _selectedShip = "";
+    private int _allShips;
+    private bool _isConnected;
+    private int _playerNumber;
+    private bool _isSetupComplete;
+    private bool _opponentSetupComplete;
+    private bool _isMyTurn;
+    private bool _gameOver;
+    private bool _playerWon;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        GameHubConnection.Connection.On<int, Dictionary<string, int>>("GameStarted", (playerNumber, board) =>
+        {
+            _playerNumber = playerNumber;
+            _playerBoard = board;
+            _gameState = GameState.Playing;
+            _isConnected = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On<Dictionary<string, int>>("UpdateBoard", (board) =>
+        {
+            _playerBoard = board;
+            
+            // Check if all our ships have been sunk by the opponent
+            int sunkenShips = 0;
+            foreach (var ship in GameComponents.GetPlacedShips())
+            {
+                if (ship.Value.All(pos => board.ContainsKey(pos) && board[pos] < 0))
+                {
+                    sunkenShips++;
+                }
+            }
+            
+            if (sunkenShips == GameComponents.GetShips().Count)
+            {
+                _gameOver = true;
+                _playerWon = false;
+            }
+            
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On<Dictionary<string, int>>("UpdateOpponentBoard", (board) =>
+        {
+            _opponentBoard = board;
+    
+            // Sjekk om vi har senket alle motstanderens skip
+            // Teller antall posisjoner som har blitt truffet (verdi < 0 i brettet)
+            int hitPositions = board.Count(pos => pos.Value < 0);
+    
+            // Hvis antall treff tilsvarer totalt antall skipsdeler
+            if (hitPositions == _allShips)
+            {
+                _gameOver = true;
+                _playerWon = true;
+            }
+    
+            InvokeAsync(StateHasChanged);
+        });
+        
+        GameHubConnection.Connection.On<Dictionary<string, int>>("UpdateBoard", (board) =>
+        {
+            _playerBoard = board;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On<Dictionary<string, int>>("UpdateOpponentBoard", (board) =>
+        {
+            _opponentBoard = board;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On("OpponentDisconnected", () =>
+        {
+            // Opponent disconnected during setup
+            _opponentSetupComplete = false;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On("OpponentDisconnectedDuringGame", () =>
+        {
+            _gameOver = true;
+            _playerWon = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On("OpponentConnected", () =>
+        {
+            _isConnected = true;
+            _opponentSetupComplete = false;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On<string>("WaitingForOpponent", (_) =>
+        {
+            _isConnected = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On("OpponentSetupComplete", () =>
+        {
+            _opponentSetupComplete = true;
+            _gameState = GameState.Setup;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On<string>("GameReady", (_) =>
+        {
+            _isConnected = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On<string>("JoinedGroup", (_) =>
+        {
+            _isConnected = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On<bool>("TurnUpdate", (isYourTurn) =>
+        {
+            _isMyTurn = isYourTurn;
+            InvokeAsync(StateHasChanged);
+        });
+
+        await GameHubConnection.Connection.StartAsync();
+        GameComponents.CreateBoard();
+
+        foreach (var ship in GameComponents.GetShips())
+        {
+            _allShips += ship.Value;
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    private void SelectShip(string ship)
+    {
+        _selectedShip = ship;
+        GameComponents.SelectShip(ship);
+        StateHasChanged();
+    }
+
+    private void PlaceShip(string position)
+    {
+        if (!_isSetupComplete)
+        {
+            _selectedShip = "";
+            GameComponents.PlaceShip(position);
+            StateHasChanged();
+        }
+    }
+
+    private void OrientShip()
+    {
+        GameComponents.ToggleOrientation();
+    }
+
+    private int BoardValues()
+    {
+        int boardValue = 0;
+        foreach (var square in GameComponents.GetBoard())
+        {
+            boardValue += square.Value;
+        }
+        return boardValue;
+    }
+
+    private void Reset()
+    {
+        GameComponents.CreateBoard();
+        GameComponents.GetPlacedShips().Clear();
+    }
+
+    private async Task CompleteSetup()
+    {
+        if (GameHubConnection.Connection.State == HubConnectionState.Connected)
+        {
+            var board = GameComponents.GetBoard();
+            await GameHubConnection.Connection.SendAsync("SetupComplete", board);
+            _isSetupComplete = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ShootAtTarget(string position)
+    {
+        if (_isConnected && _gameState == GameState.Playing && _isMyTurn)
+        {
+            await GameHubConnection.Connection.SendAsync("ShootAtOpponent", position);
+        }
+    }
+    
+    private (bool sunkenShip, string cameraOrbit) CheckShip(string shipKey)
+    {
+        bool sunkenShip = GameComponents.GetPlacedShips()[shipKey].All(pos => _playerBoard[pos] < 0);
+        string cameraOrbit = sunkenShip ? "180deg 180deg 3m" : "225deg 45deg 3m";
+        return (sunkenShip, cameraOrbit);
+    }
+    
+    private string BoardStatus(Dictionary<string, int> board, string pos) => board.ContainsKey(pos) switch
+    {
+        false => "transparent",
+        true when board[pos] == 1 => "white",
+        true when board[pos] == 0 => "transparent",
+        true when board[pos] == -1 => "darkred",
+        true when board[pos] == -2 => "blue",
+        _ => "Black"
+    };
+
+    private void ForceReload()
+    {
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        if (GameHubConnection != null)
+        {
+            await GameHubConnection.DisposeAsync();
+        }
+    }
+}

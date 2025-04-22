@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -35,6 +36,7 @@ using HttpVersion = System.Net.HttpVersion;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:80/api") });
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -135,12 +137,10 @@ var app = builder.Build();
 //app.UseHttpsRedirection();
 
 app.UseRouting();
-app.UseMiddleware<JwtMiddleware>();
-//     .UseMiddleware<ApiExceptionHandling>();
-app.UseMiddleware<ApiExceptionHandling>();
+app.UseMiddleware<JwtMiddleware>()
+    .UseMiddleware<ApiExceptionHandling>();
 app.UseAuthentication();
 app.UseAuthorization();
-
 
 if (!app.Environment.IsDevelopment())
 {
@@ -155,6 +155,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 //app.UseHttpsRedirection();
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = new FileExtensionContentTypeProvider
+    {
+        Mappings = { [".glb"] = "model/gltf-binary" }
+    }
+});
 
 app.UseStaticFiles();
 //app.UseRouting();

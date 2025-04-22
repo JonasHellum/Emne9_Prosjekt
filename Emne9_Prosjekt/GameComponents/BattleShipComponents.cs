@@ -4,11 +4,11 @@ public class BattleShipComponents
 {
     private string? _selectedShip;
     private bool _shipOrientation = true;
-    public int HitCount { get; private set; }
     public int SunkenShipCount { get; set; }
     private readonly Dictionary<string,int> _board = new ();
     private readonly Dictionary<string,int> _opponentBoard = new ();
     private readonly Dictionary<string, List<string>> _placedShips = new ();
+    private readonly Dictionary<string, List<string>> _opponentPlacedShips = new ();
     private readonly Dictionary<string,int> _ships = new ()
     {
         {"Carrier", 5},
@@ -137,6 +137,11 @@ public class BattleShipComponents
     {
         return _placedShips;
     }
+
+    public Dictionary<string, List<string>> GetOpponentPlacedShips()
+    {
+        return _opponentPlacedShips;
+    }
     
     public bool GetOrientation()
     {
@@ -156,7 +161,6 @@ public class BattleShipComponents
             
             if (value == 1)
             {
-                HitCount++;
                 CheckShipStatus(target);
             }
         }

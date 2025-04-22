@@ -1,7 +1,17 @@
 @inherits LayoutComponentBase
+@using Emne9_Prosjekt.Hubs.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
+@inject IGameHubConnection GameHubConnection
 
 <div style="position: fixed; width: 100%; z-index: 1000">
-    <NavMenu/>
+    @if (_gameState == GameState.Playing)
+    {
+        <RemoveNavMenu/>
+    }
+    else
+    {
+        <NavMenu/>
+    }
 </div>
 
 <body style="background: linear-gradient(#ffd5d5, #e5ffd5, #d7d7f4) fixed;"/>
@@ -12,12 +22,28 @@
     </article>
 </main>
 
-<style>
-    
-</style>
-
 <div id="blazor-error-ui">
     An unhandled error has occurred.
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    private enum GameState
+    {
+        Setup,
+        Playing
+    }
+
+    private GameState _gameState = GameState.Setup;
+    
+    protected override Task OnInitializedAsync()
+    {
+        GameHubConnection.Connection.On<int, Dictionary<string, int>>("GameStarted", (playerNumber, board) =>
+        {
+            _gameState = GameState.Playing;
+            InvokeAsync(StateHasChanged);
+        });
+        return Task.CompletedTask;
+    }
+}

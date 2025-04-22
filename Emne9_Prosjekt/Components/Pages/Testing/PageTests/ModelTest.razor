@@ -1,0 +1,16 @@
+﻿@page "/ModelTest"
+<h3 style="padding-top: 125px">ModelTest</h3>
+
+<div id="ripple-container"
+     style="display: flex; flex-direction: row">
+    <model-viewer src="@($"Test/scene.glb")"
+                  alt="Test model"
+                  camera-controls
+                  autoplay
+                  camera-orbit="30deg 30deg"
+                  interaction-prompt="none"
+                  exposure="0.5"
+                  scale="0.7 0.7 0.7"
+                  style="height: 500px; width: 500px">
+    </model-viewer>
+</div>
