@@ -173,6 +173,7 @@ app.MapRazorComponents<App>()
 app.MapHub<ChatHub>("/chatHub"); 
 app.MapHub<GameHub>("/gameHub");
 app.MapHub<ForumHub>("/forumHub");
+app.MapHub<BigChatHub>("/bigchathub");
 
 
 // app.Use(async (context, next) =>

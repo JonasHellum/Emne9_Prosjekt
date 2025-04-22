@@ -11,6 +11,7 @@ public static class PleaseHelpMeServiceExtension
         services.AddScoped<IChatHubConnection, ChatHubConnection>();
         services.AddScoped<IGameHubConnection, GameHubConnection>();
         services.AddScoped<IForumConnection, ForumConnection>();
+        services.AddScoped<IBigChatHubConnection, BigChatHubConnection>(); 
         return services;
     }
 }
