@@ -3,4 +3,5 @@
 public interface IBaseService<T> where T : class
 {
     Task<bool> DeleteByIdAsync(Guid id);
+    Task<T?> GetByIdAsync(Guid memberId);
 }

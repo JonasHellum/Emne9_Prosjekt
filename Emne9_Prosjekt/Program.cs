@@ -7,6 +7,10 @@ using Emne9_Prosjekt.Extensions;
 using Emne9_Prosjekt.Hubs;
 using Emne9_Prosjekt.Data;
 using Emne9_Prosjekt.Features.Common.Interfaces;
+using Emne9_Prosjekt.Features.Leaderboards;
+using Emne9_Prosjekt.Features.Leaderboards.Interfaces;
+using Emne9_Prosjekt.Features.Leaderboards.Mappers;
+using Emne9_Prosjekt.Features.Leaderboards.Models;
 using Emne9_Prosjekt.Features.Members;
 using Emne9_Prosjekt.Features.Members.Interfaces;
 using Emne9_Prosjekt.Features.Members.Mappers;
@@ -79,6 +83,12 @@ builder.Services
     .AddScoped<IMemberRepository, MemberRepository>()
     .AddScoped<IMapper<Member, MemberDTO>, MemberMapper>()
     .AddScoped<IMapper<Member, MemberRegistrationDTO>, MemberRegistrationMapper>();
+
+builder.Services
+    .AddScoped<ILeaderboardService, LeaderboardService>()
+    .AddScoped<ILeaderboardRepository, LeaderboardRepository>()
+    .AddScoped<IMapper<Leaderboard, LeaderboardDTO>, LeaderboardMapper>()
+    .AddScoped<IMapper<Leaderboard, LeaderboardAddOrUpdateDTO>, LeaderboardAddMapper>();
 
 builder.Services.AddScoped<IAuthStateService, AuthStateService>();
 

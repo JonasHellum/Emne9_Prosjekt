@@ -12,7 +12,6 @@ public interface IMemberService : IBaseService<MemberDTO>
     Task<MemberDTO?> GoogleLoginAsync(GoogleJsonWebSignature.Payload googleUser);
     (string memberId, string userName) ValidateAccessToken(string accessToken);
     Task<MemberDTO?> UpdateAsync(Guid memberId, MemberUpdateDTO updateDTO);
-    Task<MemberDTO?> GetByIdAsync(Guid memberId);
     string MakeToken(MemberDTO member);
     Task<bool> UserNameExistsAsync(string username);
     Task<bool> EmailExistsAsync(string email);

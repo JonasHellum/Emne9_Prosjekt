@@ -1,5 +1,4 @@
-﻿@page "/User"
-@using System.Text.Json
+﻿@using System.Text.Json
 @using Emne9_Prosjekt.Features.Members.Models
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
@@ -227,7 +226,7 @@
             }
             catch
             {
-                errorMessage = "Failed to parse error response: " + responseContent;
+                errorMessage = "Failed: " + responseContent;
             }
 
             editFailed = true;

@@ -1,4 +1,5 @@
-﻿using Emne9_Prosjekt.Features.Members.Models;
+﻿using Emne9_Prosjekt.Features.Leaderboards.Models;
+using Emne9_Prosjekt.Features.Members.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ public class Emne9EksamenDbContext : IdentityDbContext<IdentityUser>
     }
     
     public DbSet<Member> Member { get; set; }
+    public DbSet<Leaderboard> Leaderboard { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

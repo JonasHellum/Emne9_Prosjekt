@@ -22,6 +22,36 @@ namespace Emne9_Prosjekt.Data.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("Emne9_Prosjekt.Features.Leaderboards.Models.Leaderboard", b =>
+                {
+                    b.Property<Guid>("LeaderboardId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("GameType")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Losses")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Wins")
+                        .HasColumnType("int");
+
+                    b.HasKey("LeaderboardId");
+
+                    b.ToTable("Leaderboard");
+                });
+
             modelBuilder.Entity("Emne9_Prosjekt.Features.Members.Models.Member", b =>
                 {
                     b.Property<Guid>("MemberId")
@@ -36,7 +66,7 @@ namespace Emne9_Prosjekt.Data.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
@@ -65,6 +95,9 @@ namespace Emne9_Prosjekt.Data.Migrations
                         .HasColumnType("varchar(255)");
 
                     b.HasKey("MemberId");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
 
                     b.HasIndex("UserName")
                         .IsUnique();

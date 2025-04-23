@@ -26,7 +26,7 @@ public class MemberRepository : IMemberRepository
     public async Task<Member?> AddAsync(Member entity)
     {
         _logger.LogDebug($"Adding new member with Id: {entity.MemberId}, " +
-                         $"UserName: {entity.UserName}FirstName: {entity.FirstName}," +
+                         $"UserName: {entity.UserName}, FirstName: {entity.FirstName}," +
                          $"LastName: {entity.LastName}, BirthYear: {entity.BirthYear}," +
                          $"Created: {entity.Created}, Updated: {entity.Updated}");
         await _dbContext.Member.AddAsync(entity);
@@ -74,6 +74,7 @@ public class MemberRepository : IMemberRepository
     /// <returns>A task representing the asynchronous operation. The task result contains the member entity if found, otherwise null.</returns>
     public async Task<Member?> GetByIdAsync(Guid memberId)
     {
+        _logger.LogDebug($"Retrieving member with id: {memberId} from database.");
         return await _dbContext.Member.FirstOrDefaultAsync(m => m.MemberId == memberId);
     }
 
