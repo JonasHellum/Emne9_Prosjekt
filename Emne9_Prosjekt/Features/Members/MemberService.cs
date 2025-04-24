@@ -234,7 +234,10 @@ public class MemberService : IMemberService
 
         if (!string.IsNullOrWhiteSpace(updateDTO.UserName) && updateDTO.UserName != memberToUpdate.UserName)
         {
-            memberToUpdate.UserName = updateDTO.UserName;
+            // Username shall be changed when leaderboards is fixed with updaing usernames.
+            
+            // memberToUpdate.UserName = updateDTO.UserName;
+            memberToUpdate.UserName = memberToUpdate.UserName;
         }
         
         if (!string.IsNullOrWhiteSpace(updateDTO.FirstName) && updateDTO.FirstName != memberToUpdate.FirstName)
@@ -346,12 +349,12 @@ public class MemberService : IMemberService
         if (!string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(lastName))
         {
             
-            return $"{firstName.ToLower().Replace(" ","")}.{lastName.ToLower()}";
+            return $"{firstName} {lastName}";
         }
 
         if (!string.IsNullOrEmpty(firstName))
         {
-            return firstName.ToLower();
+            return firstName;
         }
 
         return "googleUser"; 

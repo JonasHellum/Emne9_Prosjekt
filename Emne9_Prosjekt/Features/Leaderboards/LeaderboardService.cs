@@ -49,7 +49,13 @@ public class LeaderboardService : ILeaderboardService
     {
         throw new NotImplementedException();
     }
-    
+
+    /// <summary>
+    /// Adds a new leaderboard entry or updates an existing one based on the provided data.
+    /// </summary>
+    /// <param name="addOrUpdateDto">An instance of <see cref="LeaderboardAddOrUpdateDTO"/> containing the data for the leaderboard to add or update.</param>
+    /// <returns>An instance of <see cref="LeaderboardDTO"/> representing the added or updated leaderboard, or null if the operation fails.</returns>
+    /// <exception cref="DataException">Thrown when there is an error during the save or update operation in the repository.</exception>
     public async Task<LeaderboardDTO?> AddOrUpdateAsync(LeaderboardAddOrUpdateDTO addOrUpdateDto)
     {
         var loggedInMember = await GetLoggedInMemberAsync();
@@ -80,6 +86,7 @@ public class LeaderboardService : ILeaderboardService
         _logger.LogInformation($"Trying to add a new leaderboard for member with memberId: {loggedInMember.MemberId}");
         var leaderboard = _leaderboardAddMapper.MapToModel(addOrUpdateDto);
         leaderboard.MemberId = loggedInMember.MemberId;
+        leaderboard.UserName = loggedInMember.UserName;
         leaderboard.Created = DateTime.UtcNow;
         leaderboard.LastUpdated = DateTime.UtcNow;
             
@@ -92,8 +99,45 @@ public class LeaderboardService : ILeaderboardService
             
         return _leaderboardMapper.MapToDTO(newLeaderboard);
     }
+
+    /// <summary>
+    /// Retrieves the statistics of the leaderboard from the repository.
+    /// </summary>
+    /// <returns>A list of <see cref="LeaderboardDTO"/> representing the leaderboard statistics.</returns>
+    /// <exception cref="DataException">Thrown when the retrieval of leaderboard statistics fails.</exception>
+    public async Task<List<LeaderboardDTO>> GetAllLeaderboardStatsAsync()
+    {
+        _logger.LogInformation("Trying to get leaderboard stats.");
+        var leaderboardStats = await _leaderboardRepository.GetAllLeaderboardStatsAsync();
+
+        if (leaderboardStats is null)
+        {
+            _logger.LogError("Failed to get leaderboard stats.");
+            throw new DataException("Failed to get leaderboard stats.");
+        }
+
+        return leaderboardStats.Select(leaderboard => _leaderboardMapper.MapToDTO(leaderboard)).ToList();
+    }
     
     
+    public async Task<List<LeaderboardDTO>> GetLeaderboardPaginatedAsync(int page, int pageSize)
+    {
+        var loggedInMember = await GetLoggedInMemberAsync();
+        var loggedInMemberId = loggedInMember.MemberId;
+        return await _leaderboardRepository.GetLeaderboardPaginatedAsync(page, pageSize, loggedInMemberId);
+    }
+
+    public async Task<List<LeaderboardDTO>> GetLeaderboardByGameTypePaginatedAsync(string gameType, int page, int pageSize)
+    {
+        var loggedInMember = await GetLoggedInMemberAsync();
+        var loggedInMemberId = loggedInMember.MemberId;
+        return await _leaderboardRepository.GetLeaderboardByGameTypePaginatedAsync(gameType, page, pageSize, loggedInMemberId);
+    }
+
+
+    
+
+
     /// <summary>
     /// Retrieves the currently logged-in member based on the information stored in the HTTP context.
     /// </summary>

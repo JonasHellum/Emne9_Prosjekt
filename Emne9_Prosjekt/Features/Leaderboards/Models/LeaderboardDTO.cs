@@ -6,7 +6,11 @@ public class LeaderboardDTO
     
     public Guid MemberId { get; set; }
     
+    public string UserName { get; set; } = string.Empty;
+    
     public string GameType { get; set; }  = string.Empty;
+    
+    public int Rank { get; set; }
     
     public int Wins { get; set; }
     

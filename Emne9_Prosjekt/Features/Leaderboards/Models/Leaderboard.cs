@@ -11,6 +11,9 @@ public class Leaderboard
     [ForeignKey("MemberId")]
     public Guid MemberId { get; set; }
     
+    [ForeignKey("Username")]
+    public string UserName { get; set; } = string.Empty;
+    
     public string GameType { get; set; }  = string.Empty;
     
     public int Wins { get; set; }

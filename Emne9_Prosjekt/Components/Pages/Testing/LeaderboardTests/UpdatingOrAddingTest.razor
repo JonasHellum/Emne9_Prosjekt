@@ -11,7 +11,7 @@
 
 
 
-<h3>UpdatingOrAddingTest</h3>
+<h3  style="padding-top: 125px">UpdatingOrAddingTest</h3>
 
 
 @if (leaderboardDto != null && !username.IsNullOrEmpty())
@@ -126,21 +126,6 @@
     
     private async Task UpdateOrCreateLeaderboard()
     {
-        // var response = await Http.PutAsJsonAsync("Http://localhost:80/api/leaderboards/updateOrCreate", leaderboardAddOrUpdateDto);
-        //
-        // var request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:80/api/leaderboards/updateOrCreate")
-        // {
-        //     Content = new StringContent(JsonSerializer.Serialize(leaderboardAddOrUpdateDto), Encoding.UTF8, "application/json")
-        // };
-        //
-        // request.Headers.Add("X-Blazor-Secret", _config["AppSettings:BlazorSecret"]);
-        //
-        // var response = await Http.SendAsync(request);
-        // if (response.IsSuccessStatusCode)
-        // {
-        //     editSuccess = true;
-        // }
-        
         var request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:80/api/leaderboards/updateOrCreate")
         {
             Content = new StringContent(JsonSerializer.Serialize(leaderboardAddOrUpdateDto), Encoding.UTF8, "application/json")
@@ -151,8 +136,6 @@
 
         // Send the request using the injected HttpClient
         var response = await Http.SendAsync(request);
-
-
         
         if (response.IsSuccessStatusCode)
         {
@@ -202,4 +185,21 @@
         showEditForm = true;
     }
 
+    // private void OnStart()
+    // {
+    //     leaderboardAddOrUpdateDto.GameType = "Battleships";
+    //     leaderboardAddOrUpdateDto.Wins = 0;
+    //     leaderboardAddOrUpdateDto.Losses = 1;
+    // }
+    //
+    // private void OnPlayer1Win()
+    // {
+    //     player1LeaderboardDto.GameType = "Battleships";
+    //     player1LeaderboardDto.Wins = 1;
+    //     player1LeaderboardDto.Losses = -1;
+    //
+    //     player2LeaderboardDto.GameType = "Battleships";
+    //     player2LeaderboardDto.Wins = 0;
+    //     player2LeaderboardDto.Losses = 0;
+    // }
 }

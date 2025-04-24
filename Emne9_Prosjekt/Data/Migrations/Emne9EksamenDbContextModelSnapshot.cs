@@ -44,6 +44,10 @@ namespace Emne9_Prosjekt.Data.Migrations
                     b.Property<Guid>("MemberId")
                         .HasColumnType("char(36)");
 
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.Property<int>("Wins")
                         .HasColumnType("int");
 
