@@ -1,5 +1,4 @@
-﻿@page "/User"
-@using System.Text.Json
+﻿@using System.Text.Json
 @using Emne9_Prosjekt.Features.Members.Models
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
@@ -79,11 +78,7 @@
                         </div>
                     }
                 }
-            }
-            else
-            {
-                <p>Not logged in.</p>
-                <p>Redirecting to login page.</p>
+                <button @onclick="Logout">Logout</button>
             }
         </h1>
     </div>
@@ -99,7 +94,8 @@
     private string errorMessage;
     private bool _isClientSide;
     private bool loggedIn;
-    
+    private string _loggedOut;
+
     protected override async Task OnInitializedAsync()
     {
         memberDto = new MemberDTO();
@@ -193,7 +189,7 @@
             };
         }
     }
-
+    
     private async Task EditMemberAsync()
     {
         Guid memberId = memberDto.MemberId;
@@ -233,6 +229,28 @@
             editFailed = true;
         }
     }
+    
+    private async Task Logout()
+    {
+        var response = await Http.GetAsync("http://localhost:80/api/members/Logout");
+        if (response.IsSuccessStatusCode)
+        {
+            // Remove cookie
+            await JSRuntime.InvokeVoidAsync("deleteCookie", "AuthTokenCOMON");
+
+            // Remove the JWT from the Authorization header
+            Http.DefaultRequestHeaders.Authorization = null;
+            
+            Task.Delay(500);
+            StateHasChanged();
+            NavManager.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            _loggedOut = "Logout failed";
+        }
+    }
+    
     private class ErrorResponse
     {
         public List<string> Errors { get; set; }

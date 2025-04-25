@@ -6,63 +6,71 @@
 @inject IAuthStateService AuthState
 
 
-<div style="display: flex;
-            gap: 235px;
-            justify-content: center;
-            background: linear-gradient(#404040,
-                                        #323232,
-                                        #292929,
-                                        #252525,
-                                        #1b1b1b,
-                                        #1b1b1b,
-                                        #1b1b1b,
-                                        #1b1b1b,
-                                        #252525)">
-    <div style="text-align: left;
+<div style=" background: linear-gradient(#404040,
+                                         #323232,
+                                         #292929,
+                                         #252525,
+                                         #1b1b1b,
+                                         #1b1b1b,
+                                         #1b1b1b,
+                                         #1b1b1b,
+                                         #252525)">
+    <div style="display: flex;
+                flex-direction: row;
+                justify-content: center;
+                gap: 235px;"
+         data-aos="fade"
+         data-aos-delay="400">
+        <div style="text-align: left;
                 padding-top: 10px;
                 padding-bottom: 10px">
-        <NavLink href="">
-            <img style="width: 120px"
-                 alt=""
-                 src="@_icon"
-                 @onmouseover="MouseOn"
-                 @onmouseout="MouseOff"/>
-        </NavLink>
-    </div>
-    <div style="color: white;
+            <NavLink href="">
+                <img style="width: 120px"
+                     alt=""
+                     src="@_icon"
+                     @onmouseover="MouseOn"
+                     @onmouseout="MouseOff"/>
+            </NavLink>
+        </div>
+        <div style="color: white;
                 text-align: center;
                 font-style: oblique;
                 padding-top: 13px">
-        Published by Nubisoft™
-    </div>
-
+            Published by Nubisoft™
+        </div>
 
         @if (AuthState.UserName.IsNullOrEmpty())
-    {
+        {
 
-        <div style="color: white;
+    <div style="color: white;
                 text-align: right;
                 padding-top: 12px">
-            <NavLink href="/Login"
-                     class="cool-link">
-                Login
-            </NavLink> /
-            <NavLink href="/Register"
-                     class="cool-link">
-                Register
-            </NavLink>
-        </div>
-    }
-    else
-    {
-        <div style="color: white;
-            text-align: right;
-            padding-top: 12px">
-            Welcome @AuthState.UserName
-        </div>
-    }
-
+        <NavLink href="/Login"
+                 class="user-links">
+            Login
+        </NavLink> /
+        <NavLink href="/Register"
+                 class="user-links">
+            Register
+        </NavLink>
+    </div>
+        }
+        else
+        {
+            <div style="color: white;
+                            text-align: right;
+                            padding-top: 12px">
+                Welcome <NavLink href="/User"
+                                 class="user-links">
+                    @AuthState.UserName
+                </NavLink>
+            </div>
+        }
+    </div>
+        
 </div>
+
+
 <div style="display: flex;
             justify-content: center;
             padding-top: 10px;
