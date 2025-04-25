@@ -1,24 +1,23 @@
 ﻿@inherits LayoutComponentBase
 @inject NavigationManager Navigation
 
-<div style="z-index: 1000;
-            padding-top: 20px">
-    <a class="selection-style"
-             style="z-index: 1000;
-                    padding-left: 25px;
+<div style="z-index: 1000;">
+    <div class="selection-style"
+         @onclick="DisplayMessage"
+             style="padding-left: 25px;
                     padding-top: 25px;
+                    display: inline-block;
+                    flex-direction: column;
                     opacity: 0.5">
-        <img style="width: 60px; "
+        <img style="width: 60px;"
              alt=""
              src="@_icon"
              @onmouseover="MouseOn"
-             @onmouseout="MouseOff"
-             @onclick="DisplayMessage"/>
-        <div class="text-adjustment"
-             @onclick="DisplayMessage">
+             @onmouseout="MouseOff"/>
+        <div style="padding-left: 15px">
             Quit
         </div>
-    </a>
+    </div>
     @if (_message)
     {
         <div style="border: 1px solid white;
@@ -87,6 +86,6 @@
     
     private void ForceReload()
     {
-        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+        Navigation.NavigateTo("/", forceLoad: true);
     }
 }

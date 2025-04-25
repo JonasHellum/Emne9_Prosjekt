@@ -3,18 +3,64 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
 
-<div>
-    <input @bind="_message" @bind:event="oninput" placeholder="Skriv en melding..." />
-    <button @onclick="SendMessage">Send</button>
+<div style="display: flex; flex-direction: column; height: 100%">
+    <div id="chat-box" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column-reverse; padding: 10px">
+        @foreach (var msg in _messages.AsEnumerable().Reverse())
+        {
+            <div class="message @(msg.Item1 == _userName ? "self" : "user")">
+                <strong>@msg.Item1</strong>: @msg.Item2
+            </div>
+        }
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center">
+        <input @bind="_message"
+               @bind:event="oninput"
+               @onkeydown="EnterToSend"
+               placeholder="Write a message..."
+               style="flex: 1"/>
+        <button @onclick="SendMessage"
+                class="chat-button"
+                style="width: 100px">
+            Send
+        </button>
+    </div>
 </div>
-<div id="chat-box">
-    @foreach (var msg in _messages)
-    {
-        <div class="message @(msg.Item1 == _userName ? "self" : "user")">
-            <strong>@msg.Item1</strong>: @msg.Item2
-        </div>
+
+<style>
+    .message.self strong {
+        color: grey;  
     }
-</div>
+    
+    .message.user strong {
+        color: white;  
+    }
+
+    .chat-button {
+        color: black;
+        background: whitesmoke;
+        border: grey solid 1px;
+        transition: background-color 0.1s ease,
+                    color 0.1s ease,
+                    border-color 0.1s ease;
+    }
+    
+    .chat-button:hover {
+        color: white;
+        background: dimgray;
+        border: gainsboro solid 2px;
+    }
+
+    .chat-button:active {
+        color: white;
+        background: black;
+        border: gainsboro solid 1px;
+    }
+    
+    #chat-box {
+        scrollbar-color: white transparent;
+    }
+</style>
+
 
 @code {
     private readonly string _userName = "";
@@ -68,6 +114,14 @@
         }
     }
 
+    private async Task EnterToSend(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SendMessage();
+        }
+    }
+    
     public async ValueTask DisposeAsync()
     {
         if (_isConnected)
