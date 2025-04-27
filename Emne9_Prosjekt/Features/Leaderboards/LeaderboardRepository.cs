@@ -84,50 +84,23 @@ public class LeaderboardRepository : ILeaderboardRepository
         return await _dbContext.Leaderboard
             .FirstOrDefaultAsync(lb => lb.MemberId == memberId && lb.GameType.ToLower() == gameType.ToLower());
     }
-
-    /// <summary>
-    /// Retrieves a list of leaderboard statistics, including total wins, losses, and last updated timestamp
-    /// for each member grouped by their ID and username.
-    /// </summary>
-    /// <returns>A task that represents the asynchronous operation.
-    /// The task result contains a list of leaderboard statistics.</returns>
-    public async Task<List<Leaderboard>> GetAllLeaderboardStatsAsync()
-    {
-        _logger.LogDebug("Finding leaderboards.");
-        // return await _dbContext.Leaderboard
-        //     .GroupBy(l => new { l.MemberId, l.GameType })
-        //     .Select(group => new Leaderboard
-        //     {
-        //         MemberId = group.Key.MemberId,
-        //         UserName = group.FirstOrDefault().UserName,
-        //         GameType = group.Key.GameType,
-        //         Wins = group.Sum(l => l.Wins),
-        //         Losses = group.Sum(l => l.Losses),
-        //         LastUpdated = group.Max(l => l.LastUpdated)
-        //     })
-        //     .ToListAsync();
-        
-        return await _dbContext.Leaderboard
-            .ToListAsync();
-    }
     
     
-    
-    
-    public async Task<List<LeaderboardDTO>> GetLeaderboardPaginatedAsync(int page, int pageSize, Guid loggedInMemberId)
+    public async Task<List<LeaderboardDTO>> GetLeaderboardPaginatedAsync(string gameType, int page, int pageSize, Guid? loggedInMemberId = null)
     {
         // Step 1: Group and aggregate in the database
         var groupedQuery = _dbContext.Leaderboard
-            .GroupBy(l => new { l.MemberId, l.UserName }) // Group by MemberId and Username
+            .Where(l => gameType == "All" || l.GameType == gameType)
+            .GroupBy(l => new { l.MemberId, l.UserName })
             .Select(group => new Leaderboard
             {
                 MemberId = group.Key.MemberId,
                 UserName = group.Key.UserName,
-                Wins = group.Sum(g => g.Wins), // Total Wins
-                Losses = group.Sum(g => g.Losses) // Total Losses
+                Wins = group.Sum(g => g.Wins), 
+                Losses = group.Sum(g => g.Losses) 
             })
-            .OrderByDescending(l => l.Wins) // Primary sort: Wins descending
-            .ThenBy(l => l.Losses);         // Secondary sort: Losses ascending
+            .OrderByDescending(l => l.Wins) 
+            .ThenBy(l => l.Losses);         
 
         // Step 2: Load aggregated data into memory
         var aggregatedData = await groupedQuery.AsNoTracking().ToListAsync();
@@ -140,16 +113,16 @@ public class LeaderboardRepository : ILeaderboardRepository
                 UserName = entry.UserName,
                 Wins = entry.Wins,
                 Losses = entry.Losses,
-                Rank = index + 1 // Calculate rank (1-based index)
+                Rank = index + 1
             })
             .ToList();
 
         
         var loggedInUser = rankedData.FirstOrDefault(r => r.MemberId == loggedInMemberId);
-        if (loggedInUser == null)
+        if (loggedInUser == null && loggedInMemberId != null)
         {
             var userLeaderboard = await _dbContext.Leaderboard
-                .Where(l => l.MemberId == loggedInMemberId)
+                .Where(l => l.MemberId == loggedInMemberId && (gameType == "All" || l.GameType == gameType))
                 .GroupBy(l => new { l.MemberId, l.UserName })
                 .Select(group => new LeaderboardDTO
                 {
@@ -161,15 +134,15 @@ public class LeaderboardRepository : ILeaderboardRepository
                 .FirstOrDefaultAsync();
             if (userLeaderboard != null)
             {
-                userLeaderboard.Rank = rankedData.Count + 1; // Assign a rank beyond current list
+                userLeaderboard.Rank = rankedData.Count + 1;
                 rankedData.Add(userLeaderboard);
             }
         }
 
         // Step 5: Paginate the results
         var paginatedResult = rankedData
-            .Skip((page - 1) * pageSize) // Skip previous pages
-            .Take(pageSize) // Take the items for the current page
+            .Skip((page - 1) * pageSize) 
+            .Take(pageSize)
             .ToList();
         
         if (loggedInUser != null && !paginatedResult.Any(r => r.MemberId == loggedInMemberId))
@@ -181,71 +154,4 @@ public class LeaderboardRepository : ILeaderboardRepository
 
         return paginatedResult;
     }
-
-
-
-    public async Task<List<LeaderboardDTO>> GetLeaderboardByGameTypePaginatedAsync(string gameType, int page, int pageSize, Guid loggedInMemberId)
-    {
-        // Step 1: Query filtered by GameType
-        var groupedQuery = _dbContext.Leaderboard
-            .Where(l => l.GameType == gameType) // Filter by GameType
-            .GroupBy(l => new { l.MemberId, l.UserName }) // Group by MemberId and Username
-            .Select(group => new Leaderboard
-            {
-                MemberId = group.Key.MemberId,
-                UserName = group.Key.UserName,
-                Wins = group.Sum(g => g.Wins),
-                Losses = group.Sum(g => g.Losses)
-            })
-            .OrderByDescending(l => l.Wins) // Sort by Wins
-            .ThenBy(l => l.Losses);         // Then by Losses
-
-        // Step 2: Load to memory and apply ranking
-        var aggregatedData = await groupedQuery.AsNoTracking().ToListAsync();
-        var rankedData = aggregatedData
-            .Select((entry, index) => new LeaderboardDTO
-            {
-                MemberId = entry.MemberId,
-                UserName = entry.UserName,
-                Wins = entry.Wins,
-                Losses = entry.Losses,
-                Rank = index + 1 // 1-based Rank
-            })
-            .ToList();
-
-        // Step 3: Handle logged-in user inclusion (if not already in results)
-        if (loggedInMemberId.ToString().IsNullOrEmpty())
-        {
-            var loggedInUser = rankedData.FirstOrDefault(r => r.MemberId == loggedInMemberId);
-            if (loggedInUser == null)
-            {
-                var userLeaderboard = await _dbContext.Leaderboard
-                    .Where(l => l.MemberId == loggedInMemberId && l.GameType == gameType)
-                    .GroupBy(l => new { l.MemberId, l.UserName })
-                    .Select(group => new LeaderboardDTO
-                    {
-                        MemberId = group.Key.MemberId,
-                        UserName = group.Key.UserName,
-                        Wins = group.Sum(g => g.Wins),
-                        Losses = group.Sum(g => g.Losses)
-                    })
-                    .FirstOrDefaultAsync();
-
-                if (userLeaderboard != null)
-                {
-                    userLeaderboard.Rank = rankedData.Count + 1;
-                    rankedData.Add(userLeaderboard);
-                }
-            }
-        }
-
-        // Step 4: Paginate
-        return rankedData
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
-    }
-
-
-
 }
