@@ -149,8 +149,8 @@ else if (memberDto == null)
                 {
                     foreach (var cookie in cookies)
                     {
-                        // Extract the token value (parsing can be improved; assuming standard structure here)
-                        var tokenPair = cookie.Split(';')[0]; // e.g., "AuthTokenCOMON=jwt_token_value"
+                        // Extract the token value
+                        var tokenPair = cookie.Split(';')[0]; // "AuthTokenCOMON=jwt_token_value"
                         var tokenName = tokenPair.Split('=')[0]; // AuthTokenCOMON
                         var tokenValue = tokenPair.Split('=')[1];
 
@@ -175,114 +175,4 @@ else if (memberDto == null)
             Console.WriteLine($"Exception during login: {e.Message}");
         }
     }
-
-
-    // try
-        // {
-        //     var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/login", memberDto);
-        //     Console.WriteLine($"Logging in with {memberDto.UserName} and {memberDto.Password}");
-        //
-        //     if (response.IsSuccessStatusCode)
-        //     {
-        //         // At this point, the cookie is set by the backend
-        //         loggedIn = true;
-        //         loginSuccess = true;
-        //         Console.WriteLine("Login successful, cookie has been set.");
-        //     
-        //         // Optionally reload username from the API using the cookie (to verify)
-        //         userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-        //     }
-        //     else
-        //     {
-        //         loginFailed = true;
-        //
-        //         var errorResponse = await response.Content.ReadAsStringAsync();
-        //         var errorDetails = JsonSerializer.Deserialize<Dictionary<string, string>>(errorResponse);
-        //         if (errorDetails != null && errorDetails.ContainsKey("Detailed"))
-        //         {
-        //             errorMessage = errorDetails["Detailed"];
-        //             Console.WriteLine($"Login failed: {errorDetails["Detailed"]}");
-        //         }
-        //         else
-        //         {
-        //             errorMessage = errorResponse;
-        //             Console.WriteLine($"Login failed: {errorResponse}");
-        //         }
-        //     }
-        // }
-        // catch (Exception e)
-        // {
-        //     loginFailed = true;
-        //     errorMessage = "Something went wrong. Please try again.";
-        //     Console.WriteLine($"Exception: {e}");
-        // }
-
-    // }
-
-    
-    // protected async Task LoginAsync()
-    // {
-    //     if (string.IsNullOrEmpty(memberDto.UserName) || string.IsNullOrEmpty(memberDto.Password))
-    //     {
-    //         errorMessage = "Username and Password are required.";
-    //         return;
-    //     }
-    //     
-    //     try
-    //     {
-    //         var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/login", memberDto);
-    //         Console.WriteLine($"Logging in with {memberDto.UserName} and {memberDto.Password}");
-    //
-    //         if (response.IsSuccessStatusCode)
-    //         {
-    //
-    //             // Extract the Authorization header
-    //             if (response.Headers.TryGetValues("Authorization", out var authHeaders))
-    //             {
-    //                 authHeader = authHeaders.FirstOrDefault();
-    //                 Console.WriteLine($"Authorization header: {authHeader}");
-    //                 
-    //                 // var token = authHeaders.FirstOrDefault()?.Split(" ").Last();
-    //                     
-    //
-    //                 // Set the token in the default request headers for future requests
-    //                 if (!string.IsNullOrEmpty(authHeader))
-    //                 {
-    //                     loggedIn = true;
-    //                     Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authHeader);
-    //                     loginSuccess = true;
-    //                     // reload/redirect.
-    //                     
-    //                 }
-    //             }
-    //         }
-    //         else
-    //         {
-    //             loginFailed = true;
-    //
-    //             var errorResponse = await response.Content.ReadAsStringAsync();
-    //             
-    //             var errorDetails = JsonSerializer.Deserialize<Dictionary<string, string>>(errorResponse);
-    //             if (errorDetails != null && errorDetails.ContainsKey("Detailed"))
-    //             {
-    //                 errorMessage = errorDetails["Detailed"];
-    //                 Console.WriteLine($"Login failed: {errorDetails["Detailed"]}");
-    //             }
-    //             else
-    //             {
-    //                 errorMessage = errorResponse;
-    //                 Console.WriteLine($"Login failed: {errorResponse}.");
-    //             }
-    //
-    //         }
-    //     }
-    //     catch (Exception e)
-    //     {
-    //         loginFailed = true;
-    //
-    //         errorMessage = "Something went wrong. Please try again.";
-    //         Console.WriteLine($"Exception: {e}");
-    //     }
-    //     
-    // }
 }

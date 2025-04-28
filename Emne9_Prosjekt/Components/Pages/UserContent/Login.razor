@@ -200,8 +200,8 @@
                 {
                     foreach (var cookie in cookies)
                     {
-                        // Extract the token value (parsing can be improved; assuming standard structure here)
-                        var tokenPair = cookie.Split(';')[0]; // e.g., "AuthTokenCOMON=jwt_token_value"
+                        // Extract the token value
+                        var tokenPair = cookie.Split(';')[0]; // "AuthTokenCOMON=jwt_token_value"
                         var tokenName = tokenPair.Split('=')[0]; // AuthTokenCOMON
                         var tokenValue = tokenPair.Split('=')[1];
 
@@ -252,13 +252,13 @@
                 {
                     foreach (var cookie in cookies)
                     {
-                        // Extract the token value (parsing can be improved; assuming standard structure here)
-                        var tokenPair = cookie.Split(';')[0]; // e.g., "AuthTokenCOMON=jwt_token_value"
+                        // Extract the token value
+                        var tokenPair = cookie.Split(';')[0]; // "AuthTokenCOMON=jwt_token_value"
                         var tokenName = tokenPair.Split('=')[0]; // AuthTokenCOMON
                         var tokenValue = tokenPair.Split('=')[1];
 
                         // Use JSRuntime to set the cookie in the browser
-                        await JSRuntime.InvokeVoidAsync("setCookie", tokenName, tokenValue, 2); // 2 = hours before expiry
+                        await JSRuntime.InvokeVoidAsync("setCookie", tokenName, tokenValue, 10); // 10 = hours before expiry
                         Console.WriteLine($"Cookie manually set: {tokenName} = {tokenValue}");
                     }
                 }
