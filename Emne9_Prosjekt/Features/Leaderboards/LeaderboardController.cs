@@ -49,43 +49,14 @@ public class LeaderboardController : ControllerBase
             ? BadRequest("Failed to update or create new leaderboard")
             : Ok(leaderboard);
     }
-
-    [AllowAnonymous]
-    [HttpGet("stats", Name = "LeaderboardStats")]
-    public async Task<IActionResult> GetLeaderboardStats()
-    {
-        _logger.LogInformation("[GET] Getting leaderboard stats");
-        var stats = await _leaderboardService.GetAllLeaderboardStatsAsync();
-        return stats is null
-            ? BadRequest("Failed to get leaderboard stats")
-            : Ok(stats);
-    }
-    
-    
-    
-    
-    
     
     [AllowAnonymous]
-    [HttpGet("paginated", Name = "PaginatedLeaderboard")]
-    public async Task<IActionResult> GetPaginatedLeaderboard([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    [HttpGet("{gameType}/paginated", Name = "PaginatedLeaderboard")]
+    public async Task<IActionResult> GetPaginatedLeaderboard(string gameType, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         _logger.LogInformation($"Fetching leaderboard page {page}, page size {pageSize}.");
-        var leaderboard = await _leaderboardService.GetLeaderboardPaginatedAsync(page, pageSize);
+        var leaderboard = await _leaderboardService.GetLeaderboardPaginatedAsync(gameType, page, pageSize);
 
         return Ok(leaderboard);
     }
-
-    [AllowAnonymous]
-    [HttpGet("gameType/{gameType}/paginated", Name = "GameTypePaginatedLeaderboard")]
-    public async Task<IActionResult> GetPaginatedLeaderboardByGameType(string gameType, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
-    {
-        _logger.LogInformation($"Fetching leaderboard page {page}, page size {pageSize} for game type '{gameType}'.");
-        var leaderboard = await _leaderboardService.GetLeaderboardByGameTypePaginatedAsync(gameType, page, pageSize);
-
-        return Ok(leaderboard);
-    }
-
-
-
 }

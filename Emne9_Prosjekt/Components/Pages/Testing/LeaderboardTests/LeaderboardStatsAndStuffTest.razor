@@ -11,79 +11,6 @@
 <h3 style="padding-top: 125px">LeaderboardStatsAndStuffTest</h3>
 
 
-<h3>Total Leaderboard</h3>
-@* <table class="table"> *@
-@*     <thead> *@
-@*     <tr> *@
-@*         <th>Rank</th> *@
-@*         <th>Username</th> *@
-@*         <th>Wins</th> *@
-@*         <th>Losses</th> *@
-@*     </tr> *@
-@*     </thead> *@
-@*     <tbody> *@
-@*     @foreach (var entry in totalLeaderboard) *@
-@*     { *@
-@*         <tr class="@(@entry.MemberId == loggedInMemberId ? "table-success" : "")"> *@
-@*             <td>@entry.Rank</td> *@
-@*             <td>@entry.UserName</td> *@
-@*             <td>@entry.Wins</td> *@
-@*             <td>@entry.Losses</td> *@
-@*         </tr> *@
-@*     } *@
-@*     </tbody> *@
-@* </table> *@
-@* *@
-@* <h3>Game Type: Chess</h3> *@
-@* <table class="table"> *@
-@*     <thead> *@
-@*     <tr> *@
-@*         <th>Rank</th> *@
-@*         <th>Username</th> *@
-@*         <th>Wins</th> *@
-@*         <th>Losses</th> *@
-@*     </tr> *@
-@*     </thead> *@
-@*     <tbody> *@
-@*     @foreach (var entry in chessLeaderboard) *@
-@*     { *@
-@*         <tr class="@(@entry.MemberId == loggedInMemberId ? "table-success" : "")"> *@
-@*             <td>@entry.Rank</td> *@
-@*             <td>@entry.UserName</td> *@
-@*             <td>@entry.Wins</td> *@
-@*             <td>@entry.Losses</td> *@
-@*         </tr> *@
-@*     } *@
-@*     </tbody> *@
-@* </table> *@
-@* *@
-@* <h3>Game Type: Poker</h3> *@
-@* <table class="table"> *@
-@*     <thead> *@
-@*     <tr> *@
-@*         <th>Rank</th> *@
-@*         <th>Username</th> *@
-@*         <th>Wins</th> *@
-@*         <th>Losses</th> *@
-@*     </tr> *@
-@*     </thead> *@
-@*     <tbody> *@
-@*     @foreach (var entry in pokerLeaderboard) *@
-@*     { *@
-@*         <tr class="@(@entry.MemberId == loggedInMemberId ? "table-success" : "")"> *@
-@*             <td>@entry.Rank</td> *@
-@*             <td>@entry.UserName</td> *@
-@*             <td>@entry.Wins</td> *@
-@*             <td>@entry.Losses</td> *@
-@*         </tr> *@
-@*     } *@
-@*     </tbody> *@
-@* </table> *@
-
-@* @{ *@
-@*     loggedInUserEntry = leaderboard.FirstOrDefault(entry => entry.MemberId.ToString() == memberId); *@
-@* } *@
-@* // Always display the logged-in user's score if found *@
 <h4>Your Score:</h4>
 @if (leaderboard != null && leaderboard.Any(entry => entry.MemberId.ToString() == memberId))
 {
@@ -108,66 +35,21 @@
         </tbody>
     </table>
 }
+else if (memberId == null)
+{
+    <p>You are not logged in.</p>
+}
 else
 {
     <p>Your stats are not available on the leaderboard.</p>
 }
-
-<h4>Leaderboard (Page: @_currentPageForAll)</h4>
-@if (leaderboard != null && leaderboard.Any())
-{
-    <table class="table">
-        <thead>
-        <tr>
-            <th>Rank</th>
-            <th>Username</th>
-            <th>Wins</th>
-            <th>Losses</th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var entry in filteredLeaderboard)
-        {
-            <tr class="@(entry.MemberId.ToString() == memberId ? "table-info" : "")">
-                <td>@entry.Rank</td>
-                <td>@entry.UserName</td>
-                <td>@entry.Wins</td>
-                <td>@entry.Losses</td>
-            </tr>
-        }
-        </tbody>
-    </table>
-}
-else
-{
-    <p>No players are currently in the leaderboard.</p>
-}
-
-
-
-
-
-<div class="mt-3">
-    <button class="btn btn-primary" @onclick="ShowAllPreviousPage" disabled="@(_currentPageForAll == 1)">Previous</button>
-    <span class="mx-3">Page: @_currentPageForAll</span>
-    <button class="btn btn-primary" @onclick="ShowAllNextPage" disabled="@(AINTGOINGNOWHERENOWBISH == true)">Nextfookinshet</button>
-    @if (_disableAllNextPage)
-    {
-        Console.WriteLine($"FROM WITHIN THE FUCKING BUTTON IT'S TRUE: {_disableAllNextPage}");
-    }
-    else
-    {
-        Console.WriteLine($"WHY THE FUCK ARE U GETTING FALSE AGAIN: {_disableAllNextPage}");
-    }
-</div>
-
-
 
 <h3>Leaderboard Game Type</h3>
 
 <div>
     <label for="gameTypeSelect">Game Type:</label>
     <select id="gameTypeSelect" class="form-control w-auto d-inline me-2" @onchange="OnGameTypeChanged">
+        <option value="All">All</option>
         <option value="Battleships">Battleships</option>
         <option value="Connect 4">Connect 4</option>
     </select>
@@ -184,11 +66,11 @@ else
     </tr>
     </thead>
     <tbody>
-    @if (leaderboardGameType != null && leaderboardGameType.Any())
+    @if (filteredLeaderboard != null && filteredLeaderboard.Any())
     {
-        @foreach (var entry in leaderboardGameType)
+        @foreach (var entry in filteredLeaderboard)
         {
-            <tr class="@(@entry.MemberId.ToString() == memberId ? "table-success" : "")">
+            <tr class="@(entry.MemberId.ToString() == memberId ? "table-info" : "")">
                 <td>@entry.Rank</td>
                 <td>@entry.UserName</td>
                 <td>@entry.Wins</td>
@@ -196,77 +78,20 @@ else
             </tr>
         }
     }
-    else
-    {
-        <tr>
-            <td colspan="4" class="text-center">No leaderboard data available for the selected game type.</td>
-        </tr>
-    }
     </tbody>
 </table>
 
+
 <div class="mt-3">
-    <button class="btn btn-primary" @onclick="ShowPreviousPage" disabled="@(_currentPage == 1 || loading)">Previous</button>
-    <span class="mx-3">Page: @_currentPage</span>
-    <button class="btn btn-primary" @onclick="ShowNextPage" disabled="@(_disableNextPage || loading)">Next</button>
+    <button class="btn btn-primary" @onclick="ShowAllPreviousPage" disabled="@(_currentPageForAll == 1)">Previous</button>
+    <span class="mx-3">Page: @_currentPageForAll</span>
+    <button class="btn btn-primary" @onclick="ShowAllNextPage" disabled="@(AINTGOINGNOWHERENOWBISH == true)">Nextfookinshet</button>
 </div>
-
-
-
-@* <div class="mb-4"> *@
-@*     <label for="gameTypeSelect">Select Game Type:</label> *@
-@*     <select id="gameTypeSelect" class="form-control w-auto d-inline me-2" @bind="selectedGameType" @bind:after="GameTypeChanged"> *@
-@*         @foreach (var type in gameTypes) *@
-@*         { *@
-@*             <option value="@type">@type</option> *@
-@*         } *@
-@*     </select> *@
-@* </div> *@
-@* *@
-@* *@
-@* <table class="table"> *@
-@*     <thead> *@
-@*     <tr> *@
-@*         <th>Rank</th> *@
-@*         <th>Username</th> *@
-@*         <th>Wins</th> *@
-@*         <th>Losses</th> *@
-@*     </tr> *@
-@*     </thead> *@
-@*     <tbody> *@
-@*     @if (leaderboard.Any()) *@
-@*     { *@
-@*         @foreach (var entry in leaderboard) *@
-@*         { *@
-@*             <tr class="@(@entry.MemberId.ToString() == memberId ? "table-success" : "")"> *@
-@*                 <td>@entry.Rank</td> *@
-@*                 <td>@entry.UserName</td> *@
-@*                 <td>@entry.Wins</td> *@
-@*                 <td>@entry.Losses</td> *@
-@*             </tr> *@
-@*         } *@
-@*     } *@
-@*     else *@
-@*     { *@
-@*         <tr> *@
-@*             <td colspan="4" class="text-center">No data available for the selected game type.</td> *@
-@*         </tr> *@
-@*     } *@
-@*     </tbody> *@
-@* </table> *@
-@* *@
-@* <div class="d-flex align-items-center justify-content-between"> *@
-@*     <button class="btn btn-primary" @onclick="ShowPreviousPage" disabled="@(_currentPage == 1 || loading)">Previous</button> *@
-@*     <span class="page-info">Page: @_currentPage</span> *@
-@*     <button class="btn btn-primary" @onclick="ShowNextPage" disabled="@(_disableNextPage || loading)">Next</button> *@
-@* </div> *@
 
 
 
 @code {
     private string selectedGameType = "All";
-    
-    private List<string> gameTypes = new() { "Connect 4", "Battleships" };
 
     private List<LeaderboardDTO> leaderboard = new();
     private List<LeaderboardDTO> leaderboardGameType = new();
@@ -288,7 +113,7 @@ else
     private bool _disableNextPage;
     private bool loading = false;
 
-    private string gameType = "Battleships";
+    private string gameType = "All";
 
     
     
@@ -313,13 +138,8 @@ else
             memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
             Console.WriteLine($"memberId from User: {memberId}");
             loggedIn = !string.IsNullOrEmpty(memberId);
-
-            if (loggedIn)
-            {
-                await LoadLeaderboardPage();
-                await LoadLeaderboardGameTypePage();
-            }
-        
+            
+            await LoadLeaderboardPage();
         }
         catch (Exception e)
         {
@@ -351,11 +171,8 @@ else
                     }
 
                     memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
-                    if (!string.IsNullOrEmpty(memberId))
-                    {
-                        await LoadLeaderboardPage();
-                        await LoadLeaderboardGameTypePage();
-                    }
+                    await LoadLeaderboardPage();
+                    
                 }
                 catch (Exception ex)
                 {
@@ -365,76 +182,34 @@ else
         }
     }
     
-    private async Task LoadLeaderboardGameTypePage()
-    {
-        //     // Fetch one extra item to determine if there's another page
-        int requestedPageSize = _pageSize +1;
-
-        leaderboardGameType = await Http.GetFromJsonAsync<List<LeaderboardDTO>>(
-        $"http://localhost:80/api/leaderboards/gameType/{gameType}/paginated?page={_currentPage}&pageSize={requestedPageSize}");
-
-        // // Check if we received one extra item
-        // if (leaderboardGameType.Count > _pageSize)
-        // {
-        //     leaderboardGameType = leaderboardGameType.Take(_pageSize).ToList(); // Take only up to page size
-        //     _disableAllNextPage = false; // More pages are available
-        // }
-        // else
-        // {
-        //     _disableAllNextPage = true; // No more pages
-        // }
-
-        Console.WriteLine($"Page: {_currentPage}, Items: {leaderboardGameType.Count}, Disable Next: {_disableAllNextPage}");
-        StateHasChanged();
-    }
-    
-    // private async Task LoadLeaderboardGameTypePage()
-    // {
-    //     leaderboardGameType = await Http.GetFromJsonAsync<List<LeaderboardDTO>>(
-    //         $"http://localhost:80/api/leaderboards/gameType/{gameType}/paginated?page={_currentPage}&pageSize={_pageSize}");
-    //     _disableAllNextPage = leaderboardGameType.Count > _pageSize;
-    //         
-    //     StateHasChanged();
-    // }
-    
     private async Task OnGameTypeChanged(ChangeEventArgs e)
     {
-        gameType = e.Value?.ToString() ?? "Battleships"; // Update the gameType
-        _currentPage = 1; // Reset to the first page when the game type changes
-        await LoadLeaderboardGameTypePage();
+        gameType = e.Value?.ToString() ?? "All"; // Update the gameType
+        _currentPageForAll = 1; // Reset to the first page when the game type changes
+        await LoadLeaderboardPage();
     }
     
     
     private async Task LoadLeaderboardPage()
     {
-        int requestedPageSize = _pageSizeForAll;
-        // leaderboard = await Http.GetFromJsonAsync<List<LeaderboardDTO>>(
-        //     $"http://localhost:80/api/leaderboards/paginated?page={_currentPageForAll}&pageSize={requestedPageSize}");
-
         try
         {
-            // Fetch leaderboard data
             leaderboard = await Http.GetFromJsonAsync<List<LeaderboardDTO>>(
-                $"http://localhost:80/api/leaderboards/paginated?page={_currentPageForAll}&pageSize={requestedPageSize}");
-
-            // Filter leaderboard for the current page (plus logged-in user stats if needed)
-            filteredLeaderboard = leaderboard
-                .Skip((_currentPageForAll - 1) * _pageSizeForAll)
-                .Take(_pageSizeForAll)
-                .ToList();
-
-            // Ensure the logged-in user's entry is displayed if it belongs to the current page
-            if (!filteredLeaderboard.Any(entry => entry.MemberId.ToString() == memberId))
+                $"http://localhost:80/api/leaderboards/{gameType}/paginated?page={_currentPageForAll}&pageSize={_pageSizeForAll}");
+            
+            filteredLeaderboard = leaderboard.ToList();
+            if (filteredLeaderboard.Any(entry => entry.MemberId.ToString() == memberId))
             {
                 var userStats = leaderboard.FirstOrDefault(entry => entry.MemberId.ToString() == memberId);
                 if (userStats != null &&
-                    userStats.Rank > ((_currentPageForAll - 1) * _pageSizeForAll) &&
-                    userStats.Rank <= (_currentPageForAll * _pageSizeForAll))
+                    userStats.Rank < ((_currentPageForAll - 1) * _pageSizeForAll + 1) ||
+                    userStats.Rank > (_currentPageForAll * _pageSizeForAll))
                 {
-                    filteredLeaderboard.Add(userStats);
-                    filteredLeaderboard = filteredLeaderboard.OrderBy(entry => entry.Rank).ToList();
+                    filteredLeaderboard.Remove(userStats);
+                    
                 }
             }
+            filteredLeaderboard = filteredLeaderboard.OrderBy(entry => entry.Rank).ToList();
 
             if (leaderboard.Count < _pageSizeForAll)
             {
@@ -444,8 +219,13 @@ else
             // Disable "Next" button if the filtered leaderboard is empty (i.e., no data to paginate)
             _disableAllNextPage = !filteredLeaderboard.Any();
             if (_disableAllNextPage)
+
             {
                 AINTGOINGNOWHERENOWBISH = true;
+            }
+            else
+            {
+                AINTGOINGNOWHERENOWBISH = false;
             }
 
             Console.WriteLine($"[LoadLeaderboardPage] Page: {_currentPageForAll}, Filtered: {filteredLeaderboard.Count}, Disable Next: {_disableAllNextPage}");
@@ -453,45 +233,12 @@ else
         catch (Exception ex)
         {
             Console.WriteLine($"[LoadLeaderboardPage] Error loading leaderboard data: {ex.Message}");
-            _disableAllNextPage = true; // Safeguard to disable navigation if something goes wrong
+            _disableAllNextPage = true; 
         }
         finally
         {
-            StateHasChanged(); // Ensure UI reflects updated state
+            StateHasChanged();
         }
-
-
-        
-        
-        // if (leaderboard.Count > _pageSizeForAll)
-        // {
-        //     _disableAllNextPage = false; // There are more pages
-        //     leaderboard = leaderboard.Take(_pageSizeForAll).ToList(); // Take only the current page's items
-        //
-        // }
-        // else
-        // {
-        //     _disableAllNextPage = true; // No more pages
-        // }
-
-        // if (leaderboard.Count == 0)
-        // {
-        //     _disableAllNextPage = true;
-        //     Console.WriteLine($"[LoadLeaderboardPage] Page: {_currentPageForAll} contains no data.");
-        //
-        // }
-        
-        // var nonUserEntries = leaderboard.Where(entry => entry.MemberId.ToString() != memberId).ToList();
-        //
-        //
-        // _disableAllNextPage = nonUserEntries.Count == 0 && leaderboard.Count < 1;
-
-        
-        //
-        //
-        // _disableAllNextPage = leaderboard.Count < _pageSizeForAll;
-        //
-        // Console.WriteLine($"Page: {_currentPage}, Items: {leaderboard.Count}, Disable Next: {_disableAllNextPage}");
     }
     
     private async Task ShowAllNextPage()
@@ -509,20 +256,9 @@ else
         if (_disableAllNextPage)
         {
             Console.WriteLine("Reverting navigation. No valid data for the next page.");
-            _currentPageForAll--; // Revert navigation
-            await LoadLeaderboardPage(); // Reload to ensure data consistency
+            _currentPageForAll--;
+            await LoadLeaderboardPage(); 
         }
-        
-        // // Check if the next page is valid: if no valid entries were found, disable "Next" and revert to the previous page
-        // if (!leaderboard.Skip((_currentPageForAll - 1) * _pageSizeForAll).Any())
-        // {
-        //     Console.WriteLine("No data exists for the next page. Disabling 'Next' button.");
-        //     _currentPageForAll--; // Revert to the previous valid page
-        //     _disableAllNextPage = true; // Disable "Next" button
-        //     await LoadLeaderboardPage(); // Reload the current valid page
-        // }
-
-
     }
     
     private async Task ShowAllPreviousPage()
@@ -536,24 +272,4 @@ else
             await LoadLeaderboardPage();
         }
     }
-    
-    
-    private async Task ShowNextPage()
-    {
-        if (!_disableNextPage)
-        {
-            _currentPage++;
-            await LoadLeaderboardGameTypePage();
-        }
-    }
-    
-    private async Task ShowPreviousPage()
-    {
-        if (_currentPage > 1)
-        {
-            _currentPage--;
-            await LoadLeaderboardGameTypePage();
-        }
-    }
-
 }
