@@ -15,15 +15,15 @@ public class MemberRegistrationDTOValidator : AbstractValidator<MemberRegistrati
         RuleFor(x => x.UserName).NotEmpty().WithMessage("Username is required")
             .Length(2, 50).WithMessage("Username must be between 2 and 50 characters");
         
-        RuleFor(x => x.FirstName).NotEmpty().WithMessage("First name is required")
-            .Length(2, 30).WithMessage("First name must be between 2 and 30 characters");
-        
-        RuleFor(x => x.LastName).NotEmpty().WithMessage("Last name is required")
-            .Length(2, 50).WithMessage("Last name must be between 2 and 50 characters");
-        
-        RuleFor(x => x.BirthYear)
-            .Must(birthDate => birthDate.Year >= 1000 && birthDate.Year <= 9999)
-            .WithMessage("Birth year must be between 1000 and 9999");
+        // RuleFor(x => x.FirstName).NotEmpty().WithMessage("First name is required")
+        //     .Length(2, 30).WithMessage("First name must be between 2 and 30 characters");
+        //
+        // RuleFor(x => x.LastName).NotEmpty().WithMessage("Last name is required")
+        //     .Length(2, 50).WithMessage("Last name must be between 2 and 50 characters");
+        //
+        // RuleFor(x => x.BirthYear)
+        //     .Must(birthDate => birthDate.Year >= 1000 && birthDate.Year <= 9999)
+        //     .WithMessage("Birth year must be between 1000 and 9999");
 
         RuleFor(x => x.Email).NotEmpty().WithMessage("Email is required")
             .EmailAddress().WithMessage("Email is not valid");
