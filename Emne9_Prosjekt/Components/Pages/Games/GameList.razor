@@ -8,22 +8,74 @@
     
     <div style="display: flex;
                 justify-content: center;
-                padding-top: 150px;
+                padding-top: 50px;
                 padding-bottom: 250px">
-        <div style="padding-right: 150px;">
-            <NavLink href="/BattleshipsSetup">
-                Battleships
+        
+        <div class="game-box">
+            <img class="box-shade" alt="" src="/Assets/GamePage/BoxShade.png"/>
+            <img class="box-bottom" alt="" src="/Assets/GamePage/BoxBottom.png"/>
+            <NavLink href="/test">
+                <img class="box-title" alt="" src="/Assets/GamePage/BattleshipsBox.png"/> 
             </NavLink>
+            <div class="title">
+                BattleShips
+            </div>
         </div>
-
-        <div>
+        
+        <div class="game-box">
+            <img class="box-shade" alt="" src="/Assets/GamePage/BoxShade.png"/>
+            <img class="box-bottom" alt="" src="/Assets/GamePage/BoxBottom.png"/>
             <NavLink href="/Connect4">
-                Connect 4
+                <img class="box-title" alt="" src="/Assets/GamePage/BoxTop.png"/> 
             </NavLink>
+            <div class="title">
+                Connect 4
+            </div>
         </div>
+        
     </div>
-
 </div>
+
+<style>
+    .game-box {
+        position: relative;
+        width: 200px;
+        margin: 0 100px
+    }
+    
+    .box-shade {
+        position: absolute;
+        opacity: 0.2;
+        width: 200px
+    }
+    
+    .box-bottom {
+        position: absolute;
+        width: 200px;
+        transition: all 0.3s ease;
+    }
+    
+    .box-title {
+        position: absolute;
+        width: 200px;
+        transition: all 0.3s ease;
+    }
+    
+    .title {
+        position: relative;
+        margin-top: 175px;
+        text-align: center;
+        color: white
+    }
+    
+    .game-box:hover .box-bottom {
+        transform: translateY(-10px); scale: 1.1;
+    }
+    
+    .game-box:hover .box-title {
+        transform: translateY(-50px); scale: 1.2; rotate: -20deg;
+    }
+</style>
 
 @code {
     

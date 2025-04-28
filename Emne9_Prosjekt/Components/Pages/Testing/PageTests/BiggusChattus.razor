@@ -30,6 +30,9 @@
     
     //Ser du det nå da Brian?
     
+    //Ja Line. Takk! :)
+    
+    /*
     protected override async Task OnInitializedAsync()
     {
         
@@ -49,6 +52,7 @@
         }
 
     }
+    */
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -56,21 +60,21 @@
         {
             Console.WriteLine("---Establishing connection...");
 
-            BigChatHubConnection.Connection.On<string, string>("ReceiveMessage", (_, message) =>
+            BigChatHubConnection.Connection.On<string, string>("ReceiveMessage", (user, message) =>
             {
-                _messages.Add((_userName, message));
+                _messages.Add((user, message));
                 InvokeAsync(StateHasChanged);
             });
 
-            BigChatHubConnection.Connection.On<string>("UserConnected", (_) =>
+            BigChatHubConnection.Connection.On<string>("UserConnected", (user) =>
             {
-                _messages.Add(("System", $"{_userName} har koblet til."));
+                _messages.Add(("System", $"{user} har koblet til."));
                 InvokeAsync(StateHasChanged);
             });
 
-            BigChatHubConnection.Connection.On<string>("UserDisconnected", (_) =>
+            BigChatHubConnection.Connection.On<string>("UserDisconnected", (user) =>
             {
-                _messages.Add(("System", $"{_userName} har forlatt chatten."));
+                _messages.Add(("System", $"{user} har forlatt chatten."));
                 InvokeAsync(StateHasChanged);
             });
 

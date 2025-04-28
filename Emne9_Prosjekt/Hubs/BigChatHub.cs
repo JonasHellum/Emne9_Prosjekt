@@ -7,20 +7,19 @@ public class BigChatHub : Hub
 {
     public override async Task OnConnectedAsync()
     {
-        
-        
-        await Clients.All.SendAsync("UserConnected");
+        var userName = Context.User?.Identity?.Name ?? "Guest";
+        await Clients.All.SendAsync("UserConnected", userName);
         await base.OnConnectedAsync();
     }
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        
-        await Clients.All.SendAsync("UserDisconnected");
+        var userName = Context.User?.Identity?.Name ?? "Guest";
+        await Clients.All.SendAsync("UserDisconnected", userName);
         await base.OnDisconnectedAsync(exception);
     }
     public async Task SendMessage(string message)
     {
-        
-        await Clients.All.SendAsync("ReceiveMessage", message);
+        var userName = Context.User?.Identity?.Name ?? "Guest";
+        await Clients.All.SendAsync("ReceiveMessage", userName, message);
     }
 }
