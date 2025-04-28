@@ -147,5 +147,5 @@ public class GameHub : Hub<IGameHubClientMethods>
             return;
             
         await Clients.Client(opponentId).UpdateOpponentBoardHit(position);
-    }
+    } //Denne brukes ikke foreløpig
 }

@@ -8,5 +8,5 @@ public interface IGameHubClientMethods
     Task UpdateShipStatus(string shipName, bool isSunk);
     Task GameOver(bool youWon);
     Task OpponentDisconnected();
-    Task UpdateOpponentBoardHit(string position);
+    Task UpdateOpponentBoardHit(string position); //Denne brukes ikke foreløpig
 }
