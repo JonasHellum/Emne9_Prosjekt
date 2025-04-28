@@ -242,17 +242,20 @@ public class MemberService : IMemberService
         
         if (!string.IsNullOrWhiteSpace(updateDTO.FirstName) && updateDTO.FirstName != memberToUpdate.FirstName)
         {
-            memberToUpdate.FirstName = updateDTO.FirstName;
+            // memberToUpdate.FirstName = updateDTO.FirstName;
+            memberToUpdate.FirstName = memberToUpdate.FirstName;
         }
 
         if (!string.IsNullOrWhiteSpace(updateDTO.LastName) && updateDTO.LastName != memberToUpdate.LastName)
         {
-            memberToUpdate.LastName = updateDTO.LastName;
+            // memberToUpdate.LastName = updateDTO.LastName;
+            memberToUpdate.LastName = memberToUpdate.LastName;
         }
 
         if (!default(DateOnly).Equals(updateDTO.BirthYear) && updateDTO.BirthYear != memberToUpdate.BirthYear)
         {
-            memberToUpdate.BirthYear = updateDTO.BirthYear;
+            // memberToUpdate.BirthYear = updateDTO.BirthYear;
+            memberToUpdate.BirthYear = memberToUpdate.BirthYear;
         }
 
         if (!string.IsNullOrWhiteSpace(updateDTO.Email) && updateDTO.Email != memberToUpdate.Email)

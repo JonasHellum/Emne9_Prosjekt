@@ -59,6 +59,12 @@ public class LeaderboardService : ILeaderboardService
     public async Task<LeaderboardDTO?> AddOrUpdateAsync(LeaderboardAddOrUpdateDTO addOrUpdateDto)
     {
         var loggedInMember = await GetLoggedInMemberAsync();
+
+        if (loggedInMember == null)
+        {
+            _logger.LogWarning("No logged in member.");
+            throw new UnauthorizedAccessException("No logged in member.");
+        }
         
         _logger.LogDebug($"Trying to find leaderboard with memberId: {loggedInMember.MemberId} and gameType: {addOrUpdateDto.GameType}");
         var leaderboardToUpdate = await _leaderboardRepository.GetByIdAndGameType(loggedInMember.MemberId, addOrUpdateDto.GameType);
@@ -100,42 +106,14 @@ public class LeaderboardService : ILeaderboardService
         return _leaderboardMapper.MapToDTO(newLeaderboard);
     }
 
-    /// <summary>
-    /// Retrieves the statistics of the leaderboard from the repository.
-    /// </summary>
-    /// <returns>A list of <see cref="LeaderboardDTO"/> representing the leaderboard statistics.</returns>
-    /// <exception cref="DataException">Thrown when the retrieval of leaderboard statistics fails.</exception>
-    public async Task<List<LeaderboardDTO>> GetAllLeaderboardStatsAsync()
-    {
-        _logger.LogInformation("Trying to get leaderboard stats.");
-        var leaderboardStats = await _leaderboardRepository.GetAllLeaderboardStatsAsync();
-
-        if (leaderboardStats is null)
-        {
-            _logger.LogError("Failed to get leaderboard stats.");
-            throw new DataException("Failed to get leaderboard stats.");
-        }
-
-        return leaderboardStats.Select(leaderboard => _leaderboardMapper.MapToDTO(leaderboard)).ToList();
-    }
-    
-    
-    public async Task<List<LeaderboardDTO>> GetLeaderboardPaginatedAsync(int page, int pageSize)
+   
+    public async Task<List<LeaderboardDTO>> GetLeaderboardPaginatedAsync(string gameType, int page, int pageSize)
     {
         var loggedInMember = await GetLoggedInMemberAsync();
-        var loggedInMemberId = loggedInMember.MemberId;
-        return await _leaderboardRepository.GetLeaderboardPaginatedAsync(page, pageSize, loggedInMemberId);
+        
+        var loggedInMemberId = loggedInMember?.MemberId;
+        return await _leaderboardRepository.GetLeaderboardPaginatedAsync(gameType, page, pageSize, loggedInMemberId);
     }
-
-    public async Task<List<LeaderboardDTO>> GetLeaderboardByGameTypePaginatedAsync(string gameType, int page, int pageSize)
-    {
-        var loggedInMember = await GetLoggedInMemberAsync();
-        var loggedInMemberId = loggedInMember.MemberId;
-        return await _leaderboardRepository.GetLeaderboardByGameTypePaginatedAsync(gameType, page, pageSize, loggedInMemberId);
-    }
-
-
-    
 
 
     /// <summary>
@@ -151,14 +129,14 @@ public class LeaderboardService : ILeaderboardService
         if (string.IsNullOrEmpty(loggedInMemberId))
         {
             _logger.LogWarning("No logged in member.");
-            throw new UnauthorizedAccessException("No logged in member.");
+            return null;
         }
         
         var loggedInMember = (await _memberRepository.FindAsync(m => m.MemberId.ToString() == loggedInMemberId)).FirstOrDefault();
         if (loggedInMember == null)
         {
             _logger.LogWarning("Logged in member not found: {LoggedInMemberId}", loggedInMemberId);
-            throw new UnauthorizedAccessException("Logged in member ID not found.");
+            return null;
         }
         
         return loggedInMember;
