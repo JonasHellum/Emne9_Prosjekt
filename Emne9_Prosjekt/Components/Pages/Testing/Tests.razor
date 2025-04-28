@@ -1,57 +1,106 @@
 ﻿@page "/Tests"
+@using Emne9_Prosjekt.Components.Pages.FrontPage
+
+<div data-aos="zoom"></div>
 
 <div style="background: #ffffff;
-            width: 1000px;
-            margin: 0 auto;
-            padding-bottom: 25px">
-    <h3 style="padding-top: 125px;
-               padding-left: 15px">
-        Tests
-    </h3>
-
-    <div>
-        <NavLink class="nav-link" href="chat">Chat</NavLink>
+            justify-content: center;
+            padding-top: 200px;
+            padding-bottom: 150px;
+            flex-direction: column;
+            text-align: center;
+            align-items: center;
+            font-family: Bahnschrift,serif;
+            font-weight: bolder;"
+     class="page-element">
+    <h1 style=""
+        data-aos="zoom-out-down"
+        data-aos-duration="500"
+        data-aos-delay="600">
+        Tests and Prototypes
+    </h1>
+    <h5 data-aos="zoom-out-down"
+        data-aos-duration="500"
+        data-aos-delay="300">
+        Administrator privilege or password is needed for access
+    </h5>
+    <div style="display: flex;
+                justify-content: center;
+                align-items: center">
+        <input @bind="_input"
+               @bind:event="oninput"
+               @onkeydown="EnterToSend"
+               placeholder="@_passwordMessage"/>
+        <button @onclick="CheckInput">Enter</button>
     </div>
-
-    <div>
-        <NavLink class="nav-link" href="logintest">Logintest</NavLink>
-    </div>
-
-    <div>
-        <NavLink class="nav-link" href="cry">SoHelpMeGod</NavLink>
-    </div>
-
-    <div>
-        <NavLink class="nav-link" href="AuthenticationTestin">AuthenticationTestin</NavLink>
-    </div>
-
-    <div>
-        <NavLink class="nav-link" href="updatingtestin">updatingtestin</NavLink>
-    </div>
-
-    <div>
-
-        <NavLink class="nav-link" href="User">User page</NavLink>
-    </div>
-  
-    <div>
-        <NavLink class="nav-link" href="registertestin">registertestin</NavLink>
-    </div>
-
-    <div>
-        <NavLink class="nav-link" href="logouttestin">logouttestin</NavLink>
-    </div>
-    
-    <div>
-        <NavLink class="nav-link" href="UpdatingOrAddingTest">UpdatingOrAddingTest</NavLink>
-    </div>
-    
-    <div>
-        <NavLink class="nav-link" href="LeaderboardStatsAndStuffTest">LeaderboardStatsAndStuffTest</NavLink>
-    </div>
-
 </div>
+
+<div style="background: #808080"
+     class="page-element">
+    <div style="background: url('/Assets/PageAssets/LoopStripe.png') repeat fixed;
+                width: 100%; padding-bottom: 200px; padding-top: 100px">
+        <img style=" position: relative;
+                 width: 1000px;
+                 top: -110px"
+             alt="" src="/Assets/PageAssets/PageBorderGp.png"/>
+        @if (!_accessGranted)
+        {
+            <TestLinks/>
+        }
+        else
+        {
+            <h2 style="text-align: center;
+                       font-family: Bahnschrift,serif;
+                       color: white">
+                Content Locked!
+            </h2>
+        }
+    </div>    
+</div>
+
+<div style="background: #ffffff"
+     class="page-element">
+    <Credit/>
+</div>
+
+<style>
+    .page-element {
+        width: 1000px;
+        margin: 0 auto;
+        display: flex;
+    }
+</style>
 
 @code {
     
+    private const string SuperSecretPassword = "admin";
+    private string _passwordMessage = "Enter password...";
+    private string _input = string.Empty;
+    private bool _accessGranted;
+
+    private void CheckInput()
+    {
+        if (_accessGranted)
+        {
+            _passwordMessage = "Access granted";
+        }
+        else if (_input.ToLower() == SuperSecretPassword)
+        {
+            _accessGranted = true;
+            _passwordMessage = "Access granted";
+        }
+        else
+        {
+            _passwordMessage = "Incorrect password...";
+        }
+        _input = string.Empty;
+    }
+    
+    private void EnterToSend(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            CheckInput();
+        }
+    }
 }

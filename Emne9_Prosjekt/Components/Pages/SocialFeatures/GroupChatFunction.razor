@@ -1,19 +1,156 @@
-﻿<div style="background: url('/Assets/PageAssets/LoopStripe.png') repeat fixed;
-            width: 100%">
+﻿@inject IBigChatHubConnection BigChatHubConnection
+@using Emne9_Prosjekt.Hubs.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
+@inject HttpClient Http
+
+<div style="background: url('/Assets/PageAssets/LoopStripe.png') repeat fixed;
+            width: 100%; padding-bottom: 180px; padding-top: 50px; justify-items: center">
     <img style=" position: relative;
              width: 1000px;
-             top: -35px"
+             top: -85px"
          alt="" src="/Assets/PageAssets/PageBorderC.png"/>
-    <div>
-        <h1 style="color: white;
-                   text-align: center;
-                   padding-top: 100px;
-                   padding-bottom: 250px">
-            Chat goes here.
-        </h1>
+    <div style="width: 800px;
+                height: 500px;
+                display: flex;
+                margin: 0 auto;
+                border-radius: 70px;
+                align-items: center;
+                justify-content: center;
+                border: 15px solid #008b8b;
+                background: rgb(255, 255, 255, 0.5);">
+        <div style="display: flex; flex-direction: column; height: 100%">
+            <div id="chat-box" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column-reverse; padding: 10px">
+                @foreach (var msg in _messages.AsEnumerable().Reverse())
+                {
+                    <div class="message @(msg.Item1 == _userName ? "self" : "user")"
+                         style="padding-left: 20px">
+                        <strong>@msg.Item1</strong>: @msg.Item2
+                    </div>
+                }
+            </div>
+            <div style="display: flex;
+                        width: 700px;
+                        padding-bottom: 30px;
+                        justify-content: space-between;
+                        align-items: center">
+                <input @bind="_message"
+                       @bind:event="oninput"
+                       @onkeydown="EnterToSend"
+                       placeholder="Write a message..."
+                       style="flex: 1; border-radius: 20px;"/>
+                <button @onclick="SendMessage"
+                        class="chat-button"
+                        style="width: 100px; right: 20px;">
+                    Send
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
-@code {
+<style>
+    .message.self strong {
+        color: grey;  
+    }
     
+    .message.user strong {
+        color: white;  
+    }
+
+    .chat-button {
+        color: black;
+        border-radius: 20px;
+        background: whitesmoke;
+        border: grey solid 1px;
+        transition: background-color 0.1s ease,
+                    color 0.1s ease,
+                    border-color 0.1s ease;
+    }
+    
+    .chat-button:hover {
+        color: white;
+        background: dimgray;
+        border: gainsboro solid 2px;
+    }
+
+    .chat-button:active {
+        color: white;
+        background: #008b8b;
+        border: gainsboro solid 1px;
+    }
+    
+    #chat-box {
+        scrollbar-color: white transparent;
+    }
+</style>
+
+@code {
+    private  string _userName;
+    private string _message = "";
+    private bool _isConnected;
+    private readonly List<(string, string)> _messages = [];
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Console.WriteLine("---Establishing connection...");
+
+            BigChatHubConnection.Connection.On<string, string>("ReceiveMessage", (user, message) =>
+            {
+                _messages.Add((user, message));
+                InvokeAsync(StateHasChanged);
+            });
+
+            BigChatHubConnection.Connection.On<string>("UserConnected", (user) =>
+            {
+                _messages.Add(("System", $"{user} har koblet til."));
+                InvokeAsync(StateHasChanged);
+            });
+
+            BigChatHubConnection.Connection.On<string>("UserDisconnected", (user) =>
+            {
+                _messages.Add(("System", $"{user} har forlatt chatten."));
+                InvokeAsync(StateHasChanged);
+            });
+
+            try
+            {
+                await BigChatHubConnection.Connection.StartAsync();
+                Console.WriteLine("--Connection established!");
+                _isConnected = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"--Feil ved tilkobling: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (!string.IsNullOrEmpty(_message))
+        {
+            await BigChatHubConnection.Connection.SendAsync("SendMessage", _message);
+            _message = string.Empty;
+        }
+    }
+
+    private async Task EnterToSend(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SendMessage();
+        }
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        if (_isConnected)
+        {
+            await BigChatHubConnection.DisposeAsync();
+            Console.WriteLine("--Connection closed.");
+        }
+    }
 }
