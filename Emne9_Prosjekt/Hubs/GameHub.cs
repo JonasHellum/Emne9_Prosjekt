@@ -1,154 +1,151 @@
 ﻿using Emne9_Prosjekt.Hubs.HubServices.Interfaces;
+using Emne9_Prosjekt.Hubs.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Emne9_Prosjekt.Hubs;
 
-public class GameHub : Hub
+public class GameHub : Hub<IGameHubClientMethods>
 {
-    private readonly IGameService _gameService;
+     private readonly IGameService _gameService;
 
     public GameHub(IGameService gameService)
     {
         _gameService = gameService;
     }
 
-    public override async Task OnConnectedAsync()
+    public async Task JoinGame(Dictionary<string, int> board)
     {
         var connectionId = Context.ConnectionId;
+        var game = _gameService.JoinGame(connectionId, board);
 
-        // Add player to the game service
-        _gameService.AddPlayer(connectionId);
-
-        // Automatically join the game
-        await JoinGame();
-
-        await base.OnConnectedAsync();
+        if (game == null)
+        {
+            // Venter på en motspiller
+            await Clients.Caller.WaitingForOpponent();
+        }
+        else
+        {
+            // Spillere er matched! Send beskjed til begge
+            await Clients.Client(game.Player1.ConnectionId).StartGame(game.Player2.Board, isMyTurn: true);
+            await Clients.Client(game.Player2.ConnectionId).StartGame(game.Player1.Board, isMyTurn: false);
+        }
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var connectionId = Context.ConnectionId;
 
-        // Get player's group before removing
-        var groupId = _gameService.GetPlayerGroup(connectionId);
-        var isGameInProgress = _gameService.IsGameInProgress(groupId);
+        // Sjekk om spilleren er i et aktivt spill
+        var isGameInProgress = _gameService.IsGameInProgress(connectionId);
 
-        // Remove player from the game service
+        // Finn motstanderen før vi fjerner spilleren
+        var opponentId = _gameService.GetOpponentId(connectionId);
+
+        // Fjern spilleren fra GameService
         _gameService.RemovePlayer(connectionId);
 
-        // Notify the other player in the group if applicable
-        if (!string.IsNullOrEmpty(groupId))
+        // Hvis spilleren var i et aktivt spill, informer motstanderen om at de vant
+        if (isGameInProgress && !string.IsNullOrEmpty(opponentId))
         {
-            if (isGameInProgress)
-            {
-                // If game was in progress, notify the other player they won
-                await Clients.Group(groupId).SendAsync("OpponentDisconnectedDuringGame");
-            }
-            else
-            {
-                // If game was in setup, just notify the other player that opponent disconnected
-                await Clients.Group(groupId).SendAsync("OpponentDisconnected");
-            }
+            await Clients.Client(opponentId).GameOver(true); // Motstanderen vant
         }
 
         await base.OnDisconnectedAsync(exception);
     }
-
-    public async Task JoinGame()
+    public async Task UpdateShot(string position, string shooterId)
     {
         var connectionId = Context.ConnectionId;
+        var game = _gameService.GetGameByConnection(connectionId);
 
-        if (_gameService.TryCreateOrJoinGroup(connectionId, out var groupId))
+        Console.WriteLine($"Mottok skudd fra {connectionId} på posisjon {position}");
+
+        if (game == null)
         {
-            // Add to SignalR group
-            await Groups.AddToGroupAsync(connectionId, groupId);
-
-            // Notify the client they've joined a group
-            await Clients.Caller.SendAsync("JoinedGroup", groupId);
-
-            // If there are 2 players in the group, notify both that the game can start
-            var opponentId = _gameService.GetOpponentId(connectionId);
-            if (!string.IsNullOrEmpty(opponentId))
-            {
-                // Notify the existing player that a new opponent has joined
-                await Clients.Client(opponentId).SendAsync("OpponentConnected");
-
-                // Notify both players that the game is ready
-                await Clients.Group(groupId).SendAsync("GameReady", groupId);
-            }
-            else
-            {
-                await Clients.Caller.SendAsync("WaitingForOpponent", "Waiting for an opponent to join...");
-            }
-        }
-    }
-
-    public async Task SetupComplete(Dictionary<string, int> board)
-    {
-        var connectionId = Context.ConnectionId;
-        var groupId = _gameService.GetPlayerGroup(connectionId);
-
-        if (string.IsNullOrEmpty(groupId))
-        {
+            Console.WriteLine("Fant ikke spill for denne tilkoblingen");
             return;
         }
 
-        // Set player as ready and update their board
-        _gameService.SetPlayerReady(connectionId, board);
-
-        // Notify the other player in the group
-        await Clients.OthersInGroup(groupId).SendAsync("OpponentSetupComplete");
-
-        // Check if both players are ready
-        if (_gameService.AreBothPlayersReady(groupId))
+        if (!_gameService.IsPlayerTurn(connectionId))
         {
-            // Get player numbers
-            var playerNumber = _gameService.GetPlayerNumber(connectionId);
-            var opponentId = _gameService.GetOpponentId(connectionId);
-            var opponentNumber = _gameService.GetPlayerNumber(opponentId);
-
-            // Get player turn status
-            bool isPlayerTurn = _gameService.IsPlayerTurn(connectionId);
-            bool isOpponentTurn = _gameService.IsPlayerTurn(opponentId);
-
-            // Send player number, board, and turn status to each player
-            await Clients.Client(connectionId).SendAsync("GameStarted", playerNumber, _gameService.GetPlayerBoard(connectionId));
-            await Clients.Client(opponentId).SendAsync("GameStarted", opponentNumber, _gameService.GetPlayerBoard(opponentId));
-
-            // Send turn information
-            await Clients.Client(connectionId).SendAsync("TurnUpdate", isPlayerTurn);
-            await Clients.Client(opponentId).SendAsync("TurnUpdate", isOpponentTurn);
-        }
-    }
-
-    public async Task ShootAtOpponent(string position)
-    {
-        var connectionId = Context.ConnectionId;
-        var groupId = _gameService.GetPlayerGroup(connectionId);
-
-        if (string.IsNullOrEmpty(groupId))
-        {
+            Console.WriteLine("Ikke spillerens tur");
             return;
         }
 
-        var opponentId = _gameService.GetOpponentId(connectionId);
+        // Finn ut om skuddet traff et skip
+        bool isHit = false;
+        var targetPlayer = game.Player1.ConnectionId == connectionId ? game.Player2 : game.Player1;
+
+        // Sjekk om posisjonen inneholder et skip (verdi 1)
+        if (targetPlayer.Board.ContainsKey(position) && targetPlayer.Board[position] == 1)
+        {
+            isHit = true;
+            Console.WriteLine($"Treff på posisjon {position}!");
+        }
+        else
+        {
+            Console.WriteLine($"Bom på posisjon {position}");
+        }
+
+        // Send resultatet til begge spillere
+        Console.WriteLine($"Sender resultat til {game.Player1.ConnectionId} og {game.Player2.ConnectionId}");
+        await Clients.Client(game.Player1.ConnectionId).UpdateShot(position, shooterId, isHit);
+        await Clients.Client(game.Player2.ConnectionId).UpdateShot(position, shooterId, isHit);
+
+        // Bytt tur
+        _gameService.SwitchTurn(connectionId);
+    }
+
+    public async Task UpdateShipStatus(string shipName, bool isSunk)
+    {
+        var connectionId = Context.ConnectionId;
+        var game = _gameService.GetGameByConnection(connectionId);
+
+        Console.WriteLine($"Mottok skipsstatus fra {connectionId}: {shipName}, sunket: {isSunk}");
+
+        if (game == null)
+        {
+            Console.WriteLine("Fant ikke spill for denne tilkoblingen");
+            return;
+        }
+
+        // Send skipsstatus til motstanderen
+        var opponentId = game.Player1.ConnectionId == connectionId ? game.Player2.ConnectionId : game.Player1.ConnectionId;
+        Console.WriteLine($"Sender skipsstatus til {opponentId}");
+        await Clients.Client(opponentId).UpdateShipStatus(shipName, isSunk);
+    }
+
+    public async Task GameOver(bool youLost)
+    {
+        var connectionId = Context.ConnectionId;
+        var game = _gameService.GetGameByConnection(connectionId);
+
+        Console.WriteLine($"Mottok GameOver fra {connectionId}: {(youLost ? "Tapte" : "Vant")}");
+
+        if (game == null)
+        {
+            Console.WriteLine("Fant ikke spill for denne tilkoblingen");
+            return;
+        }
+
+        // Send GameOver til motstanderen med motsatt resultat
+        var opponentId = game.Player1.ConnectionId == connectionId ? game.Player2.ConnectionId : game.Player1.ConnectionId;
+        Console.WriteLine($"Sender GameOver til {opponentId}: {(!youLost ? "Tapte" : "Vant")}");
+        try
+        {
+            await Clients.Client(opponentId).GameOver(!youLost);
+            Console.WriteLine("GameOver-melding sendt til motstanderen");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Feil ved sending av GameOver: {ex.Message}");
+        }
+    }
+
+    public async Task UpdateOpponentHit(string opponentId, string position)
+    {
         if (string.IsNullOrEmpty(opponentId))
-        {
             return;
-        }
-
-        // Process the shot and check if it was successful (it was the player's turn)
-        bool shotProcessed = _gameService.ProcessShot(connectionId, position);
-
-        if (shotProcessed)
-        {
-            // Update both players' boards
-            await Clients.Client(connectionId).SendAsync("UpdateOpponentBoard", _gameService.GetOpponentBoard(connectionId));
-            await Clients.Client(opponentId).SendAsync("UpdateBoard", _gameService.GetPlayerBoard(opponentId));
-
-            // Notify players about turn change
-            await Clients.Client(connectionId).SendAsync("TurnUpdate", false); // Not your turn anymore
-            await Clients.Client(opponentId).SendAsync("TurnUpdate", true);   // Your turn now
-        }
+            
+        await Clients.Client(opponentId).UpdateOpponentBoardHit(position);
     }
 }
