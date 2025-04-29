@@ -25,6 +25,15 @@
 @* Outer container for rendering ripple effect under components *@
 <div id="ripple-container"
      style="background: transparent">
+    @if (_gameState == GameState.Playing)
+    {
+        leaderboardAddOrUpdateDto.GameType = "Battleships";
+        leaderboardAddOrUpdateDto.Wins = 0;
+        leaderboardAddOrUpdateDto.Losses = 1;
+
+        <button @onclick="UpdateOrCreateLeaderboard">BUTTON TO ADD POINTS UNTIL LATER FIXED</button>
+        Console.WriteLine("SHOULD WORK?");
+    }
 
     @* display final game state when game is over *@
     @if (_gameState == GameState.GameOver)
@@ -52,7 +61,7 @@
                 leaderboardAddOrUpdateDto.Wins = 1;
                 leaderboardAddOrUpdateDto.Losses = -1;
 
-                <button @onclick="UpdateOrCreateLeaderboard"></button>
+                <button @onclick="UpdateOrCreateLeaderboard">BUTTON TO ADD POINTS UNTIL LATER FIXED</button>
                 Console.WriteLine("SHOULD WORK?");
             }
             else
@@ -60,9 +69,8 @@
                 Console.WriteLine("SHIT AINT WORKING");
             }
         </div>
-        <button @onclick="UpdateOrCreateLeaderboard"></button>
     }
-    
+
     <div style="justify-content: center;
             padding-bottom: 100px">
         @if (!_isConnected)
@@ -93,7 +101,7 @@
                         Place your Battleships!
                     </h3>
                 }
-                
+
                 @* ↓ Game setup ↓ *@
                 <div style="display: flex;
                     justify-content: center;">
@@ -109,7 +117,7 @@
                                             cursor: pointer;
                                             position: relative">
                                     <img alt="" src="/Assets/Battleships/ReadyA.png"
-                                         style="height: 200px; position: absolute" />
+                                         style="height: 200px; position: absolute"/>
                                     <img alt="" src="/Assets/Battleships/ReadyB.png"
                                          class="ship-selection"
                                          style="height: 200px; position: relative;"/>
@@ -214,7 +222,7 @@
                                                              alt="" src="/Assets/Battleships/Arrow.png"/>
                                                     }
                                                     <span style="position: relative; z-index: 1">
-                                                        @pos 
+                                                        @pos
                                                     </span>
                                                 </td>
                                             }
@@ -234,7 +242,7 @@
                             <h4 style="color: white">
                                 Currently modifying:
                             </h4>
-                            
+
                             @if (!_selectedShip.IsNullOrEmpty())
                             {
                                 <div style="color: white;
@@ -271,7 +279,7 @@
                                          style="width: 200px"/>
                                 </div>
                             }
-                            
+
                             <div style="display: flex;
                                         flex-direction: row;
                                         justify-content: center;
@@ -289,7 +297,7 @@
                                          @onclick="Reset"/>
                                 </div>
                             </div>
-                            
+
                         }
                         else
                         {
@@ -325,6 +333,14 @@
         }
         else
         {
+
+
+
+
+
+
+
+
             @* ↓ Game start ↓ *@
             <div style="text-align: center;
                         color: white;
@@ -335,7 +351,7 @@
                     @(_isMyTurn ? "Take your shot!" : "Your opponent is planning their attack...")
                 </h4>
             </div>
-            
+
             <div style="display: flex;
                         gap: 50px;
                         justify-content: center;
@@ -352,7 +368,7 @@
                                 display: flex;
                                 padding-bottom: 50px;
                                 justify-content: center">
-                        
+
                         @* Display player board *@
                         <div class="@(_isMyTurn ? "player-board" : "player-board-active")">
                             <table class="Board">
@@ -375,7 +391,7 @@
                             <h6 style="color: white">Your Board</h6>
                         </div>
                     </div>
-                    
+
                     @* Display ship model for both player and opponent *@
                     <div style="display: flex;
                                 position: relative; 
@@ -389,8 +405,8 @@
 
                                 <model-viewer src="@($"Assets/Battleships/{@ship.Key}.glb")"
                                               alt="Ship model"
-                                              min-camera-orbit="@( isSunk ? "180deg 180deg 5m" : "225deg 80deg 5m")"
-                                              max-camera-orbit="@( isSunk ? "180deg 180deg 5m" : "225deg 80deg 5m")"
+                                              min-camera-orbit="@(isSunk ? "180deg 180deg 5m" : "225deg 80deg 5m")"
+                                              max-camera-orbit="@(isSunk ? "180deg 180deg 5m" : "225deg 80deg 5m")"
                                               field-of-view="30deg"
                                               exposure="0.5"
                                               scale="1 1 1 1"
@@ -409,8 +425,8 @@
                             {
                                 <model-viewer src="@($"Assets/Battleships/{@ship.Key}.glb")"
                                               alt="Ship model"
-                                              min-camera-orbit="@( ship.Value ? "180deg 180deg 5m" : "225deg 80deg 5m")"
-                                              max-camera-orbit="@( ship.Value ? "180deg 180deg 5m" : "225deg 80deg 5m")"
+                                              min-camera-orbit="@(ship.Value ? "180deg 180deg 5m" : "225deg 80deg 5m")"
+                                              max-camera-orbit="@(ship.Value ? "180deg 180deg 5m" : "225deg 80deg 5m")"
                                               field-of-view="30deg"
                                               exposure="0.1"
                                               scale="1 1 1 1"
@@ -452,17 +468,17 @@
                                                 @onclick="() => UpdateShot(pos)"
                                                 @onmouseover="() => _hoveredCell = pos"
                                                 @onmouseout="() => _hoveredCell = null">
-                                                    @if (_hoveredCell == pos && _isMyTurn)
-                                                    {
-                                                        <img style="position: absolute;
+                                                @if (_hoveredCell == pos && _isMyTurn)
+                                                {
+                                                    <img style="position: absolute;
                                                                     top: 50%;
                                                                     left: 50%;
                                                                     width: 60px;
                                                                     height: 60px;
                                                                     z-index: 100;
                                                                     transform: translate(-50%, -50%)"
-                                                            alt="" src="/Assets/Battleships/Aim.png"/>
-                                                    }
+                                                         alt="" src="/Assets/Battleships/Aim.png"/>
+                                                }
                                             </td>
                                         }
                                     </tr>
