@@ -25,15 +25,6 @@
 @* Outer container for rendering ripple effect under components *@
 <div id="ripple-container"
      style="background: transparent">
-    @if (_gameState == GameState.Playing)
-    {
-        leaderboardAddOrUpdateDto.GameType = "Battleships";
-        leaderboardAddOrUpdateDto.Wins = 0;
-        leaderboardAddOrUpdateDto.Losses = 1;
-
-        <button @onclick="UpdateOrCreateLeaderboard">BUTTON TO ADD POINTS UNTIL LATER FIXED</button>
-        Console.WriteLine("SHOULD WORK?");
-    }
 
     @* display final game state when game is over *@
     @if (_gameState == GameState.GameOver)
@@ -55,19 +46,6 @@
                     @onclick="ForceReloadAndReturn">
                 Home
             </button>
-            @if (_isWinner)
-            {
-                leaderboardAddOrUpdateDto.GameType = "Battleships";
-                leaderboardAddOrUpdateDto.Wins = 1;
-                leaderboardAddOrUpdateDto.Losses = -1;
-
-                <button @onclick="UpdateOrCreateLeaderboard">BUTTON TO ADD POINTS UNTIL LATER FIXED</button>
-                Console.WriteLine("SHOULD WORK?");
-            }
-            else
-            {
-                Console.WriteLine("SHIT AINT WORKING");
-            }
         </div>
     }
 
@@ -656,8 +634,6 @@
 
     }
 
-    private LeaderboardAddOrUpdateDTO leaderboardAddOrUpdateDto { get; set; } = new();
-
     private GameState _gameState = GameState.Setup;
     private Dictionary<string, int> _playerBoard = new();
     private Dictionary<string, int> _opponentBoard = new();
@@ -674,10 +650,13 @@
     private bool _isWinner;
     private string _gameOverMessage = "";
     private int _pointToWinner = 0;
-    private int _pointToLoser = 1;
+    private int _pointToLoser = 0;
     private string _userName;
     private bool _loggedIn;
     private string _errorMessage;
+    private bool _toWinnerOnDisconnect;
+    private bool _1pointToLosses = true;
+    private bool _1pointToWinner = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -890,6 +869,32 @@
             }
         }
 
+        if (_loggedIn)
+        {
+            if (_gameState == GameState.Playing && _1pointToLosses)
+            {
+                var leaderboardLossToAdd = new LeaderboardAddOrUpdateDTO()
+                {
+                    GameType = "Battleships",
+                    Wins = 0,
+                    Losses = 1
+                };
+                await UpdateOrCreateLeaderboard(leaderboardLossToAdd);
+                _1pointToLosses = false;
+            }
+        
+            if (_isWinner && _1pointToWinner)
+            {
+                var leaderboardWinToAdd = new LeaderboardAddOrUpdateDTO()
+                {
+                    GameType = "Battleships",
+                    Wins = 1,
+                    Losses = -1
+                };
+                await UpdateOrCreateLeaderboard(leaderboardWinToAdd);
+                _1pointToWinner = false;
+            }
+        }
         await base.OnAfterRenderAsync(firstRender);
     }
 
@@ -999,61 +1004,8 @@
             Console.WriteLine("Alle motstanderens skip er sunket. Jeg vinner.");
             _gameState = GameState.GameOver;
             _isWinner = true;
-            _pointToWinner = 1;
-            _pointToLoser = -1;
             _gameOverMessage = "Du vant! Alle motstanderens skip er sunket.";
-            var leaderboardAddOrUpdateDto = new LeaderboardAddOrUpdateDTO()
-            {
-                GameType = "Battleships",
-                Wins = _pointToWinner,
-                Losses = _pointToLoser
-            };
-
-            if (_loggedIn)
-            {
-                var request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:80/api/leaderboards/updateOrCreate")
-                {
-                    Content = new StringContent(JsonSerializer.Serialize(leaderboardAddOrUpdateDto), Encoding.UTF8, "application/json")
-                };
-
-                // Add the custom header
-                request.Headers.Add("X-Blazor-Secret", _config["AppSettings:BlazorSecret"]);
-
-                // Send the request using the injected HttpClient
-                var response = await Http.SendAsync(request);
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine("IT WORKED TO SET THE POINTS");
-                }
-                else
-                {
-                    // Extract validation errors from the response... Might not need if the validating is in blazor page?
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    try
-                    {
-                        // Try to parse error messages from response body
-                        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseContent, new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true
-                        });
-
-                        if (errorResponse?.Errors != null)
-                        {
-                            _errorMessage = string.Join(", ", errorResponse.Errors);
-                        }
-                        else
-                        {
-                            _errorMessage = "An unknown error occurred.";
-                        }
-                    }
-                    catch
-                    {
-                        _errorMessage = "Failed: " + responseContent;
-                    }
-
-                    Console.WriteLine(_errorMessage);
-                }
-            }
+            
             await GameHubConnection.Connection.SendAsync("GameOver", false); // Motstanderen tapte
             await InvokeAsync(StateHasChanged);
         }
@@ -1094,11 +1046,11 @@
         }
     }
     
-    private async Task UpdateOrCreateLeaderboard()
+    private async Task UpdateOrCreateLeaderboard(LeaderboardAddOrUpdateDTO leaderboardStatsToSend)
     {
         var request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:80/api/leaderboards/updateOrCreate")
         {
-            Content = new StringContent(JsonSerializer.Serialize(leaderboardAddOrUpdateDto), Encoding.UTF8, "application/json")
+            Content = new StringContent(JsonSerializer.Serialize(leaderboardStatsToSend), Encoding.UTF8, "application/json")
         };
 
         // Add the custom header

@@ -252,6 +252,7 @@
     {
         gameType = e.Value?.ToString() ?? "All"; // Update the gameType
         _currentPageForAll = 1; // Reset to the first page when the game type changes
+        _disableAllNextPage = false;
         await LoadLeaderboardPage();
     }
     
@@ -276,14 +277,11 @@
                 }
             }
             filteredLeaderboard = filteredLeaderboard.OrderBy(entry => entry.Rank).ToList();
+            
 
             if (leaderboard.Count < _pageSizeForAll)
             {
                 _disableAllNextPage = true;
-            }
-            else
-            {
-                _disableAllNextPage = false;
             }
 
             Console.WriteLine($"[LoadLeaderboardPage] Page: {_currentPageForAll}, Filtered: {filteredLeaderboard.Count}, Disable Next: {_disableAllNextPage}");
