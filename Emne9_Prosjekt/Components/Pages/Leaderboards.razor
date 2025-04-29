@@ -110,7 +110,7 @@
         <div style="padding-top: 50px" class="mt-3">
             <button class="page-button-left" @onclick="ShowAllPreviousPage" disabled="@(_currentPageForAll == 1)">Previous</button>
             <span class="mx-3">Page: @_currentPageForAll</span>
-            <button class="page-button-right" @onclick="ShowAllNextPage" disabled="@(AINTGOINGNOWHERENOWBISH == true)">Next</button>
+            <button class="page-button-right" @onclick="ShowAllNextPage" disabled="@(_disableAllNextPage == true)">Next</button>
         </div>
     </div>
 </div>
@@ -169,8 +169,7 @@
     private int _pageSizeForAll = 5;
     private int _pageSize = 1;
 
-
-    private bool AINTGOINGNOWHERENOWBISH;
+    
     
     private int _currentPageForAll = 1;
     private bool _disableAllNextPage;
@@ -280,11 +279,11 @@
 
             if (leaderboard.Count < _pageSizeForAll)
             {
-                AINTGOINGNOWHERENOWBISH = true;
+                _disableAllNextPage = true;
             }
             else
             {
-                AINTGOINGNOWHERENOWBISH = false;
+                _disableAllNextPage = false;
             }
 
             Console.WriteLine($"[LoadLeaderboardPage] Page: {_currentPageForAll}, Filtered: {filteredLeaderboard.Count}, Disable Next: {_disableAllNextPage}");
@@ -326,7 +325,7 @@
         {
             _currentPageForAll--;
             Console.WriteLine($"[Pagination] Current Page (Previous): {_currentPageForAll}");
-            AINTGOINGNOWHERENOWBISH = false;
+            _disableAllNextPage = false;
 
             await LoadLeaderboardPage();
         }
