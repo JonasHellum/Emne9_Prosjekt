@@ -39,7 +39,7 @@
     
     protected override Task OnInitializedAsync()
     {
-        GameHubConnection.Connection.On<int, Dictionary<string, int>>("GameStarted", (playerNumber, board) =>
+        GameHubConnection.Connection.On<Dictionary<string, int>, bool>("StartGame", (opponentBoard, isMyTurn) =>
         {
             _gameState = GameState.Playing;
             InvokeAsync(StateHasChanged);
