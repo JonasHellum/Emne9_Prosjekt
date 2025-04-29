@@ -1,10 +1,9 @@
-
 @using Emne9_Prosjekt.Components.Pages.Interfaces
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 @inject IAuthStateService AuthState
-
+@inject NavigationManager NavManager
 
 <div style=" background: linear-gradient(#404040,
                                          #323232,
@@ -41,19 +40,18 @@
 
         @if (AuthState.UserName.IsNullOrEmpty())
         {
-
-    <div style="color: white;
-                text-align: right;
-                padding-top: 12px">
-        <NavLink href="/Login"
-                 class="user-links">
-            Login
-        </NavLink> /
-        <NavLink href="/Register"
-                 class="user-links">
-            Register
-        </NavLink>
-    </div>
+            <div style="color: white;
+                        text-align: right;
+                        padding-top: 12px">
+                <NavLink href="/Login"
+                         class="user-links">
+                    Login
+                </NavLink> /
+                <NavLink href="/Register"
+                         class="user-links">
+                    Register
+                </NavLink>
+            </div>
         }
         else
         {
@@ -67,9 +65,7 @@
             </div>
         }
     </div>
-        
 </div>
-
 
 <div style="display: flex;
             justify-content: center;
@@ -140,6 +136,7 @@
 {
     private string _icon = "/Assets/logo/BWLogo.png";
     private string _userName;
+    private string _loggedOut;
 
     private bool _isClientSide;
     
@@ -187,6 +184,26 @@
         }
     }
 
+    private async Task Logout()
+    {
+        var response = await Http.GetAsync("http://localhost:80/api/members/Logout");
+        if (response.IsSuccessStatusCode)
+        {
+            // Remove cookie
+            await JSRuntime.InvokeVoidAsync("deleteCookie", "AuthTokenCOMON");
+
+            // Remove the JWT from the Authorization header
+            Http.DefaultRequestHeaders.Authorization = null;
+            
+            StateHasChanged();
+            NavManager.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            _loggedOut = "Logout failed";
+        }
+    }
+    
     private void MouseOn()
     {
         _icon = "/Assets/logo/ColorLogo.png";

@@ -1,26 +1,118 @@
 ﻿@page "/Leaderboards"
 @using Emne9_Prosjekt.Components.Pages.FrontPage
+@using Emne9_Prosjekt.Features.Leaderboards.Models
+@using Emne9_Prosjekt.Features.Members.Models
+@using Microsoft.IdentityModel.Tokens
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavManager
 
 <div data-aos="zoom"></div>
 
 <div style="background: #ffffff;
             justify-content: center;
-            padding-top: 250px;
-            padding-bottom: 200px"
+            padding-top: 200px;
+            text-align: center;
+            font-family: Bahnschrift,serif;
+            font-weight: bolder;
+            flex-direction: column;
+            padding-bottom: 70px"
      class="page-element">
-    <h1 style="text-align: center;
-               font-family: Bahnschrift,serif;
-               font-weight: bolder;"
-        data-aos="zoom-out-up"
+    <h2 data-aos="zoom-out-right"
         data-aos-duration="500"
         data-aos-delay="300">
-        Leaderboard
-    </h1>
+        Your Score!
+    </h2>
+    
+    <div style="font-size: larger"
+         data-aos="zoom-out-left"
+         data-aos-duration="500"
+         data-aos-delay="500">
+        @if (leaderboard != null && leaderboard.Any(entry => entry.MemberId.ToString() == memberId))
+        {
+            var loggedInUserEntry = leaderboard.First(entry => entry.MemberId.ToString() == memberId);
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Username</th>
+                    <th>Wins</th>
+                    <th>Losses</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr class="table-info">
+                    <td>@loggedInUserEntry.Rank</td>
+                    <td>@loggedInUserEntry.UserName</td>
+                    <td>@loggedInUserEntry.Wins</td>
+                    <td>@loggedInUserEntry.Losses</td>
+                </tr>
+                </tbody>
+            </table>
+        }
+        else if (memberId == null)
+        {
+            <p>You are not logged in.</p>
+        }
+        else
+        {
+            <p>Your stats are not available on the leaderboard.</p>
+        }
+    </div>
+    
+    <div style="flex-direction: column; padding-top: 80px">
+        <label for="gameTypeSelect">Sort by Game:</label>
+        <select id="gameTypeSelect" class="game-selection" @onchange="OnGameTypeChanged">
+            <option value="All">All</option>
+            <option value="Battleships">Battleships</option>
+            <option value="Connect 4">Connect 4</option>
+        </select>
+    </div>
 </div>
 
-<div style="background: #FFCC00"
+<div style="background: #daa520"
      class="page-element">
-    <LeaderBoardData/>
+    <div style="background: url('/Assets/PageAssets/LoopStripe.png') repeat fixed;
+                width: 100%;
+                padding-bottom: 200px;
+                text-align: center;
+                color: white;
+                justify-content: center">
+        <img style=" position: relative;
+                 width: 1000px;
+                 top: -50px"
+             alt="" src="/Assets/PageAssets/PageBorderY.png"/>
+        <table style="color: white" class="table mt-3">
+            <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Username</th>
+                <th>Wins</th>
+                <th>Losses</th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (filteredLeaderboard != null && filteredLeaderboard.Any())
+            {
+                @foreach (var entry in filteredLeaderboard)
+                {
+                    <tr class="@(entry.MemberId.ToString() == memberId ? "table-info" : "")">
+                        <td>@entry.Rank</td>
+                        <td>@entry.UserName</td>
+                        <td>@entry.Wins</td>
+                        <td>@entry.Losses</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+
+        <div style="padding-top: 50px" class="mt-3">
+            <button class="page-button-left" @onclick="ShowAllPreviousPage" disabled="@(_currentPageForAll == 1)">Previous</button>
+            <span class="mx-3">Page: @_currentPageForAll</span>
+            <button class="page-button-right" @onclick="ShowAllNextPage" disabled="@(AINTGOINGNOWHERENOWBISH == true)">Next</button>
+        </div>
+    </div>
 </div>
 
 <div style="background: #ffffff"
@@ -34,8 +126,209 @@
         margin: 0 auto;
         display: flex;
     }
+    
+    .game-selection {
+        height: 25px;
+        border-radius: 5px;
+    }
+    
+    .page-button-right {
+        background: #b8860b;
+        border: none;
+        width: 120px;
+        clip-path: polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%);
+        transition: 0.5s ease;
+    }
+    
+    .page-button-left {
+        background: #b8860b;
+        border: none;
+        width: 120px;
+        clip-path: polygon(10% 0, 100% 0, 100% 100%, 10% 100%, 0 50%);
+        transition: 0.5s ease;
+    }
+    
+    .page-button-right:hover {
+        transform: translateX(10px);
+    }
+    
+    .page-button-left:hover {
+        transform: translateX(-10px);
+    }
 </style>
 
 @code {
+    private string selectedGameType = "All";
+
+    private List<LeaderboardDTO> leaderboard = new();
+    private List<LeaderboardDTO> leaderboardGameType = new();
+    private List<LeaderboardDTO> filteredLeaderboard = new();
+
     
+    
+    private int _pageSizeForAll = 5;
+    private int _pageSize = 1;
+
+
+    private bool AINTGOINGNOWHERENOWBISH;
+    
+    private int _currentPageForAll = 1;
+    private bool _disableAllNextPage;
+    
+    
+    private int _currentPage = 1;
+    private bool _disableNextPage;
+    private bool loading = false;
+
+    private string gameType = "All";
+
+    
+    
+    private LeaderboardDTO loggedInUserEntry;
+
+    
+
+    
+    private string memberId { get; set; }
+    private bool showEditForm = false;
+    private bool editSuccess = false;
+    private bool editFailed = false;
+    private string errorMessage;
+    private bool _isClientSide;
+    private bool loggedIn;
+    
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+            Console.WriteLine($"memberId from User: {memberId}");
+            loggedIn = !string.IsNullOrEmpty(memberId);
+            
+            await LoadLeaderboardPage();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (loggedIn == false)
+            {
+                // Perform JavaScript interop only after prerendering
+                _isClientSide = true;
+
+                try
+                {
+                    // Retrieve the token from cookies using JSInterop
+                    var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
+
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        // Add the JWT token to the Authorization header of HttpClient
+                        Http.DefaultRequestHeaders.Authorization =
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                    }
+
+                    memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+                    await LoadLeaderboardPage();
+                    
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error during initialization: {ex.Message}");
+                }
+            }
+        }
+    }
+    
+    private async Task OnGameTypeChanged(ChangeEventArgs e)
+    {
+        gameType = e.Value?.ToString() ?? "All"; // Update the gameType
+        _currentPageForAll = 1; // Reset to the first page when the game type changes
+        await LoadLeaderboardPage();
+    }
+    
+    
+    private async Task LoadLeaderboardPage()
+    {
+        try
+        {
+            leaderboard = await Http.GetFromJsonAsync<List<LeaderboardDTO>>(
+                $"http://localhost:80/api/leaderboards/{gameType}/paginated?page={_currentPageForAll}&pageSize={_pageSizeForAll}");
+            
+            filteredLeaderboard = leaderboard.ToList();
+            if (filteredLeaderboard.Any(entry => entry.MemberId.ToString() == memberId))
+            {
+                var userStats = leaderboard.FirstOrDefault(entry => entry.MemberId.ToString() == memberId);
+                if (userStats != null &&
+                    userStats.Rank < ((_currentPageForAll - 1) * _pageSizeForAll + 1) ||
+                    userStats.Rank > (_currentPageForAll * _pageSizeForAll))
+                {
+                    filteredLeaderboard.Remove(userStats);
+                    
+                }
+            }
+            filteredLeaderboard = filteredLeaderboard.OrderBy(entry => entry.Rank).ToList();
+
+            if (leaderboard.Count < _pageSizeForAll)
+            {
+                AINTGOINGNOWHERENOWBISH = true;
+            }
+            else
+            {
+                AINTGOINGNOWHERENOWBISH = false;
+            }
+
+            Console.WriteLine($"[LoadLeaderboardPage] Page: {_currentPageForAll}, Filtered: {filteredLeaderboard.Count}, Disable Next: {_disableAllNextPage}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[LoadLeaderboardPage] Error loading leaderboard data: {ex.Message}");
+            _disableAllNextPage = true; 
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    
+    private async Task ShowAllNextPage()
+    {
+        if (_disableAllNextPage)
+        {
+            Console.WriteLine("Next button is disabled. No further pages exist.");
+            return;
+        }
+
+        _currentPageForAll++;
+        Console.WriteLine($"[Pagination] Navigating to Page: {_currentPageForAll}");
+        await LoadLeaderboardPage();
+
+        if (_disableAllNextPage)
+        {
+            Console.WriteLine("Reverting navigation. No valid data for the next page.");
+            _currentPageForAll--;
+            await LoadLeaderboardPage(); 
+        }
+    }
+    
+    private async Task ShowAllPreviousPage()
+    {
+        if (_currentPageForAll > 1)
+        {
+            _currentPageForAll--;
+            Console.WriteLine($"[Pagination] Current Page (Previous): {_currentPageForAll}");
+            AINTGOINGNOWHERENOWBISH = false;
+
+            await LoadLeaderboardPage();
+        }
+    }
 }
