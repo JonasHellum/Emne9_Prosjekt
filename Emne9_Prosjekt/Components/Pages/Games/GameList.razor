@@ -1,4 +1,6 @@
-﻿<div style="background: url('/Assets/PageAssets/LoopStripe.png') repeat fixed;
+﻿@inject NavigationManager Navigation
+
+<div style="background: url('/Assets/PageAssets/LoopStripe.png') repeat fixed;
             width: 100%">
 
     <img style=" position: relative;
@@ -11,23 +13,21 @@
                 padding-top: 50px;
                 padding-bottom: 250px">
         
-        <div class="game-box">
+        <div class="game-box" style="cursor: pointer"
+             @onclick='() => Navigation.NavigateTo("/Battleships", forceLoad: true)'>
             <img class="box-shade" alt="" src="/Assets/GamePage/BoxShade.png"/>
             <img class="box-bottom" alt="" src="/Assets/GamePage/BoxBottom.png"/>
-            <NavLink href="/test">
-                <img class="box-title" alt="" src="/Assets/GamePage/BattleshipsBox.png"/> 
-            </NavLink>
+            <img class="box-title" alt="" src="/Assets/GamePage/BattleshipsBox.png"/> 
             <div class="title">
                 BattleShips
             </div>
         </div>
         
-        <div class="game-box">
+        <div class="game-box" style="cursor: pointer"
+             @onclick='() => Navigation.NavigateTo("/Connect4", forceLoad: true)'>
             <img class="box-shade" alt="" src="/Assets/GamePage/BoxShade.png"/>
             <img class="box-bottom" alt="" src="/Assets/GamePage/BoxBottom.png"/>
-            <NavLink href="/Connect4">
-                <img class="box-title" alt="" src="/Assets/GamePage/BoxTop.png"/> 
-            </NavLink>
+            <img class="box-title" alt="" src="/Assets/GamePage/BoxTop.png"/> 
             <div class="title">
                 Connect 4
             </div>

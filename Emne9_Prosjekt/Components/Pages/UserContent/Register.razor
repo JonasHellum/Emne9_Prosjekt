@@ -5,99 +5,197 @@
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager
+@inject IConfiguration Configuration
+@using Emne9_Prosjekt.Components.Pages.Interfaces
+@using Emne9_Prosjekt.Components.Pages.FrontPage
+@inject IAuthStateService AuthState
+
+<div data-aos="zoom"></div>
 
 <div style="background: #ffffff;
-            width: 1000px;
-            margin: 0 auto">
-    <h1 style="padding-top: 150px;
-               padding-bottom: 50px;
-               text-align: center">
-        Register
-        @if (registrationDto != null && !loggedIn)
-        {
-            <EditForm Model="@registrationDto" OnValidSubmit="RegistrationAsync" FormName="registerForm">
-                <div>
-                    <label>Username:</label>
-                    <InputText @bind-Value="@registrationDto.UserName" class="form-control" name="UserName" @onblur="CheckUserNameAsync"/>
-                    @if (userNameTaken)
-                    {
-                        <div class="alert alert-danger">
-                            Username is already taken.
-                        </div>
-                    }
-                </div>
-
-                @* <div> *@
-                @*     <label>First name:</label> *@
-                @*     <InputText @bind-Value="registrationDto.FirstName" class="form-control" name="FirstName"/> *@
-                @* </div> *@
-                @* *@
-                @* <div> *@
-                @*     <label>Last name:</label> *@
-                @*     <InputText @bind-Value="registrationDto.LastName" class="form-control" name="LastName"/> *@
-                @* </div> *@
-                @* *@
-                @* <div> *@
-                @*     <label>Date of Birth:</label> *@
-                @*     <InputDate @bind-Value="registrationDto.BirthYear" class="form-control" name="BirthYear"/> *@
-                @* </div> *@
-
-                <div>
-                    <label>Email:</label>
-                    <InputText @bind-Value="registrationDto.Email" class="form-control" name="Email" @onblur="CheckEmailAsync"/>
-                    @if (emailTaken)
-                    {
-                        <div class="alert alert-danger">
-                            Email is already taken.
-                        </div>
-                    }
-                </div>
-
-                <div>
-                    <label>Password:</label>
-                    <InputText @bind-Value="@registrationDto.Password" type="password" class="form-control" name="Password"/>
-                </div>
-
-                <button type="submit" class="btn btn-primary">Register</button>
-            </EditForm>
-
-            @if (registrationSuccess)
-            {
-                <div class="alert alert-success">
-                    Registration success! Username: @registrationDto.UserName
-                </div>
-            }
-
-            @if (!string.IsNullOrEmpty(errorMessage))
-            {
-                <div class="alert alert-danger">
-                    @errorMessage
-                </div>
-            }
-
-            else if (registrationFailed)
-            {
-                <div class="alert alert-danger">
-                    Registration failed.
-                </div>
-            }
-        }
-        else if (registrationDto == null)
-        {
-            <p>Loading...</p>
-        }
-
-        @if (loggedIn)
-        {
-            <div class="alert alert-success" href="Home.razor">
-                Already logged in as: @userName
-            </div>
-        }
+            justify-content: center;
+            text-align: center;
+            flex-direction: column;
+            font-family: Bahnschrift,serif;
+            font-weight: bolder;
+            padding-top: 200px;
+            padding-bottom: 150px"
+     class="page-element">
+    <h1 data-aos="zoom-out-up"
+        data-aos-duration="500"
+        data-aos-delay="300">
+        Register a new account! 
     </h1>
+    <h3 data-aos="zoom-out-up"
+        data-aos-duration="500"
+        data-aos-delay="600">
+        You can create a local account or use a Google account
+    </h3>
+    <h5 data-aos="zoom-out-up"
+        data-aos-duration="500"
+        data-aos-delay="900">
+        Registering will allow you to track your score when you play games
+    </h5>
 </div>
+
+<div style="background: #808080"
+     class="page-element">
+    <div style="background: url('/Assets/PageAssets/LoopStripe.png') repeat fixed;
+                    width: 100%; color: white; padding-top: 50px; justify-content: center">
+        <img style=" position: relative;
+                     width: 1000px;
+                     top: -85px"
+             alt="" src="/Assets/PageAssets/PageBorderGu.png"/>
+                @if (registrationDto != null)
+                {
+                    <h5 style="text-align: center;
+                               text-decoration: underline;
+                               font-family: Bahnschrift,serif;">
+                        Local
+                    </h5>
+                    <div style="display: flex; flex-direction: row; justify-content: center">
+                        <EditForm Model="@registrationDto" OnValidSubmit="RegistrationAsync" FormName="registerForm">
+                            <div style="width: 500px;
+                                        margin: 0 auto;
+                                        flex-direction: row">
+                                <div>
+                                    <label>Username:</label>
+                                    <InputText @bind-Value="@registrationDto.UserName" class="form-control" name="UserName" @onblur="CheckUserNameAsync"/>
+                                    @if (userNameTaken)
+                                    {
+                                        <div class="alert alert-danger">
+                                            Username is already taken.
+                                        </div>
+                                    }
+                                </div>
+
+                                @* <div> *@
+                                @*     <label>First name:</label> *@
+                                @*     <InputText @bind-Value="registrationDto.FirstName" class="form-control" name="FirstName"/> *@
+                                @* </div> *@
+                                @* *@
+                                @* <div> *@
+                                @*     <label>Last name:</label> *@
+                                @*     <InputText @bind-Value="registrationDto.LastName" class="form-control" name="LastName"/> *@
+                                @* </div> *@
+                                @* *@
+                                @* <div> *@
+                                @*     <label>Date of Birth:</label> *@
+                                @*     <InputDate @bind-Value="registrationDto.BirthYear" class="form-control" name="BirthYear"/> *@
+                                @* </div> *@
+
+                                <div>
+                                    <label>Email:</label>
+                                <InputText @bind-Value="registrationDto.Email" class="form-control" name="Email" @onblur="CheckEmailAsync"/>
+                                    @if (emailTaken)
+                                    {
+                                <div class="alert alert-danger">
+                                    Email is already taken.
+                                </div>
+                                    }
+                                    </div>
+
+                                <div>
+                                    <label>Password:</label>
+                                <InputText @bind-Value="@registrationDto.Password" type="password" class="form-control" name="Password"/>
+                                </div>  
+                                
+                                <div>
+                                    <label>Confirm Password:</label>
+                                    <InputText @bind-Value="checkPassword" type="password" class="form-control" name="CheckPassword"/>
+                                </div>  
+                            </div>
+                            
+                        </EditForm>
+                        <div style="padding-left: 20px; padding-top: 60px">
+                            <button type="submit" class="register-button">
+                                Register
+                            </button>
+                        </div>
+                        
+                    </div>
+                        
+
+                        @if (registrationSuccess)
+                        {
+                            <div class="alert alert-success">
+                                Registration success! Username: @registrationDto.UserName
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger">
+                                @errorMessage
+                            </div>
+                        }
+
+                        else if (registrationFailed)
+                        {
+                            <div class="alert alert-danger">
+                                Registration failed.
+                            </div>
+                        }
+                        }
+
+                        else if (registrationDto == null)
+                        {
+                        <p>Loading...</p>
+                        }
+
+                        <div style="width: 700px;
+                            padding-top: 70px;
+                            padding-bottom: 200px;
+                            justify-items: center;
+                            margin: 0 auto;">
+                            <h5 style="text-align: center;
+                               text-decoration: underline;
+                               font-family: Bahnschrift,serif;">
+                                Google
+                            </h5>
+                            <div id="buttonDiv"></div>
+                            <div style="font-size: smaller; padding-top: 10px">
+                                By using a Google account, your username\display name
+                                will be sett to the name tied to your Google account
+                            </div>
+                        </div>
+    </div>
+</div>
+
+<div style="background: #ffffff"
+     class="page-element">
+    <Credit/>
+</div>
+
+<style>
+    .page-element {
+        width: 1000px;
+        margin: 0 auto;
+        display: flex;
+    }
+    
+    .register-button {
+        color: white;
+        background: dimgray;
+        font-size: larger;
+        font-weight: bolder;
+        width: 150px;
+        height: 150px;
+        border-radius: 100px;
+    }
+    
+    .register-button:hover {
+        background: silver;
+    }
+    
+    .register-button:active {
+        background: grey;
+    }
+</style>
 
 @code {
     private MemberRegistrationDTO registrationDto { get; set; }
+    private string checkPassword;
     private bool registrationSuccess;
     private bool registrationFailed;
     private bool userNameTaken;
@@ -105,9 +203,11 @@
     private string errorMessage;
     private string userName;
     private bool loggedIn;
+    private string? _clientId;
     
     protected override async Task OnInitializedAsync()
     {
+        _clientId = Configuration["Google:ClientId"];
         registrationDto = new MemberRegistrationDTO();
     
         try
@@ -135,36 +235,37 @@
     {
         if (firstRender)
         {
+            await JSRuntime.InvokeVoidAsync("initGoogleSignIn", _clientId, DotNetObjectReference.Create(this));
             
-                // Perform JavaScript interop only after prerendering
-                _isClientSide = true;
+            // Perform JavaScript interop only after prerendering
+            _isClientSide = true;
 
-                try
+            try
+            {
+                // Retrieve the token from cookies using JSInterop
+                var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
+                        
+                if (!string.IsNullOrEmpty(token))
                 {
-                    // Retrieve the token from cookies using JSInterop
-                    var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
-                    
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        // Add the JWT token to the Authorization header of HttpClient
-                        Http.DefaultRequestHeaders.Authorization =
-                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-                    }
+                    // Add the JWT token to the Authorization header of HttpClient
+                    Http.DefaultRequestHeaders.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
 
-                    // Fetch the username from the API
-                    userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-                    loggedIn = !string.IsNullOrEmpty(userName);
-                    
-                    if (loggedIn)
-                    {
-                        NavManager.NavigateTo("/User");
-                    }
-                    
-                }
-                catch (Exception ex)
+                // Fetch the username from the API
+                userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+                loggedIn = !string.IsNullOrEmpty(userName);
+                        
+                if (loggedIn)
                 {
-                    Console.WriteLine($"Error during initialization: {ex.Message}");
+                    NavManager.NavigateTo("/User");
                 }
+                        
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during initialization: {ex.Message}");
+            }
             
         }
     }
@@ -197,6 +298,13 @@
 
     protected async Task RegistrationAsync()
     {
+        if (registrationDto.Password != checkPassword)
+        {
+            errorMessage = "Passwords do not match";
+            registrationFailed = true;
+            return;
+        }
+        
         var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/Register", registrationDto);
         
         if (response.IsSuccessStatusCode)
@@ -236,6 +344,59 @@
     private class ErrorResponse
     {
         public List<string> Errors { get; set; }
+    }
+    
+    [JSInvokable]
+    public async Task HandleGoogleSignIn(string idToken)
+    {
+        Console.WriteLine($"Received ID Token: {idToken}");
+        try
+        {
+            var response = await Http.PostAsJsonAsync("http://localhost/api/members/GoogleCallback", idToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Login successful!");
+                var userName = await Http.GetStringAsync("http://localhost/api/members/Username-info");
+
+                // Notify AuthStateService to update the state
+                AuthState.SetUserName(userName);
+                
+                // Manually parse the Set-Cookie header
+                if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
+                {
+                    foreach (var cookie in cookies)
+                    {
+                        // Extract the token value
+                        var tokenPair = cookie.Split(';')[0]; // "AuthTokenCOMON=jwt_token_value"
+                        var tokenName = tokenPair.Split('=')[0]; // AuthTokenCOMON
+                        var tokenValue = tokenPair.Split('=')[1];
+
+                        // Use JSRuntime to set the cookie in the browser
+                        await JSRuntime.InvokeVoidAsync("setCookie", tokenName, tokenValue, 10); // 10 = hours before expiry
+                        Console.WriteLine($"Cookie manually set: {tokenName} = {tokenValue}");
+                    }
+                }
+
+                registrationSuccess = true;
+                StateHasChanged();
+                Task.Delay(2000);
+                NavManager.NavigateTo("/");
+
+            }
+            else
+            {
+                Console.WriteLine($"Login failed: {response.StatusCode}");
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error message: {error}");
+
+            }
+        }
+        catch (Exception e)
+        {
+            errorMessage = "Something went wrong. Please try again later.";
+            Console.WriteLine($"An error occurred: {e}");
+        }
     }
 
 }
