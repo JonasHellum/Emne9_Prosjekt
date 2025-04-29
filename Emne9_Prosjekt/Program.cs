@@ -50,6 +50,7 @@ builder.Services.AddSignalRHubs();
 builder.Services.AddSingleton<ChatService>();
 builder.Services.AddSingleton<IGameService, GameService>();
 builder.Services.AddSingleton<IForumService, ForumService>();
+builder.Services.AddSingleton<IConnectFourGameService, ConnectFourGameService>();
 
 
 builder.Services.AddScoped<BattleShipComponents>();
@@ -184,6 +185,7 @@ app.MapHub<ChatHub>("/chatHub");
 app.MapHub<GameHub>("/gameHub");
 app.MapHub<ForumHub>("/forumHub");
 app.MapHub<BigChatHub>("/bigchathub");
+app.MapHub<ConnectFourGameHub>("/connectgamehub");
 
 
 // app.Use(async (context, next) =>

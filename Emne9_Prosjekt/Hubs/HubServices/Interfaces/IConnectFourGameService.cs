@@ -2,7 +2,7 @@
 
 namespace Emne9_Prosjekt.Hubs.HubServices.Interfaces;
 
-public interface IGameService
+public interface IConnectFourGameService
 {
     GameSession? JoinGame(string connectionId, Dictionary<string, int> board);
     GameSession? GetGameByConnection(string connectionId);

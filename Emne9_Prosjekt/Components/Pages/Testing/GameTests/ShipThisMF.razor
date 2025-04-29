@@ -1,0 +1,471 @@
+@page "/ShipThis"
+@using Emne9_Prosjekt.GameComponents
+@using Emne9_Prosjekt.Hubs.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
+@inject BattleShipComponents GameComponents
+@inject IGameHubConnection GameHubConnection
+@implements IAsyncDisposable
+
+<h3 style="padding-top: 125px">SoHelpMeGod</h3>
+
+@if (!_isConnected)
+{
+    <p>Kobler til spillet...</p>
+}
+else if (_gameState == GameState.Setup)
+{
+    <div style="text-align: center">
+        <h3>Battleships setup</h3>
+        <p>@(_opponentSetupComplete ? "Venter på at motstanderen skal sette opp sitt brett..." : "Plasser skipene dine")</p>
+
+        <table style="margin: auto">
+            @foreach (var row in "ABCDEFGHIJ")
+            {
+                <tr>
+                    @for (int col = 1; col <= 10; col++)
+                    {
+                        var pos = $"{row}{col}";
+                        <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
+                        background: @(GameComponents.GetBoard()[pos] == 1 ? "lightgreen" : "lightblue");"
+                            @onclick="() => PlaceShip(pos)">
+                            @GameComponents.GetBoard()[pos]
+                        </td>
+                    }
+                </tr>
+            }
+        </table>
+
+        @if (!_isSetupComplete)
+        {
+            <div>
+                @foreach (var ship in GameComponents.GetShips())
+                {
+                    <button @onclick='() => SelectShip(ship.Key)'>@ship.Key</button>
+                }
+            </div>
+
+            <h4>Valgt skip: @_selectedShip</h4>
+            @if (@GameComponents.GetOrientation())
+            {
+                <h4>Skipets retning: <button @onclick="OrientShip">Horisontal</button></h4>
+            }
+            else
+            {
+                <h4>Skipets retning: <button @onclick="OrientShip">Vertikal</button></h4>
+            }
+
+            <div>
+                Alle skip: @_allShips - Nåværende skip: @BoardValues()
+                @if (BoardValues() == _allShips)
+                {
+                    <button @onclick="CompleteSetup">Fullfør setup</button>
+                }
+            </div>
+            <button @onclick="Reset">Nullstill brett</button>
+        }
+    </div>
+}
+else
+{
+    <div style="text-align: center">
+        <h3>Battleship Game</h3>
+        @if (_gameState == GameState.GameOver)
+        {
+            <div style="margin: 20px; padding: 15px; background-color: @(_isWinner ? "lightgreen" : "lightcoral"); border-radius: 5px;">
+                <h2>@_gameOverMessage</h2>
+
+            </div>
+        }
+        else
+        {
+            <h4>@(_isMyTurn ? "Din tur!" : "Venter på motstanderen...")</h4>
+        }
+    </div>
+    <div>
+        <h5>Ditt Brett</h5>
+        <table>
+            @foreach (var row in "ABCDEFGHIJ")
+            {
+                <tr>
+                    @for (int col = 1; col <= 10; col++)
+                    {
+                        var pos = $"{row}{col}";
+                        <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
+                        background: @(BoardStatus(_playerBoard, pos));">
+                        </td>
+                    }
+                </tr>
+            }
+        </table>
+    </div>
+
+    <div>
+        <h5>Motstanderens Brett</h5>
+        <table>
+            @foreach (var row in "ABCDEFGHIJ")
+            {
+                <tr>
+                    @for (int col = 1; col <= 10; col++)
+                    {
+                        var pos = $"{row}{col}";
+                        <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
+                        background: @(BoardStatus(_opponentBoard, pos, true));"
+                            @onclick="() => UpdateShot(pos)">
+                        </td>
+                    }
+                </tr>
+            }
+        </table>
+        <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+            <div>
+                <h5>Status på mine skip:</h5>
+                <ul style="list-style-type: none; padding: 0;">
+                    @foreach (var ship in GameComponents.GetPlacedShips())
+                    {
+                        bool isSunk = ship.Value.All(pos => _playerBoard.ContainsKey(pos) && _playerBoard[pos] < 0);
+                        <li style="color: @(isSunk ? "red" : "green")">
+                            @ship.Key: @(isSunk ? "Sunket" : "Intakt")
+                        </li>
+                    }
+                </ul>
+            </div>
+            <div>
+                <h5>Status på motstanderens skip:</h5>
+                <ul style="list-style-type: none; padding: 0;">
+                    @foreach (var ship in _opponentShipStatus)
+                    {
+                        <li style="color: @(ship.Value ? "red" : "green")">
+                            @ship.Key: @(ship.Value ? "Sunket" : "Intakt")
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+}
+@if(_isSetupComplete && _opponentSetupComplete)
+{
+
+}
+
+@code {
+    private enum GameState
+    {
+        Setup,
+        Playing,
+        GameOver
+    }
+
+    private GameState _gameState = GameState.Setup;
+    private Dictionary<string, int> _playerBoard = new();
+    private Dictionary<string, int> _opponentBoard = new();
+    private Dictionary<string, bool> _opponentShipStatus = new();
+    private bool _isConnected;
+    private string _selectedShip = "";
+    private int _allShips;
+    private bool _isSetupComplete;
+    private bool _opponentSetupComplete;
+    private bool _isMyTurn;
+    private bool _isWinner;
+    private string _gameOverMessage = "";
+
+     protected override async Task OnInitializedAsync()
+    {
+        GameComponents.CreateBoard();
+
+        foreach (var ship in GameComponents.GetShips())
+        {
+            _allShips += ship.Value;
+            _opponentShipStatus[ship.Key] = false; // Initialiserer alle skip som ikke sunket
+        }
+        GameHubConnection.Connection.On("WaitingForOpponent", () =>
+        {
+            // Bare en liten beskjed mens vi venter
+            Console.WriteLine("Venter på motstander...");
+        });
+
+        GameHubConnection.Connection.On<Dictionary<string, int>, bool>("StartGame", (opponentBoard, isMyTurn) =>
+        {
+            Console.WriteLine("Spillet starter!");
+            _playerBoard = new Dictionary<string, int>(GameComponents.GetBoard());
+            _opponentBoard = opponentBoard;
+            _isMyTurn = isMyTurn;
+            _gameState = GameState.Playing;
+
+            InvokeAsync(StateHasChanged);
+        });
+        GameHubConnection.Connection.On<string, string, bool>("UpdateShot", (position, shooterId, isHit) =>
+        {
+            Console.WriteLine($"Mottok skudd: {position}, skytter: {shooterId}, treff: {isHit}");
+
+            // Sjekk om det er vårt skudd (vi er skytteren) eller motstanderens skudd
+            bool isMyShot = shooterId == GameHubConnection.Connection.ConnectionId;
+
+            if (isMyShot)
+            {
+                // Dette er vårt skudd på motstanderens brett
+                // Oppdater vårt lokale opponentBoard med resultatet (treff eller bom)
+                GameComponents.UpdateOpponentBoard(position, isHit);
+
+                // Oppdater også _opponentBoard for UI
+                _opponentBoard[position] = isHit ? -1 : -2;
+
+                Console.WriteLine($"Oppdaterte _opponentBoard[{position}] = {_opponentBoard[position]}");
+
+                // Sjekk om spillet er over etter vårt skudd
+                CheckGameOver();
+            }
+            else
+            {
+                // Dette er motstanderens skudd på vårt brett
+                GameComponents.ShootBoard(position);
+
+                // Oppdater også _playerBoard for UI
+                if (_playerBoard.ContainsKey(position))
+                {
+                    int value = _playerBoard[position];
+                    if (value == 1)
+                    {
+                        _playerBoard[position] = -1; // Treffer skip som ikke var truffet
+                    }
+                    else if (value == 0)
+                    {
+                        _playerBoard[position] = -2; // Bommer på tomt felt
+                    }
+                    Console.WriteLine($"Oppdaterte _playerBoard[{position}] = {_playerBoard[position]}");
+                }
+
+                // Sjekk om noen av våre skip er sunket og send status til motstanderen
+                foreach (var ship in GameComponents.GetPlacedShips())
+                {
+                    bool isSunk = ship.Value.All(pos => _playerBoard.ContainsKey(pos) && _playerBoard[pos] < 0);
+
+                    // Send skipsstatus til motstanderen
+                    if (isSunk)
+                    {
+                        GameHubConnection.Connection.SendAsync("UpdateShipStatus", ship.Key, true);
+                    }
+                }
+
+                // Sjekk om spillet er over etter motstanderens skudd
+                CheckGameOver();
+                Console.WriteLine("Sjekket om spillet er over etter motstanderens skudd");
+            }
+
+            // Oppdater tur-status
+            _isMyTurn = !isMyShot; // Hvis det var vårt skudd, er det nå motstanderens tur, og omvendt
+
+            // Oppdater UI
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On<string, bool>("UpdateShipStatus", (shipName, isSunk) =>
+        {
+            Console.WriteLine($"Mottok skipsstatus: {shipName}, sunket: {isSunk}");
+
+            // Oppdater motstanderens skipsstatus
+            if (_opponentShipStatus.ContainsKey(shipName))
+            {
+                _opponentShipStatus[shipName] = isSunk;
+                Console.WriteLine($"Oppdaterte _opponentShipStatus[{shipName}] = {isSunk}");
+            }
+
+            // Sjekk om spillet er over
+            CheckGameOver();
+
+            // Oppdater UI
+            InvokeAsync(StateHasChanged);
+        });
+
+        GameHubConnection.Connection.On<bool>("GameOver", (youWon) =>
+        {
+            Console.WriteLine($"Mottok GameOver: Du {(youWon ? "vant" : "tapte")}");
+
+            // Sett spilltilstand til GameOver bare hvis vi ikke allerede er i den tilstanden
+            if (_gameState != GameState.GameOver)
+            {
+                Console.WriteLine("Setter spilltilstand til GameOver etter melding fra server");
+                _gameState = GameState.GameOver;
+                _isWinner = youWon;
+                _gameOverMessage = youWon ? "Du vant! Alle motstanderens skip er sunket." : "Du tapte! Alle dine skip er sunket.";
+
+                // Oppdater UI
+                InvokeAsync(StateHasChanged);
+            }
+        });
+
+        // Håndter når motstanderen kobler fra
+        GameHubConnection.Connection.On("OpponentDisconnected", () =>
+        {
+            Console.WriteLine("Motstanderen koblet fra");
+
+            // Sett spilltilstand til GameOver hvis vi ikke allerede er i den tilstanden
+            if (_gameState != GameState.GameOver)
+            {
+                Console.WriteLine("Setter spilltilstand til GameOver etter at motstanderen koblet fra");
+                _gameState = GameState.GameOver;
+                _isWinner = true;
+                _gameOverMessage = "Du vant! Motstanderen koblet fra.";
+
+                // Oppdater UI
+                InvokeAsync(StateHasChanged);
+            }
+        });
+
+        await base.OnInitializedAsync();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await GameHubConnection.Connection.StartAsync();
+                _isConnected = true;
+                StateHasChanged(); // Oppdater skjermen slik at "Kobler til..." forsvinner
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error connecting to hub: {ex.Message}");
+            }
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void SelectShip(string ship)
+    {
+        _selectedShip = ship;
+        GameComponents.SelectShip(ship);
+       
+    }
+
+    private void PlaceShip(string position)
+    {
+        if (!_isSetupComplete)
+        {
+            _selectedShip = "";
+            GameComponents.PlaceShip(position);
+         
+        }
+    }
+
+    private void OrientShip()
+    {
+        GameComponents.ToggleOrientation();
+    }
+    private async Task CompleteSetup()
+    {
+        _isSetupComplete = true;
+        await GameHubConnection.Connection.SendAsync("JoinGame", GameComponents.GetBoard());
+       
+    }
+    public async Task UpdateShot(string position)
+    {
+        if (!_isMyTurn || _gameState == GameState.GameOver)
+            return;
+
+        Console.WriteLine($"Sender skudd: {position}");
+
+        // Send skudd til serveren med vår connection ID som skytter-ID
+        await GameHubConnection.Connection.SendAsync("UpdateShot", position, GameHubConnection.Connection.ConnectionId);
+
+        // Oppdater lokalt UI for å vise at vi venter på motstanderen
+        _isMyTurn = false;
+     
+    }
+
+    private int BoardValues()
+    {
+        int boardValue = 0;
+        foreach (var square in GameComponents.GetBoard())
+        {
+            boardValue += square.Value;
+        }
+        return boardValue;
+    }
+
+    private void Reset()
+    {
+        GameComponents.CreateBoard();
+    }
+
+    private string BoardStatus(Dictionary<string, int> board, string pos, bool isOpponentBoard = false)
+    {
+        if (!board.ContainsKey(pos))
+        {
+            return "gray";
+        }
+
+        int value = board[pos];
+
+        // For motstanderens brett, vis bare farge der vi har skutt
+        if (isOpponentBoard)
+        {
+            string color = value switch
+            {
+                -1 => "darkred",    // Treff
+                -2 => "blue",       // Bom
+                _ => "gray"         // Skjult (ikke skutt ennå)
+            };
+
+            Console.WriteLine($"BoardStatus (opponent): Posisjon {pos} har verdi {value}, farge: {color}");
+            return color;
+        }
+        else
+        {
+            // For vårt eget brett, vis alle farger
+            string color = value switch
+            {
+                1 => "lightgreen",  // Skip
+                -1 => "darkred",    // Treff
+                -2 => "blue",       // Bom
+                _ => "lightblue"    // Tom rute
+            };
+
+            Console.WriteLine($"BoardStatus (player): Posisjon {pos} har verdi {value}, farge: {color}");
+            return color;
+        }
+    }
+
+    private async void CheckGameOver()
+    {
+        Console.WriteLine("Sjekker om spillet er over");
+
+        // Hvis spillet allerede er over, ikke gjør noe
+        if (_gameState == GameState.GameOver)
+            return;
+
+        // Sjekk om alle mine skip er sunket
+        bool allMyShipsSunk = GameComponents.GetPlacedShips()
+            .All(ship => ship.Value.All(pos => _playerBoard.TryGetValue(pos, out var v) && v < 0));
+        // Hvis alle mine skip er sunket, har jeg tapt og motstanderen vunnet
+        if (allMyShipsSunk)
+        {
+            Console.WriteLine("Alle mine skip er sunket. Jeg taper.");
+            _gameState = GameState.GameOver;
+            _isWinner = false;
+            _gameOverMessage = "Du tapte! Alle dine skip er sunket.";
+            await GameHubConnection.Connection.SendAsync("GameOver", true); // Motstanderen vant
+            await InvokeAsync(StateHasChanged);
+        }
+        // Sjekk om alle motstanderens skip er sunket
+        else if (_opponentShipStatus.Values.All(sunk => sunk) && _opponentShipStatus.Count > 0)
+        {
+            Console.WriteLine("Alle motstanderens skip er sunket. Jeg vinner.");
+            _gameState = GameState.GameOver;
+            _isWinner = true;
+            _gameOverMessage = "Du vant! Alle motstanderens skip er sunket.";
+            await GameHubConnection.Connection.SendAsync("GameOver", false); // Motstanderen tapte
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (GameHubConnection != null)
+        {
+            await GameHubConnection.DisposeAsync();
+        }
+    }
+}

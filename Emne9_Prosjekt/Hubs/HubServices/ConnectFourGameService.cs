@@ -1,17 +1,16 @@
 ﻿using Emne9_Prosjekt.Hubs.HubModels;
 using Emne9_Prosjekt.Hubs.HubServices.Interfaces;
 
-// Bruker en trådsikker samling for å håndtere samtidige forespørsler
-
 namespace Emne9_Prosjekt.Hubs.HubServices;
 
-public class GameService : IGameService
+public class ConnectFourGameService : IConnectFourGameService
 {
-     private readonly Dictionary<string, PlayerSession> _waitingPlayers = new();
+    private readonly Dictionary<string, PlayerSession> _waitingPlayers = new();
     private readonly Dictionary<string, GameSession> _games = new();
 
     public GameSession? JoinGame(string connectionId, Dictionary<string, int> board)
     {
+        Console.WriteLine($"[Service] {connectionId} joiner spill.");
         var player = new PlayerSession
         {
             ConnectionId = connectionId,

@@ -4,6 +4,7 @@ public class BattleShipComponents
 {
     private string? _selectedShip;
     private bool _shipOrientation = true;
+    public int HitCount { get; private set; }
     public int SunkenShipCount { get; set; }
     private readonly Dictionary<string,int> _board = new ();
     private readonly Dictionary<string,int> _opponentBoard = new ();
@@ -26,8 +27,10 @@ public class BattleShipComponents
             for (int j = 1; j <= 10; j++)
             {
                 _board[$"{rows[i]}{j}"] = 0;
+                _opponentBoard[$"{rows[i]}{j}"] = 0;
             }
         }
+        Console.WriteLine("Begge brett er initialisert");
     }
 
     public void SelectShip(string ship)
@@ -150,19 +153,46 @@ public class BattleShipComponents
     
     public void ShootBoard(string target)
     {
-        int value = _board[target];
-        
-        if (_board.ContainsKey(target))
+        Console.WriteLine($"ShootBoard: Skyter på posisjon {target}");
+
+        if (!_board.ContainsKey(target))
         {
-            if (_board[target] >= 0)
-            {
-                _board[target] -= 2;
-            }
-            
-            if (value == 1)
-            {
-                CheckShipStatus(target);
-            }
+            Console.WriteLine($"ShootBoard: Posisjon {target} finnes ikke på brettet");
+            return;
+        }
+
+        int value = _board[target];
+        Console.WriteLine($"ShootBoard: Verdi før skudd: {value}");
+
+        if (_board[target] >= 0)
+        {
+            _board[target] -= 2;
+            Console.WriteLine($"ShootBoard: Ny verdi etter skudd: {_board[target]}");
+        }
+
+        if (value == 1)
+        {
+            HitCount++;
+            CheckShipStatus(target);
+        }
+    }
+
+    public void UpdateOpponentBoard(string target, bool isHit)
+    {
+        Console.WriteLine($"UpdateOpponentBoard: Oppdaterer posisjon {target}, treff: {isHit}");
+
+        if (_opponentBoard.ContainsKey(target))
+        {
+            // Oppdater motstanderens brett med resultatet av skuddet
+            // -1 = treff, -2 = bom
+            _opponentBoard[target] = isHit ? -1 : -2;
+            Console.WriteLine($"UpdateOpponentBoard: Oppdatert eksisterende posisjon til {_opponentBoard[target]}");
+        }
+        else
+        {
+            // Hvis posisjonen ikke finnes i brettet, legg den til
+            _opponentBoard.Add(target, isHit ? -1 : -2);
+            Console.WriteLine($"UpdateOpponentBoard: Lagt til ny posisjon med verdi {_opponentBoard[target]}");
         }
     }
 }
