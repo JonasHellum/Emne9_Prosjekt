@@ -776,11 +776,6 @@
                 Console.WriteLine("Setter spilltilstand til GameOver etter melding fra server");
                 _gameState = GameState.GameOver;
                 _isWinner = youWon;
-                if (youWon)
-                {
-                    _pointToWinner = 1;
-                    _pointToLoser = -1;
-                }
                 _gameOverMessage = youWon ? "Du vant! Alle motstanderens skip er sunket." : "Du tapte! Alle dine skip er sunket.";
 
                 // Oppdater UI
@@ -799,8 +794,6 @@
                 Console.WriteLine("Setter spilltilstand til GameOver etter at motstanderen koblet fra");
                 _gameState = GameState.GameOver;
                 _isWinner = true;
-                _pointToWinner = 1;
-                _pointToLoser = -1;
                 _gameOverMessage = "Du vant! Motstanderen koblet fra.";
 
                 // Oppdater UI
