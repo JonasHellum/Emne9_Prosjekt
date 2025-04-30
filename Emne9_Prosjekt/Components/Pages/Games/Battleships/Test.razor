@@ -660,7 +660,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        try //THIS
         {
             _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
             Console.WriteLine($"Username from Logintest: {_userName}");
@@ -671,7 +671,7 @@
         {
             Console.WriteLine(e);
             throw;
-        }
+        } //THIS
         
         GameComponents.CreateBoard();
 
@@ -706,10 +706,6 @@
 
             if (isMyShot)
             {
-                // Dette er vårt skudd på motstanderens brett
-                // Oppdater vårt lokale opponentBoard med resultatet (treff eller bom)
-                GameComponents.UpdateOpponentBoard(position, isHit);
-
                 // Oppdater også _opponentBoard for UI
                 _opponentBoard[position] = isHit ? -1 : -2;
 
@@ -722,22 +718,12 @@
             {
                 // Dette er motstanderens skudd på vårt brett
                 GameComponents.ShootBoard(position);
-
+                
                 // Oppdater også _playerBoard for UI
                 if (_playerBoard.ContainsKey(position))
                 {
-                    int value = _playerBoard[position];
-                    if (value == 1)
-                    {
-                        _playerBoard[position] = -1; // Treffer skip som ikke var truffet
-                    }
-                    else if (value == 0)
-                    {
-                        _playerBoard[position] = -2; // Bommer på tomt felt
-                    }
-
-                    Console.WriteLine($"Oppdaterte _playerBoard[{position}] = {_playerBoard[position]}");
-                }
+                    _playerBoard[position] = GameComponents.GetBoard()[position];
+                } 
 
                 // Sjekk om noen av våre skip er sunket og send status til motstanderen
                 foreach (var ship in GameComponents.GetPlacedShips())
@@ -750,12 +736,10 @@
                         GameHubConnection.Connection.SendAsync("UpdateShipStatus", ship.Key, true);
                     }
                 }
-
                 // Sjekk om spillet er over etter motstanderens skudd
                 CheckGameOver();
                 Console.WriteLine("Sjekket om spillet er over etter motstanderens skudd");
             }
-
             // Oppdater tur-status
             _isMyTurn = !isMyShot; // Hvis det var vårt skudd, er det nå motstanderens tur, og omvendt
 
@@ -830,7 +814,7 @@
     {
         if (firstRender)
         {
-            if (_loggedIn == false)
+            if (_loggedIn == false) //THIS
             {
                 try
                 {
@@ -850,11 +834,11 @@
 
                     // Trigger a re-render now that client-side data is available
                     StateHasChanged();
-                }
+                } 
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error during initialization: {ex.Message}");
-                }
+                } //THIS
                 
             }
             try
@@ -869,7 +853,7 @@
             }
         }
 
-        if (_loggedIn)
+        if (_loggedIn) //THIS
         {
             if (_gameState == GameState.Playing && _1pointToLosses)
             {
@@ -893,7 +877,7 @@
                 };
                 await UpdateOrCreateLeaderboard(leaderboardWinToAdd);
                 _1pointToWinner = false;
-            }
+            } //THIS
         }
         await base.OnAfterRenderAsync(firstRender);
     }
@@ -976,7 +960,7 @@
         _ => "Assets/Battleships/Empty.png"
     };
 
-    private async void CheckGameOver()
+    public async Task CheckGameOver()
     {
         Console.WriteLine("Sjekker om spillet er over");
 
@@ -1046,7 +1030,7 @@
         }
     }
     
-    private async Task UpdateOrCreateLeaderboard(LeaderboardAddOrUpdateDTO leaderboardStatsToSend)
+    private async Task UpdateOrCreateLeaderboard(LeaderboardAddOrUpdateDTO leaderboardStatsToSend) //Ta med denne Line
     {
         var request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:80/api/leaderboards/updateOrCreate")
         {
