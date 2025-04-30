@@ -95,7 +95,22 @@
     {
         if (firstRender)
         {
+            try
+            {
+                _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+                if (string.IsNullOrEmpty(_userName))
+                {
+                    _userName = "Guest";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to get username: {ex.Message}");
+                _userName = "Guest";
+            }
+
             Console.WriteLine("---Establishing connection...");
+            
 
             BigChatHubConnection.Connection.On<string, string>("ReceiveMessage", (user, message) =>
             {
@@ -120,6 +135,7 @@
                 await BigChatHubConnection.Connection.StartAsync();
                 Console.WriteLine("--Connection established!");
                 _isConnected = true;
+                await BigChatHubConnection.Connection.SendAsync("SetUserName", _userName);
             }
             catch (Exception ex)
             {

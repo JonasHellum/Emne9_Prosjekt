@@ -20,6 +20,12 @@ public class LeaderboardRepository : ILeaderboardRepository
     }
 
 
+    /// <summary>
+    /// Adds a new leaderboard record to the database.
+    /// </summary>
+    /// <param name="entity">The leaderboard entity containing information to be added.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains
+    /// the newly added leaderboard record if successful; otherwise, null.</returns>
     public async Task<Leaderboard?> AddAsync(Leaderboard entity)
     {
         _logger.LogDebug($"Adding new leaderboard with current values:" +
@@ -38,6 +44,12 @@ public class LeaderboardRepository : ILeaderboardRepository
         throw new NotImplementedException();
     }
 
+    /// <summary>
+    /// Updates an existing leaderboard record with new values.
+    /// </summary>
+    /// <param name="entity">The leaderboard entity containing updated values.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains
+    /// the updated leaderboard record if successful; otherwise, null.</returns>
     public async Task<Leaderboard?> UpdateAsync(Leaderboard entity)
     {
         _logger.LogDebug($"Finding leaderboard based on memberId: {entity.MemberId} and game type: {entity.GameType}");
@@ -84,9 +96,18 @@ public class LeaderboardRepository : ILeaderboardRepository
         return await _dbContext.Leaderboard
             .FirstOrDefaultAsync(lb => lb.MemberId == memberId && lb.GameType.ToLower() == gameType.ToLower());
     }
-    
-    
-    public async Task<List<LeaderboardDTO>> GetLeaderboardPaginatedAsync(string gameType, int page, int pageSize, Guid? loggedInMemberId = null)
+
+
+    /// <summary>
+    /// Retrieves a paginated list of leaderboard records + the logged-in member stats if logged in, ordered by wins and losses, and optionally filters by game type.
+    /// </summary>
+    /// <param name="gameType">The type of game to filter the leaderboard records, or "All" to include all game types.</param>
+    /// <param name="page">The page number to retrieve (1-based index).</param>
+    /// <param name="pageSize">The number of records to include in each page.</param>
+    /// <param name="loggedInMemberId">An optional parameter representing the ID of the logged-in member for personalized rankings.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of paginated leaderboard records + the logged-in member stats.</returns>
+    public async Task<List<LeaderboardDTO>> GetLeaderboardPaginatedAsync(string gameType, int page, int pageSize,
+        Guid? loggedInMemberId = null)
     {
         // Step 1: Group and aggregate in the database
         var groupedQuery = _dbContext.Leaderboard
