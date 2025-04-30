@@ -30,8 +30,8 @@ public class LeaderboardController : ControllerBase
     {
         var secret = _config["AppSettings:BlazorSecret"];
         
-        _logger.LogDebug($"Config Secret: {secret}");
-        _logger.LogDebug($"Header Secret: {blazorSecretHeader}");
+        // _logger.LogDebug($"Config Secret: {secret}");
+        // _logger.LogDebug($"Header Secret: {blazorSecretHeader}");
 
         if (string.IsNullOrEmpty(blazorSecretHeader) || blazorSecretHeader != secret)
         {

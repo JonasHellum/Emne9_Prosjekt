@@ -85,7 +85,7 @@ else
 <div class="mt-3">
     <button class="btn btn-primary" @onclick="ShowAllPreviousPage" disabled="@(_currentPageForAll == 1)">Previous</button>
     <span class="mx-3">Page: @_currentPageForAll</span>
-    <button class="btn btn-primary" @onclick="ShowAllNextPage" disabled="@(AINTGOINGNOWHERENOWBISH == true)">Nextfookinshet</button>
+    <button class="btn btn-primary" @onclick="ShowAllNextPage" disabled="@(_disableNextPage == true)">Nextfookinshet</button>
 </div>
 
 
@@ -99,18 +99,18 @@ else
 
     
     
-    private int _pageSizeForAll = 5;
+    private int _pageSizeForAll = 4;
     private int _pageSize = 1;
 
 
-    private bool AINTGOINGNOWHERENOWBISH;
+    private bool _disableNextPage;
     
     private int _currentPageForAll = 1;
     private bool _disableAllNextPage;
     
     
     private int _currentPage = 1;
-    private bool _disableNextPage;
+    // private bool _disableNextPage;
     private bool loading = false;
 
     private string gameType = "All";
@@ -186,6 +186,7 @@ else
     {
         gameType = e.Value?.ToString() ?? "All"; // Update the gameType
         _currentPageForAll = 1; // Reset to the first page when the game type changes
+        _disableNextPage = false;
         await LoadLeaderboardPage();
     }
     
@@ -211,13 +212,9 @@ else
             }
             filteredLeaderboard = filteredLeaderboard.OrderBy(entry => entry.Rank).ToList();
 
-            if (leaderboard.Count < _pageSizeForAll)
+            if (leaderboard.Count < _pageSizeForAll || !filteredLeaderboard.Any())
             {
-                AINTGOINGNOWHERENOWBISH = true;
-            }
-            else
-            {
-                AINTGOINGNOWHERENOWBISH = false;
+                _disableNextPage = true;
             }
 
             Console.WriteLine($"[LoadLeaderboardPage] Page: {_currentPageForAll}, Filtered: {filteredLeaderboard.Count}, Disable Next: {_disableAllNextPage}");
@@ -235,7 +232,7 @@ else
     
     private async Task ShowAllNextPage()
     {
-        if (_disableAllNextPage)
+        if (_disableNextPage)
         {
             Console.WriteLine("Next button is disabled. No further pages exist.");
             return;
@@ -245,7 +242,7 @@ else
         Console.WriteLine($"[Pagination] Navigating to Page: {_currentPageForAll}");
         await LoadLeaderboardPage();
 
-        if (_disableAllNextPage)
+        if (_disableNextPage)
         {
             Console.WriteLine("Reverting navigation. No valid data for the next page.");
             _currentPageForAll--;
@@ -259,7 +256,7 @@ else
         {
             _currentPageForAll--;
             Console.WriteLine($"[Pagination] Current Page (Previous): {_currentPageForAll}");
-            AINTGOINGNOWHERENOWBISH = false;
+            _disableNextPage = false;
 
             await LoadLeaderboardPage();
         }
