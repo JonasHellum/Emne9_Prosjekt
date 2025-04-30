@@ -681,13 +681,14 @@
             _opponentShipStatus[ship.Key] = false; // Initialiserer alle skip som ikke sunket
         }
 
-        GameHubConnection.Connection.On("WaitingForOpponent", () =>
+        GameHubConnection.RegisterWaitingForOpponentHandler(async () =>
         {
             // Bare en liten beskjed mens vi venter
             Console.WriteLine("Venter på motstander...");
+            await InvokeAsync(StateHasChanged);
         });
 
-        GameHubConnection.Connection.On<Dictionary<string, int>, bool>("StartGame", (opponentBoard, isMyTurn) =>
+        GameHubConnection.RegisterStartGameHandler(async (opponentBoard, isMyTurn) =>
         {
             Console.WriteLine("Spillet starter!");
             _playerBoard = new Dictionary<string, int>(GameComponents.GetBoard());
@@ -695,9 +696,9 @@
             _isMyTurn = isMyTurn;
             _gameState = GameState.Playing;
 
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         });
-        GameHubConnection.Connection.On<string, string, bool>("UpdateShot", (position, shooterId, isHit) =>
+        GameHubConnection.RegisterUpdateShotHandler(async (position, shooterId, isHit) =>
         {
             Console.WriteLine($"Mottok skudd: {position}, skytter: {shooterId}, treff: {isHit}");
 
@@ -712,7 +713,7 @@
                 Console.WriteLine($"Oppdaterte _opponentBoard[{position}] = {_opponentBoard[position]}");
 
                 // Sjekk om spillet er over etter vårt skudd
-                CheckGameOver();
+               await CheckGameOver();
             }
             else
             {
@@ -733,21 +734,21 @@
                     // Send skipsstatus til motstanderen
                     if (isSunk)
                     {
-                        GameHubConnection.Connection.SendAsync("UpdateShipStatus", ship.Key, true);
+                        await  GameHubConnection.SendUpdateShipStatusAsync(ship.Key, true);
                     }
                 }
                 // Sjekk om spillet er over etter motstanderens skudd
-                CheckGameOver();
+               await CheckGameOver();
                 Console.WriteLine("Sjekket om spillet er over etter motstanderens skudd");
             }
             // Oppdater tur-status
             _isMyTurn = !isMyShot; // Hvis det var vårt skudd, er det nå motstanderens tur, og omvendt
 
             // Oppdater UI
-            InvokeAsync(StateHasChanged);
+           await InvokeAsync(StateHasChanged);
         });
 
-        GameHubConnection.Connection.On<string, bool>("UpdateShipStatus", (shipName, isSunk) =>
+        GameHubConnection.RegisterUpdateShipStatusHandler(async (shipName, isSunk) =>
         {
             Console.WriteLine($"Mottok skipsstatus: {shipName}, sunket: {isSunk}");
 
@@ -759,13 +760,13 @@
             }
 
             // Sjekk om spillet er over
-            CheckGameOver();
+           await CheckGameOver();
 
             // Oppdater UI
-            InvokeAsync(StateHasChanged);
+           await InvokeAsync(StateHasChanged);
         });
 
-        GameHubConnection.Connection.On<bool>("GameOver", (youWon) =>
+        GameHubConnection.RegisterGameOverHandler(async (youWon) =>
         {
             Console.WriteLine($"Mottok GameOver: Du {(youWon ? "vant" : "tapte")}");
 
@@ -783,12 +784,12 @@
                 _gameOverMessage = youWon ? "Du vant! Alle motstanderens skip er sunket." : "Du tapte! Alle dine skip er sunket.";
 
                 // Oppdater UI
-                InvokeAsync(StateHasChanged);
+               await InvokeAsync(StateHasChanged);
             }
         });
 
         // Håndter når motstanderen kobler fra
-        GameHubConnection.Connection.On("OpponentDisconnected", () =>
+        GameHubConnection.RegisterOpponentDisconnectedHandler(async () =>
         {
             Console.WriteLine("Motstanderen koblet fra");
 
@@ -803,7 +804,7 @@
                 _gameOverMessage = "Du vant! Motstanderen koblet fra.";
 
                 // Oppdater UI
-                InvokeAsync(StateHasChanged);
+               await InvokeAsync(StateHasChanged);
             }
         });
 
@@ -907,7 +908,7 @@
     private async Task CompleteSetup()
     {
         _isSetupComplete = true;
-        await GameHubConnection.Connection.SendAsync("JoinGame", GameComponents.GetBoard());
+        await GameHubConnection.SendJoinGameAsync(GameComponents.GetBoard());
 
     }
 
@@ -919,7 +920,7 @@
         Console.WriteLine($"Sender skudd: {position}");
 
         // Send skudd til serveren med vår connection ID som skytter-ID
-        await GameHubConnection.Connection.SendAsync("UpdateShot", position, GameHubConnection.Connection.ConnectionId);
+        await GameHubConnection.SendUpdateShotAsync(position, GameHubConnection.Connection.ConnectionId!);
 
         // Oppdater lokalt UI for å vise at vi venter på motstanderen
         _isMyTurn = false;
@@ -979,7 +980,7 @@
             _gameState = GameState.GameOver;
             _isWinner = false;
             _gameOverMessage = "Du tapte! Alle dine skip er sunket.";
-            await GameHubConnection.Connection.SendAsync("GameOver", true); // Motstanderen vant
+            await GameHubConnection.SendGameOverAsync(true);  // Motstanderen vant
             await InvokeAsync(StateHasChanged);
         }
         // Sjekk om alle motstanderens skip er sunket
@@ -990,7 +991,7 @@
             _isWinner = true;
             _gameOverMessage = "Du vant! Alle motstanderens skip er sunket.";
             
-            await GameHubConnection.Connection.SendAsync("GameOver", false); // Motstanderen tapte
+            await GameHubConnection.SendGameOverAsync(false); // Motstanderen tapte
             await InvokeAsync(StateHasChanged);
         }
     }

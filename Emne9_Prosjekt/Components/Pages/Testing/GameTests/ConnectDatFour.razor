@@ -105,21 +105,21 @@
         } 
 
         // Registrer eventhandlers før vi kobler til
-        ConnectHubConnection.Connection.On("WaitingForOpponent", () =>
+        ConnectHubConnection.RegisterWaitingForOpponentHandler(async () =>
         {
             _gameState = GameState.WaitingForOpponent;
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         });
 
-        ConnectHubConnection.Connection.On("StartGame", (Dictionary<string, int> board, bool isMyTurn) =>
+        ConnectHubConnection.RegisterStartGameHandler(async( board, isMyTurn) =>
         {
             _board = board;
             _isMyTurn = isMyTurn;
             _gameState = GameState.Playing;
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         });
 
-        ConnectHubConnection.Connection.On<string>("UpdateBoard", (pos) =>
+        ConnectHubConnection.RegisterUpdateBoardHandler(async(pos) =>
         {
             if (_gameState == GameState.Playing)
             {
@@ -134,37 +134,37 @@
                     _gameState = GameState.GameOver;
                     _gameOverMessage = "You lost!";
                     _isWinner = false;
-                    ConnectHubConnection.Connection.SendAsync("GameOver", false);
+                   await ConnectHubConnection.SendGameOverAsync(false);
                 }
 
-                InvokeAsync(StateHasChanged);
+               await InvokeAsync(StateHasChanged);
             }
         });
 
-        ConnectHubConnection.Connection.On<bool>("GameOver", (youWon) =>
+        ConnectHubConnection.RegisterGameOverHandler(async(youWon) =>
         {
             if (_gameState == GameState.Playing)
             {
                 _gameState = GameState.GameOver;
                 _gameOverMessage = youWon ? "You won!" : "You lost!";
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
                 Console.WriteLine("GameOver-melding mottatt");
             }
         });
 
-        ConnectHubConnection.Connection.On("OpponentDisconnected", () =>
+        ConnectHubConnection.RegisterOpponentDisconnectedHandler(async () =>
         {
             if (_gameState == GameState.Playing)
             {
                 _gameState = GameState.GameOver;
                 _isWinner = true;
                 _gameOverMessage = "You won! (Opponent disconnected)";
-                InvokeAsync(StateHasChanged);
+               await InvokeAsync(StateHasChanged);
             }
             else if (_gameState == GameState.WaitingForOpponent)
             {
                 _gameState = GameState.WaitingForOpponent;
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
                 Console.WriteLine("OpponentDisconnected-melding mottatt");
             }
         });
@@ -212,7 +212,7 @@
                 // Når forbindelsen er startet, join game
                 if (_gameState == GameState.Connecting)
                 {
-                    await ConnectHubConnection.Connection.SendAsync("JoinGame", _board);
+                    await ConnectHubConnection.SendJoinGameAsync(_board);
                     Console.WriteLine("Sendte JoinGame til server.");
                 }
             }
@@ -263,14 +263,14 @@
             _gameState = GameState.GameOver;
             _gameOverMessage = "You won!";
             _isWinner = true;
-            await ConnectHubConnection.Connection.SendAsync("GameOver", true);
+            await ConnectHubConnection.SendGameOverAsync(true);
         }
 
         var opponentId = await ConnectHubConnection.Connection.InvokeAsync<string>("GetOpponentId");
         if (!string.IsNullOrEmpty(opponentId))
         {
-            await ConnectHubConnection.Connection.SendAsync("UpdateOpponentBoard", opponentId, pos);
-            await ConnectHubConnection.Connection.SendAsync("SwitchTurn");
+            await ConnectHubConnection.SendUpdateBoardAsync(opponentId, pos);
+            await ConnectHubConnection.SwitchTurnAsync();
             _isMyTurn = false;
         }
 
