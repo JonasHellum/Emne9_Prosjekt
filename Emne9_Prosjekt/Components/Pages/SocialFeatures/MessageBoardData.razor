@@ -1,19 +1,132 @@
-﻿<div style="background: url('/Assets/PageAssets/LoopStripe.png') repeat fixed;
+﻿@using Emne9_Prosjekt.Hubs.HubModels
+@using Emne9_Prosjekt.Hubs.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
+@inject IForumConnection ForumConnection
+@implements IAsyncDisposable
+
+<div style="background: url('/Assets/PageAssets/LoopStripe.png') repeat fixed;
             width: 100%">
     <img style=" position: relative;
              width: 1000px;
              top: -25px"
          alt="" src="/Assets/PageAssets/PageBorderO.png"/>
     <div>
-        <h1 style="color: white;
+        <div style="color: white;
                    text-align: center;
                    padding-top: 100px;
                    padding-bottom: 250px">
-            Data goes here.
-        </h1>
+        <h2 class="text-xl font-semibold mb-4">Create a new Thread</h2>
+
+        <div class="mb-4 flex gap-2">
+            <input @bind="_newMessage.Title" placeholder="Title" class="p-2 border rounded w-1/4" />
+            <input @bind="_newMessage.Content" placeholder="Content" class="p-2 border rounded w-1/2" />
+            <button class="message-board-button" @onclick="SendMessage">New thread</button>
+        </div>
+
+    @foreach (var message in _messages)
+        {
+    <div style="width: 700px; margin: 0 auto; background: darkorange" class="border rounded p-4 mb-4">
+    <h3 class="text-lg font-bold">@message.Title</h3>
+        <p>@message.Content</p>
+
+    <h4 class="mt-2 font-medium text-sm text-gray-700">Comments</h4>
+            @if (message.Comments.Any())
+            {
+            @foreach (var comment in message.Comments)
+            {
+    <p class="ml-4 text-sm text-gray-800">- @comment.Text</p>
+            }
+            }
+        else
+        {
+    <p class="ml-4 text-sm text-gray-500 italic">No comments yet</p>
+                    }
+
+    <div class="mt-2 flex gap-2">
+        <input
+            @bind="_commentTexts[message.Id]"
+            placeholder="New comment..."
+            class="p-1 border rounded w-2/3" />
+        <button class="message-board-button" @onclick="() => SendComment(message.Id)">Leave a comment</button>
+        </div>
+    </div>
+        }
+        </div>
     </div>
 </div>
 
+<style>
+    .message-board-button {
+        color: white;
+        background: #aa4400;
+        font-weight: bold;
+        height: 40px;
+        border: 2px solid #d45500;
+        border-radius: 5px;
+    }
+
+    .message-board-button:hover {
+        background: #ff7f2a;
+    }
+
+    .message-board-button:active {
+        background: #803300;
+    }
+</style>
+
 @code {
+    private List<Message> _messages = new();
+    private Message _newMessage = new();
+    private Dictionary<Guid, string> _commentTexts = new();
     
+    protected override async Task OnInitializedAsync()
+    {
+        ForumConnection.Connection.On<List<Message>>("MessagesUpdated", (updatedMessages) =>
+        {
+            _messages = updatedMessages;
+
+            foreach (var message in _messages)
+            {
+                if (!_commentTexts.ContainsKey(message.Id))
+                {
+                    _commentTexts[message.Id] = string.Empty;
+                }
+            }
+
+            InvokeAsync(StateHasChanged);
+        });
+        await ForumConnection.Connection.StartAsync();
+    }
+
+    private async Task SendMessage()
+    {
+        if (!string.IsNullOrEmpty(_newMessage.Title) && !string.IsNullOrEmpty(_newMessage.Content))
+        {
+            await ForumConnection.Connection.SendAsync("SendMessage", _newMessage);
+            _newMessage = new();
+        }
+    }
+
+    private async Task SendComment(Guid messageId)
+    {
+        if (_commentTexts.TryGetValue(messageId, out var commentText) && !string.IsNullOrWhiteSpace(commentText))
+        {
+            var comment = new Comment
+            {
+                MessageId = messageId,
+                Text = commentText
+            };
+
+            await ForumConnection.Connection.SendAsync("SendComment", comment);
+            _commentTexts[messageId] = string.Empty; // Tøm inputfeltet
+        }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        if (ForumConnection is not null)
+        {
+            await ForumConnection.DisposeAsync();
+        }
+    }
 }
+        
