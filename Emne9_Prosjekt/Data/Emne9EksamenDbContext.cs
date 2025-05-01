@@ -15,6 +15,7 @@ public class Emne9EksamenDbContext : IdentityDbContext<IdentityUser>
     
     public DbSet<Member> Member { get; set; }
     public DbSet<Leaderboard> Leaderboard { get; set; }
+    public DbSet<MemberRefreshToken> MemberRefreshToken { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

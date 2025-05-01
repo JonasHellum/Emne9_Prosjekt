@@ -1,11 +1,13 @@
 ﻿@page "/Leaderboards"
 @using Emne9_Prosjekt.Components.Pages.FrontPage
+@using Emne9_Prosjekt.Components.Pages.Services
 @using Emne9_Prosjekt.Features.Leaderboards.Models
 @using Emne9_Prosjekt.Features.Members.Models
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager
+@inject CustomAuthenticationStateProvider AuthStateProvider
 
 <div data-aos="zoom"></div>
 
@@ -50,7 +52,7 @@
                 </tbody>
             </table>
         }
-        else if (memberId == null)
+        @if (!loggedIn)
         {
             <p>You are not logged in.</p>
         }
@@ -195,8 +197,9 @@
     private string errorMessage;
     private bool _isClientSide;
     private bool loggedIn;
-    
-    
+    private bool _noNewPageAtAll;
+
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -237,6 +240,7 @@
                     }
 
                     memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+                    loggedIn = !string.IsNullOrEmpty(memberId);
                     await LoadLeaderboardPage();
                     
                 }
@@ -253,6 +257,7 @@
         gameType = e.Value?.ToString() ?? "All"; // Update the gameType
         _currentPageForAll = 1; // Reset to the first page when the game type changes
         _disableAllNextPage = false;
+        _noNewPageAtAll = false;
         await LoadLeaderboardPage();
     }
     
@@ -283,6 +288,10 @@
             {
                 _disableAllNextPage = true;
             }
+            if (!filteredLeaderboard.Any())
+            {
+                _noNewPageAtAll = true;
+            }
 
             Console.WriteLine($"[LoadLeaderboardPage] Page: {_currentPageForAll}, Filtered: {filteredLeaderboard.Count}, Disable Next: {_disableAllNextPage}");
         }
@@ -309,7 +318,7 @@
         Console.WriteLine($"[Pagination] Navigating to Page: {_currentPageForAll}");
         await LoadLeaderboardPage();
 
-        if (_disableAllNextPage)
+        if (_noNewPageAtAll)
         {
             Console.WriteLine("Reverting navigation. No valid data for the next page.");
             _currentPageForAll--;
@@ -324,7 +333,7 @@
             _currentPageForAll--;
             Console.WriteLine($"[Pagination] Current Page (Previous): {_currentPageForAll}");
             _disableAllNextPage = false;
-
+            _noNewPageAtAll = false;
             await LoadLeaderboardPage();
         }
     }

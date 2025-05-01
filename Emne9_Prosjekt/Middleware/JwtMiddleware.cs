@@ -5,12 +5,12 @@ namespace Emne9_Prosjekt.Middleware;
 
 public class JwtMiddleware : IMiddleware
 {
-    private readonly IMemberService _tokenValidationService;
+    private readonly IMemberService _memberService;
     private readonly ILogger<JwtMiddleware> _logger;
 
     public JwtMiddleware(IMemberService memberService, ILogger<JwtMiddleware> logger)
     {
-        _tokenValidationService = memberService;
+        _memberService = memberService;
         _logger = logger;
     }
 
@@ -19,28 +19,13 @@ public class JwtMiddleware : IMiddleware
         if (context.Request.Path.StartsWithSegments("/api"))
         {
             string? token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-            Console.WriteLine($"Token PLEASE FROM MIDDLEWARE BEFORE COOKIE CHECK: {token}");
-
-            // If no Authorization header exists, fallback to cookies
-            if (string.IsNullOrEmpty(token))
-            {
-                token = context.Request.Cookies["AuthTokenCOMON"];
-                Console.WriteLine($"Token PLEASE FROM MIDDLEWARE WHEN COOKIE CHECK: {token}");
-            }
+            Console.WriteLine($"Token from Authorization header: {token}");
+            
 
             if (!string.IsNullOrEmpty(token))
             {
-                // if (await IsTokenBlacklisted(token))
-                // {
-                //     _logger.LogWarning("Token is blacklisted. Removing authentication context.");
-                //     context.User = new ClaimsPrincipal(); // Clear the user claims
-                //     await next(context);
-                //     return;
-                // }
-
-            
                 // Validate the token using the service
-                var (memberId, userName) = _tokenValidationService.ValidateAccessToken(token);
+                var (memberId, userName) = _memberService.ValidateAccessToken(token);
 
                 if (!string.IsNullOrEmpty(memberId) && !string.IsNullOrEmpty(userName))
                 {
@@ -75,11 +60,3 @@ public class JwtMiddleware : IMiddleware
         await next(context);
     }
 }
-
-// private async Task<bool> IsTokenBlacklisted(string token)
-// {
-//     // Implement a mechanism to check if the token has been invalidated or blacklisted.
-//     // For example, calling a database or in-memory cache (e.g., Redis or MemoryCache).
-//     // This ensures that even valid tokens cannot be reused after logout.
-//     return await Task.FromResult(false); // Replace with actual logic
-// }

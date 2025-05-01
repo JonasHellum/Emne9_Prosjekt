@@ -111,7 +111,7 @@ public class LeaderboardRepository : ILeaderboardRepository
     {
         // Step 1: Group and aggregate in the database
         var groupedQuery = _dbContext.Leaderboard
-            .Where(l => gameType == "All" || l.GameType == gameType)
+            .Where(l => gameType.ToLower() == "All".ToLower() || l.GameType.ToLower() == gameType.ToLower())
             .GroupBy(l => new { l.MemberId, l.UserName })
             .Select(group => new Leaderboard
             {
@@ -143,7 +143,7 @@ public class LeaderboardRepository : ILeaderboardRepository
         if (loggedInUser == null && loggedInMemberId != null)
         {
             var userLeaderboard = await _dbContext.Leaderboard
-                .Where(l => l.MemberId == loggedInMemberId && (gameType == "All" || l.GameType == gameType))
+                .Where(l => l.MemberId == loggedInMemberId && (gameType.ToLower() == "All".ToLower() || l.GameType.ToLower() == gameType.ToLower()))
                 .GroupBy(l => new { l.MemberId, l.UserName })
                 .Select(group => new LeaderboardDTO
                 {

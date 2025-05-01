@@ -649,14 +649,12 @@
     private bool _gameOver;
     private bool _isWinner;
     private string _gameOverMessage = "";
-    private int _pointToWinner = 0;
-    private int _pointToLoser = 0;
     private string _userName;
     private bool _loggedIn;
     private string _errorMessage;
     private bool _toWinnerOnDisconnect;
-    private bool _1pointToLosses = true;
-    private bool _1pointToWinner = true;
+    private bool _1PointToLosses = true;
+    private bool _1PointToWinner = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -791,11 +789,6 @@
                 Console.WriteLine("Setter spilltilstand til GameOver etter melding fra server");
                 _gameState = GameState.GameOver;
                 _isWinner = youWon;
-                if (youWon)
-                {
-                    _pointToWinner = 1;
-                    _pointToLoser = -1;
-                }
                 _gameOverMessage = youWon ? "Du vant! Alle motstanderens skip er sunket." : "Du tapte! Alle dine skip er sunket.";
 
                 // Oppdater UI
@@ -814,8 +807,6 @@
                 Console.WriteLine("Setter spilltilstand til GameOver etter at motstanderen koblet fra");
                 _gameState = GameState.GameOver;
                 _isWinner = true;
-                _pointToWinner = 1;
-                _pointToLoser = -1;
                 _gameOverMessage = "Du vant! Motstanderen koblet fra.";
 
                 // Oppdater UI
@@ -871,7 +862,7 @@
 
         if (_loggedIn)
         {
-            if (_gameState == GameState.Playing && _1pointToLosses)
+            if (_gameState == GameState.Playing && _1PointToLosses)
             {
                 var leaderboardLossToAdd = new LeaderboardAddOrUpdateDTO()
                 {
@@ -880,10 +871,10 @@
                     Losses = 1
                 };
                 await UpdateOrCreateLeaderboard(leaderboardLossToAdd);
-                _1pointToLosses = false;
+                _1PointToLosses = false;
             }
         
-            if (_isWinner && _1pointToWinner)
+            if (_isWinner && _1PointToWinner)
             {
                 var leaderboardWinToAdd = new LeaderboardAddOrUpdateDTO()
                 {
@@ -892,7 +883,7 @@
                     Losses = -1
                 };
                 await UpdateOrCreateLeaderboard(leaderboardWinToAdd);
-                _1pointToWinner = false;
+                _1PointToWinner = false;
             }
         }
         await base.OnAfterRenderAsync(firstRender);

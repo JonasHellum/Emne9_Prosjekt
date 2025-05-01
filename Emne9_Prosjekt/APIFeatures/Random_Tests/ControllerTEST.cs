@@ -5,7 +5,7 @@ namespace Emne9_Prosjekt.Features.Random_Tests;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class ControllerTEST : ControllerBase
 {
     private static readonly string[] Summaries = new[]

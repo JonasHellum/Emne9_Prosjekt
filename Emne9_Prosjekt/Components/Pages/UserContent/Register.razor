@@ -1,6 +1,6 @@
 ﻿@page "/Register"
 @using System.Text.Json
-@using Emne9_Prosjekt.Features.Members.Models
+
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
@@ -8,6 +8,7 @@
 @inject IConfiguration Configuration
 @using Emne9_Prosjekt.Components.Pages.Interfaces
 @using Emne9_Prosjekt.Components.Pages.FrontPage
+@using Emne9_Prosjekt.Features.Members.Models
 @inject IAuthStateService AuthState
 
 <div data-aos="zoom"></div>
@@ -341,6 +342,7 @@
             registrationFailed = true;
         }
     }
+    
     private class ErrorResponse
     {
         public List<string> Errors { get; set; }

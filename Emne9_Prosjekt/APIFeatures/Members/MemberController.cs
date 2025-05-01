@@ -4,7 +4,9 @@ using Emne9_Prosjekt.Validators.Interfaces;
 using Emne9_Prosjekt.Validators.MemberValidators;
 using FluentValidation;
 using Google.Apis.Auth;
+using Google.Apis.Auth.OAuth2.Requests;
 using Microsoft.AspNetCore.Authentication;
+using Emne9_Prosjekt.Features.Members.Models;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -75,7 +77,7 @@ public class MemberController : ControllerBase
     /// <returns>A MemberDTO object containing the authenticated user's details if successful; otherwise, returns an Unauthorized status.</returns>
     [AllowAnonymous]
     [HttpPost("Login", Name = "Login")]
-    public async Task<ActionResult<MemberDTO>> LoginAsync([FromBody] MemberDTO memberDTO)
+    public async Task<ActionResult<MemberTokenResponse>> LoginAsync([FromBody] MemberDTO memberDTO)
     {
         Console.WriteLine($"Login attempt for user: {memberDTO.UserName}");
         var member = await _memberService.LoginMemberAsync(memberDTO.UserName, memberDTO.Password);
@@ -85,24 +87,74 @@ public class MemberController : ControllerBase
             return Unauthorized("Username or password is incorrect");
         }
         
-        var memberToken = _memberService.MakeToken(member);
-        // Response.Headers.Add("Authorization", memberToken);
+        var memberAccessToken = _memberService.MakeAccessToken(member);
+        var memberRefreshToken = _memberService.MakeRefreshToken();
         
-        // Set the JWT in a cookie
-        Response.Cookies.Append("AuthTokenCOMON", memberToken, new CookieOptions
+        await _memberService.SaveRefreshTokenAsync(member.MemberId, memberRefreshToken);
+        
+        // Response.Headers.Add("Authorization", $"Bearer {memberAccessToken}");
+        // Response.Headers.Add("RefreshToken", $"Bearer {memberRefreshToken}");
+
+        return Ok(new MemberTokenResponse
         {
-            HttpOnly = true,    // Ensures JavaScript cannot access the cookie
-            SameSite = SameSiteMode.Lax,
-            Secure = false,      // True ensures the cookie is only sent over HTTPS, but we on HTTP now
-            Expires = DateTime.UtcNow.AddHours(2),
-            Domain = "localhost",
-            Path = "/"
+            AccessToken = memberAccessToken,
+            RefreshToken = memberRefreshToken
         });
-
-
-        return Ok(member);
     }
+            
     
+    [AllowAnonymous]
+    [HttpPost("RefreshToken", Name = "RefreshToken")]
+    public async Task<ActionResult> RefreshTokenAsync([FromBody] string request)
+    {
+        var memberId = await _memberService.ValidateRefreshTokenAsync(request);
+        if (memberId == Guid.Empty)
+        {
+            return Unauthorized("Invalid or expired refresh token");
+        }
+
+        // Generate a new access token
+        var member = await _memberService.GetByIdAsync(memberId);
+        if (member == null)
+        {
+            return Unauthorized("User not found");
+        }
+        
+        var newAccessToken = _memberService.MakeAccessToken(member);
+        var storedToken = await _memberService.GetStoredRefreshTokenAsync(request);
+        
+        if (storedToken.Expires.Subtract(DateTime.UtcNow).TotalHours <= 1)
+        {
+            // Generate a new refresh token and save it
+            var newRefreshToken = _memberService.MakeRefreshToken();
+            await _memberService.SaveRefreshTokenAsync(memberId, newRefreshToken);
+
+            return Ok(new
+            {
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken // New refresh token is issued
+            });
+        }
+        
+        return Ok(new
+        {
+            AccessToken = newAccessToken
+        });
+    }
+            
+    
+    [Authorize]
+    [HttpPost("Logout")]
+    public async Task<IActionResult> LogoutAsync([FromBody] MemberTokenRequest request)
+    {
+        await _memberService.RevokeRefreshTokenAsync(request.RefreshToken);
+        return Ok("Logged out successfully");
+    }
+
+            
+    
+
+            
     /// <summary>
     /// Google Call Back, redirects to this after logging in through Google
     /// so it saves all the userinfo, makes a jwtoken etc.
@@ -147,7 +199,7 @@ public class MemberController : ControllerBase
                 return BadRequest("Failed to login with Google");
             }
             
-            var memberToken = _memberService.MakeToken(member!);
+            var memberToken = _memberService.MakeAccessToken(member!);
             // Response.Headers.Add("Authorization", memberToken);
             
             Response.Cookies.Append("AuthTokenCOMON", memberToken, new CookieOptions
@@ -301,19 +353,19 @@ public class MemberController : ControllerBase
         return Ok(exists);
     }
 
-    /// <summary>
-    /// Logs out the currently authenticated user by ending their session and clearing associated authentication cookies.
-    /// </summary>
-    /// <returns>An OK result indicating that the logout operation was successful.</returns>
-    [Authorize]
-    [HttpGet("Logout")]
-    public IActionResult Logout()
-    {
-        Response.Cookies.Delete("AuthTokenCOMON");
-        HttpContext.SignOutAsync();
-        HttpContext.User = null;
-        Response.Headers.Append("Set-Cookie", "AuthTokenCOMON=; Max-Age=0; path=/; Secure; HttpOnly; SameSite=Lax");
-
-        return Ok(new { Message = "Logged out" });
-    }
+    // /// <summary>
+    // /// Logs out the currently authenticated user by ending their session and clearing associated authentication cookies.
+    // /// </summary>
+    // /// <returns>An OK result indicating that the logout operation was successful.</returns>
+    // [Authorize]
+    // [HttpGet("Logout")]
+    // public IActionResult Logout()
+    // {
+    //     Response.Cookies.Delete("AuthTokenCOMON");
+    //     HttpContext.SignOutAsync();
+    //     HttpContext.User = null;
+    //     Response.Headers.Append("Set-Cookie", "AuthTokenCOMON=; Max-Age=0; path=/; Secure; HttpOnly; SameSite=Lax");
+    //
+    //     return Ok(new { Message = "Logged out" });
+    // }
 }

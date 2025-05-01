@@ -12,10 +12,15 @@ public interface IMemberService : IBaseService<MemberDTO>
     Task<MemberDTO?> GoogleLoginAsync(GoogleJsonWebSignature.Payload googleUser);
     (string memberId, string userName) ValidateAccessToken(string accessToken);
     Task<MemberDTO?> UpdateAsync(Guid memberId, MemberUpdateDTO updateDTO);
-    string MakeToken(MemberDTO member);
+    string MakeAccessToken(MemberDTO member);
+    string MakeRefreshToken();
     Task<bool> UserNameExistsAsync(string username);
     Task<bool> EmailExistsAsync(string email);
-    
+    Task SaveRefreshTokenAsync(Guid memberId, string refreshToken);
+    Task<Guid> ValidateRefreshTokenAsync(string token);
+    Task RevokeRefreshTokenAsync(string token);
+    Task<MemberRefreshToken> GetStoredRefreshTokenAsync(string token);
+
     //(string? userId, IEnumerable<string>? roles) ValidateAccessToken(string accessToken);
     //
 //     Task<IEnumerable<MemberDTO?>> GetPagedAsync(int pageNumber, int pageSize);

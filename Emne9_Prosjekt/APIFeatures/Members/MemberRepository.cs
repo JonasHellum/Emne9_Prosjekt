@@ -127,4 +127,41 @@ public class MemberRepository : IMemberRepository
         _logger.LogDebug($"Checking if email {email} exists in database.");
         return await _dbContext.Member.AnyAsync(m => m.Email.ToLower() == email.ToLower());
     }
+
+    
+    #region For Refresh Tokens
+
+    public async Task SaveRefreshTokenAsync(MemberRefreshToken refreshToken)
+    {
+        _dbContext.MemberRefreshToken.Add(refreshToken);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    // Validate a refresh token from the database
+    public async Task<MemberRefreshToken> ValidateRefreshTokenAsync(string token)
+    {
+        return await _dbContext.MemberRefreshToken
+            .FirstOrDefaultAsync(t => t.Token == token && !t.Revoked && t.Expires > DateTime.UtcNow);
+    }
+
+    // Revoke a refresh token (e.g., on logout)
+    public async Task RevokeRefreshTokenAsync(string token)
+    {
+        var refreshToken = await _dbContext.MemberRefreshToken.FirstOrDefaultAsync(t => t.Token == token);
+        if (refreshToken != null)
+        {
+            refreshToken.Revoked = true;
+            _dbContext.MemberRefreshToken.Update(refreshToken);
+            await _dbContext.SaveChangesAsync();
+        }
+    }
+    
+    public async Task<MemberRefreshToken> GetStoredRefreshTokenAsync(string token)
+    {
+        return await _dbContext.MemberRefreshToken
+            .FirstOrDefaultAsync(rt => rt.Token == token);
+    }
+
+    
+    #endregion
 }

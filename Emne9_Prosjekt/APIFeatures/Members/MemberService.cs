@@ -2,6 +2,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq.Expressions;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Emne9_Prosjekt.Features.Common.Interfaces;
 using Emne9_Prosjekt.Features.Members.Interfaces;
@@ -82,7 +83,7 @@ public class MemberService : IMemberService
         if (existingMember != null)
         {
             _logger.LogInformation($"User with email {email} already exists.");
-            GenerateJwtToken(existingMember);
+            GenerateJwtAccessToken(existingMember);
             
             return _memberMapper.MapToDTO(existingMember); 
         }
@@ -114,7 +115,7 @@ public class MemberService : IMemberService
             throw new DataException("Failed to add member.");
         }
 
-        GenerateJwtToken(newMember);
+        GenerateJwtAccessToken(newMember);
         return _memberMapper.MapToDTO(newMember);
     }
 
@@ -294,18 +295,7 @@ public class MemberService : IMemberService
             ? null
             : _memberMapper.MapToDTO(member);
     }
-
-    /// <summary>
-    /// Generates a JWT token for the given member.
-    /// </summary>
-    /// <param name="member">The member for whom the token will be generated.</param>
-    /// <returns>A string containing the generated JWT token.</returns>
-    public string MakeToken(MemberDTO member)
-    {
-        var memberModel = _memberMapper.MapToModel(member);
-        return GenerateJwtToken(memberModel);
-    }
-
+    
     /// <summary>
     /// Checks if a username already exists in the system.
     /// </summary>
@@ -337,6 +327,62 @@ public class MemberService : IMemberService
         _logger.LogDebug($"Email exists: {exists}");
         return exists;
     }
+    
+    /// <summary>
+    /// Generates a JWT token for the given member.
+    /// </summary>
+    /// <param name="member">The member for whom the token will be generated.</param>
+    /// <returns>A string containing the generated JWT token.</returns>
+    public string MakeAccessToken(MemberDTO member)
+    {
+        var memberModel = _memberMapper.MapToModel(member);
+        return GenerateJwtAccessToken(memberModel);
+    }
+
+    public string MakeRefreshToken()
+    {
+        return GenerateJwtRefreshToken();
+    }
+    
+    public async Task SaveRefreshTokenAsync(Guid memberId, string refreshToken)
+    {
+        var token = new MemberRefreshToken
+        {
+            Token = refreshToken,
+            MemberId = memberId,
+            Created = DateTime.UtcNow,
+            Expires = DateTime.UtcNow.AddDays(1), // Expires in 1 day
+            Revoked = false
+        };
+
+        await _memberRepository.SaveRefreshTokenAsync(token);
+    }
+
+    // Validate Refresh Token
+    public async Task<Guid> ValidateRefreshTokenAsync(string token)
+    {
+        var storedToken = await _memberRepository.ValidateRefreshTokenAsync(token);
+
+        if (storedToken == null)
+        {
+            // Token is invalid, revoked, or expired
+            return Guid.Empty;
+        }
+
+        return storedToken.MemberId; // Return the associated member ID
+    }
+
+    // Revoke a Refresh Token
+    public async Task RevokeRefreshTokenAsync(string token)
+    {
+        await _memberRepository.RevokeRefreshTokenAsync(token);
+    }
+    
+    public async Task<MemberRefreshToken> GetStoredRefreshTokenAsync(string token)
+    {
+        return await _memberRepository.GetStoredRefreshTokenAsync(token);
+    }
+
 
 
     #region Private methods
@@ -388,7 +434,7 @@ public class MemberService : IMemberService
     /// </summary>
     /// <param name="member">The member for whom the JWT token is to be generated.</param>
     /// <returns>A string representing the generated JWT token.</returns>
-    private string GenerateJwtToken(Member member)
+    private string GenerateJwtAccessToken(Member member)
     {
         _logger.LogInformation("Generating JWT token for member.");
         var claims = new[]
@@ -408,7 +454,7 @@ public class MemberService : IMemberService
         SecurityTokenDescriptor tokenDescriptor = new()
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddHours(1),
+            Expires = DateTime.UtcNow.AddMinutes(15),
             Issuer = _config["JWT:Issuer"],
             Audience = _config["JWT:Audience"],
             // Issuer = _jwtOptions.Value.Issuer,
@@ -421,6 +467,11 @@ public class MemberService : IMemberService
         var token = tokenHandler.CreateToken(tokenDescriptor);
         Console.WriteLine(tokenHandler.WriteToken(token));
         return tokenHandler.WriteToken(token);
+    }
+
+    private string GenerateJwtRefreshToken()
+    {
+        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
     }
 
     /// <summary>
