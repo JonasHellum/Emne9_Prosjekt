@@ -47,7 +47,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSignalR();
 builder.Services.AddSignalRHubs();
-builder.Services.AddSingleton<ChatService>();
+builder.Services.AddSingleton<IChatService, ChatService>();
 builder.Services.AddSingleton<IGameService, GameService>();
 builder.Services.AddSingleton<IForumService, ForumService>();
 builder.Services.AddSingleton<IConnectFourGameService, ConnectFourGameService>();

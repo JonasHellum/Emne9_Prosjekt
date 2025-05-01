@@ -1,8 +1,9 @@
 ﻿using System.Collections.Concurrent;
+using Emne9_Prosjekt.Hubs.HubServices.Interfaces;
 
 namespace Emne9_Prosjekt.Hubs.HubServices;
 
-public class ChatService
+public class ChatService : IChatService
 {
      // En tråd-sikker kø som lagrer brukere som venter på en chat-partner
     private static readonly ConcurrentQueue<string> WaitingQueue = new();

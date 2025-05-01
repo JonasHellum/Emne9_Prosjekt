@@ -1,4 +1,4 @@
-﻿using Emne9_Prosjekt.Hubs.HubServices;
+﻿using Emne9_Prosjekt.Hubs.HubServices.Interfaces;
 using Emne9_Prosjekt.Hubs.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 
@@ -7,9 +7,9 @@ namespace Emne9_Prosjekt.Hubs;
 public class ChatHub : Hub<IChatClientMethods>
 {
     private readonly ILogger<ChatHub> _logger;
-    private readonly ChatService _chatService; // Bruker tjenesten
+    private readonly IChatService _chatService; // Bruker tjenesten
 
-    public ChatHub(ILogger<ChatHub> logger, ChatService chatService)
+    public ChatHub(ILogger<ChatHub> logger, IChatService chatService)
     {
         _logger = logger;
         _chatService = chatService;
