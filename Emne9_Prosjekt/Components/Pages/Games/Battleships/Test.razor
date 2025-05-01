@@ -706,9 +706,10 @@
 
             if (isMyShot)
             {
+                
                 //Update opponentboard ui
                 _opponentBoard[position] = isHit ? -1 : -2;
-
+                
                 Console.WriteLine($"Oppdaterte _opponentBoard[{position}] = {_opponentBoard[position]}");
                 
                 
@@ -716,7 +717,7 @@
             }
             else
             {
-                
+                GameComponents.ShootBoard(position);
                 // Updating playerboard ui
                 if (_playerBoard.ContainsKey(position))
                 {
