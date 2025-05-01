@@ -5,13 +5,19 @@ namespace Emne9_Prosjekt.Hubs.HubServices;
 
 public class ChatService : IChatService
 {
-     // En tråd-sikker kø som lagrer brukere som venter på en chat-partner
+    private readonly ILogger<ChatService> _logger;
+
+    // En tråd-sikker kø som lagrer brukere som venter på en chat-partner
     private static readonly ConcurrentQueue<string> WaitingQueue = new();
     // En tråd-sikker dictionary som knytter hver tilkobling til en gruppe
     private static readonly ConcurrentDictionary<string, string> UserGroups = new();
    private static readonly ConcurrentDictionary<string, string> UserPartners = new(); // Kobling mellom bruker og partner
+   
+   public ChatService(ILogger<ChatService> logger)
+   {
+       _logger = logger;
+   }
 
-    
     /// <summary>
     /// Tildeler en bruker til en chat-gruppe.
     /// Hvis det finnes en annen bruker som venter, pares de sammen i en ny gruppe.
@@ -33,6 +39,7 @@ public class ChatService : IChatService
                 
                 UserPartners[connectionId] = partnerConnectionId;
                 UserPartners[partnerConnectionId] = connectionId;
+                _logger.LogInformation($"User {connectionId} matched with {partnerConnectionId} in group {groupName}");
 
                 return (groupName, partnerConnectionId);  // Returnerer gruppenavn og partnerens ID
             }
@@ -62,6 +69,7 @@ public class ChatService : IChatService
 
             // Fjern brukeren fra partnerlisten
             UserPartners.TryRemove(connectionId, out _);
+            _logger.LogInformation($"User {connectionId} disconnected from {groupName}");
 
             return true;
         }
@@ -75,6 +83,7 @@ public class ChatService : IChatService
     /// <returns>Gruppe-navnet eller null hvis brukeren ikke er i en gruppe</returns>
     public string? GetUserGroup(string connectionId)
     {
+        _logger.LogInformation($"Getting group for {connectionId}");
         UserGroups.TryGetValue(connectionId, out var groupName);
         return groupName;
     }
@@ -82,6 +91,7 @@ public class ChatService : IChatService
     //Henter brukerens chat-partner
     public string? GetPartner(string connectionId)
     {
+        _logger.LogInformation($"Getting partner for {connectionId}");
         UserPartners.TryGetValue(connectionId, out var partnerConnectionId);
         return partnerConnectionId;
     }
@@ -89,6 +99,7 @@ public class ChatService : IChatService
     //Sjekker om en bruker har reconnectet
     public bool IsUserReconnected(string connectionId)
     {
+        _logger.LogInformation($"Checking if user {connectionId} is reconnected");
         return UserGroups.ContainsKey(connectionId);
     }
     

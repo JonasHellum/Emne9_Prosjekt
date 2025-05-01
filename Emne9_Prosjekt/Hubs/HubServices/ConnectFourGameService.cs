@@ -5,12 +5,18 @@ namespace Emne9_Prosjekt.Hubs.HubServices;
 
 public class ConnectFourGameService : IConnectFourGameService
 {
+    private readonly ILogger<ConnectFourGameService> _logger;
     private readonly Dictionary<string, PlayerSession> _waitingPlayers = new();
     private readonly Dictionary<string, GameSession> _games = new();
+    public ConnectFourGameService(ILogger<ConnectFourGameService> logger)
+    {
+        _logger = logger;
+    }
 
     public GameSession? JoinGame(string connectionId, Dictionary<string, int> board)
     {
-        Console.WriteLine($"[Service] {connectionId} joiner spill.");
+        _logger.LogInformation($"User {connectionId} connected.");
+        
         var player = new PlayerSession
         {
             ConnectionId = connectionId,
@@ -19,11 +25,13 @@ public class ConnectFourGameService : IConnectFourGameService
 
         if (_waitingPlayers.Count == 0)
         {
+            _logger.LogInformation($"User {connectionId} waiting for opponent.");
             _waitingPlayers[connectionId] = player;
             return null; // Venter på motstander
         }
         else
         {
+            _logger.LogInformation($"User {connectionId} matched with {player.ConnectionId} and {player.ConnectionId}.");
             var opponentEntry = _waitingPlayers.First();
             _waitingPlayers.Remove(opponentEntry.Key);
 
@@ -45,12 +53,14 @@ public class ConnectFourGameService : IConnectFourGameService
 
     public GameSession? GetGameByConnection(string connectionId)
     {
+        _logger.LogInformation($"Getting game for {connectionId}");
         return _games.Values.FirstOrDefault(g =>
             g.Player1.ConnectionId == connectionId || g.Player2.ConnectionId == connectionId);
     }
 
     public bool IsPlayerTurn(string connectionId)
     {
+        _logger.LogInformation($"Checking if it's {connectionId}'s turn");
         var game = GetGameByConnection(connectionId);
         if (game == null) return false;
 
@@ -59,6 +69,7 @@ public class ConnectFourGameService : IConnectFourGameService
 
     public void SwitchTurn(string connectionId)
     {
+        _logger.LogInformation($"Switching turn for {connectionId}");
         var game = GetGameByConnection(connectionId);
         if (game == null) return;
 
@@ -69,6 +80,7 @@ public class ConnectFourGameService : IConnectFourGameService
 
     public string GetOpponentId(string connectionId)
     {
+        _logger.LogInformation($"Getting opponent ID for {connectionId}");
         var game = GetGameByConnection(connectionId);
         if (game == null) return string.Empty;
 
@@ -79,12 +91,14 @@ public class ConnectFourGameService : IConnectFourGameService
 
     public bool IsGameInProgress(string connectionId)
     {
+        _logger.LogInformation($"Checking if game is in progress");
         var game = GetGameByConnection(connectionId);
         return game != null;
     }
 
     public void RemovePlayer(string connectionId)
     {
+        _logger.LogInformation($"Removing player {connectionId}");
         // Fjern fra ventende spillere hvis de er der
         _waitingPlayers.Remove(connectionId);
 
