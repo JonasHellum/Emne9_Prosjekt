@@ -17,6 +17,8 @@
     &lt;TestId&gt;xUnit::612A9FFF-4D63-4BCD-8C63-9DB044AA460F::net8.0::APIMembersIntegrationTests.Members.RegistrationMemberControllerIntegrationTest.RegisterMemberAsync_WithValidInput_ReturnsOkWithMemberDTO&lt;/TestId&gt;&#xD;
     &lt;TestId&gt;xUnit::612A9FFF-4D63-4BCD-8C63-9DB044AA460F::net8.0::APIMembersIntegrationTests.Members.RegistrationMemberControllerIntegrationTest.RegisterMemberAsync_WithInvalidInput_ReturnsBadRequest_WithValidationErrors&lt;/TestId&gt;&#xD;
     &lt;TestId&gt;xUnit::5A37CE7D-2CEF-456A-8D1B-64FBADAADC74::net8.0::GameComponentsUnitTests.ConnectFourComponent.ConnectFourCompTest.CombineHorizontal_ReturnsCorrectHorizontalChain&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::03236264-C4E4-4154-B812-2C76EC44C2FF::net8.0::UnitTestForBattleShip.PageTests.GamePageTests.CheckGameOver_SendsGameOverTrue_WhenAllMyShipsAreSunk&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::03236264-C4E4-4154-B812-2C76EC44C2FF::net8.0::UnitTestForBattleShip.PageTests.GamePageTests.CheckGameOver_SendsGameOverFalse_WhenAllOpponentShipsAreSunk&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
 	
