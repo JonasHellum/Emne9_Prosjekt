@@ -710,7 +710,7 @@
                 _opponentBoard[position] = isHit ? -1 : -2;
 
                 Console.WriteLine($"Oppdaterte _opponentBoard[{position}] = {_opponentBoard[position]}");
-                await PlaySound(isHit ? -1 : -2);
+                
                 
                await CheckGameOver();
             }
