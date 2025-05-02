@@ -106,13 +106,13 @@
 
             ChatHubConnection.Connection.On<string>("NotifyUserConnected", (user) =>
             {
-                _messages.Add(("System", $"{user} har koblet til."));
+                _messages.Add(("System", $"{user} has connected."));
                 InvokeAsync(StateHasChanged);
             });
 
             ChatHubConnection.Connection.On<string>("NotifyUserDisconnected", (user) =>
             {
-                _messages.Add(("System", $"{user} har forlatt chatten."));
+                _messages.Add(("System", $"{user} has left the game."));
                 InvokeAsync(StateHasChanged);
             });
 
