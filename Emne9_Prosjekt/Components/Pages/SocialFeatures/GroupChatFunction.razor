@@ -51,11 +51,11 @@
 
 <style>
     .message.self strong {
-        color: grey;  
+        color: white;  
     }
     
     .message.user strong {
-        color: white;  
+        color: gray;  
     }
 
     .chat-button {
@@ -90,7 +90,30 @@
     private string _message = "";
     private bool _isConnected;
     private readonly List<(string, string)> _messages = [];
+    private bool _loggedIn;
     
+    protected override async Task OnInitializedAsync()
+    {
+        try 
+        {
+            _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+            Console.WriteLine($"Username from Logintest: {_userName}");
+            // Hvis brukernavnet er tomt eller null, sett det til "Guest"
+            if (string.IsNullOrEmpty(_userName))
+            {
+                _userName = "Guest";
+            }
+
+            Console.WriteLine($"Username from Logintest: {_userName}");
+            _loggedIn = _userName != "Guest";
+        
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        } 
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -120,6 +143,10 @@
                 await BigChatHubConnection.Connection.StartAsync();
                 Console.WriteLine("--Connection established!");
                 _isConnected = true;
+                if (!string.IsNullOrEmpty(_userName))
+                {
+                    await BigChatHubConnection.Connection.SendAsync("RegisterUsername", _userName);
+                }
             }
             catch (Exception ex)
             {

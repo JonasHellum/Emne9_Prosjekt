@@ -1,6 +1,8 @@
 ﻿@inject IChatHubConnection ChatHubConnection
+@using System.Net
 @using Emne9_Prosjekt.Hubs.Interfaces
 @using Microsoft.AspNetCore.SignalR.Client
+@inject HttpClient Http
 @implements IAsyncDisposable
 
 <div style="display: flex; flex-direction: column; height: 100%">
@@ -28,11 +30,11 @@
 
 <style>
     .message.self strong {
-        color: grey;  
+        color: white;  
     }
     
     .message.user strong {
-        color: white;  
+        color: gray;  
     }
 
     .chat-button {
@@ -63,11 +65,33 @@
 
 
 @code {
-    private readonly string _userName = "";
+    private  string _userName = "";
     private string _message = "";
     private bool _isConnected;
+    private bool _loggedIn;
     private List<(string, string)> _messages = new();
+    protected override async Task OnInitializedAsync()
+    {
+        try 
+        {
+            _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+            Console.WriteLine($"Username from Logintest: {_userName}");
+            // Hvis brukernavnet er tomt eller null, sett det til "Guest"
+            if (string.IsNullOrEmpty(_userName))
+            {
+                _userName = "Guest";
+            }
 
+            Console.WriteLine($"Username from Logintest: {_userName}");
+            _loggedIn = _userName != "Guest";
+        
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        } 
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -97,6 +121,11 @@
                 await ChatHubConnection.Connection.StartAsync();
                 Console.WriteLine("--Connection established!");
                 _isConnected = true;
+                // Send brukernavnet til serveren for å registrere det
+                if (!string.IsNullOrEmpty(_userName))
+                {
+                    await ChatHubConnection.Connection.SendAsync("RegisterUsername", _userName);
+                }
             }
             catch (Exception ex)
             {

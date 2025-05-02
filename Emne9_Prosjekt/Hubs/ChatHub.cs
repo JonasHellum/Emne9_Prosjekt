@@ -8,6 +8,7 @@ public class ChatHub : Hub<IChatClientMethods>
 {
     private readonly ILogger<ChatHub> _logger;
     private readonly IChatService _chatService; // Bruker tjenesten
+    private static Dictionary<string, string> _connectedUsers = new();
 
     public ChatHub(ILogger<ChatHub> logger, IChatService chatService)
     {
@@ -23,6 +24,13 @@ public class ChatHub : Hub<IChatClientMethods>
         var connectionId = Context.ConnectionId;
         _logger.LogInformation($"User connected. ConnectionId: {connectionId}");
         
+        // Hent brukernavnet fra HTTP-headeren
+        var username = Context.GetHttpContext()?.Request.Headers["Username"].ToString() ?? "Guest";
+        _logger.LogInformation($"Username: {username}");
+        
+        // Legg til brukeren i den statiske ordboken
+        _connectedUsers[connectionId] = username;
+        
         // Prøver å tildele brukeren en gruppe
         var (groupName, partnerConnectionId) = _chatService.AssignUserToGroup(connectionId);
 
@@ -30,18 +38,20 @@ public class ChatHub : Hub<IChatClientMethods>
         {
             //Legg til bruker i gruppen og send beskjed om at de nå snakker med en annen
             await Groups.AddToGroupAsync(connectionId, groupName);
-            await Clients.Caller.ReceiveMessage("System", "You are now chatting with a partner.");
+            await Clients.Caller.ReceiveMessage("System", "You are now playing with a partner.");
             //Legg til andreparten i samme gruppe 
             await Groups.AddToGroupAsync(partnerConnectionId!, groupName);
-            await Clients.Client(partnerConnectionId!).ReceiveMessage("System", "A new user has joined your chat.");
+            await Clients.Client(partnerConnectionId!).ReceiveMessage("System", "You are now playing with a partner.");
         }
-        else
-        {
-            //Dersom ingen partner er tilgjengelig, må bruker vente
-            await Clients.Caller.ReceiveMessage("System", "Waiting for another user to join...");
-        }
-
+        
         await base.OnConnectedAsync();
+    }
+    public Task RegisterUsername(string username)
+    {
+        var connectionId = Context.ConnectionId;
+        _connectedUsers[connectionId] = username;
+        Console.WriteLine($"Username {username} registered for connection {connectionId}");
+        return Task.CompletedTask;
     }
     
     /// <summary>
@@ -49,31 +59,41 @@ public class ChatHub : Hub<IChatClientMethods>
     /// </summary>
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var username = Context.User?.Identity?.Name ?? "Guest";
         var connectionId = Context.ConnectionId;
         
-        // Forsøker å fjerne brukeren fra en gruppe
-        if (_chatService.TryRemoveUser(connectionId, out var groupName))
+        // Fjern brukeren fra ordboken når de kobler fra
+        if (_connectedUsers.ContainsKey(connectionId))
         {
-            await Groups.RemoveFromGroupAsync(connectionId, groupName!);
-            _logger.LogInformation($"User {connectionId} disconnected from {groupName}");
-            await Clients.Groups(groupName!).NotifyUserDisconnected(username);
+            var username = _connectedUsers[connectionId];
+            _connectedUsers.Remove(connectionId);  // Fjern fra ordboken
+            _logger.LogInformation($"User {username} disconnected.");
+            
+            // Forsøker å fjerne brukeren fra en gruppe
+            if (_chatService.TryRemoveUser(connectionId, out var groupName))
+            {
+                await Groups.RemoveFromGroupAsync(connectionId, groupName!);
+                await Clients.Groups(groupName!).NotifyUserDisconnected(username);
+            }
         }
 
         await base.OnDisconnectedAsync(exception);
     }
-    
+
     /// <summary>
     /// Håndterer sending av meldinger mellom brukere i samme gruppe.
     /// </summary>
     /// <param name="message">Meldingen som skal sendes</param>
     public async Task SendMessage(string message)
     {
-        var username = Context.User?.Identity?.Name ?? "Guest";
         var connectionId = Context.ConnectionId;
-        // Henter gruppen brukeren tilhører
+
+        // Hent brukernavnet fra ordboken
+        var username = _connectedUsers.ContainsKey(connectionId) ? _connectedUsers[connectionId] : "Guest";
+
+        // Hent gruppen brukeren tilhører
         if (_chatService.GetUserGroup(connectionId) is { } groupName)
         {
+            // Send meldingen til alle i gruppen
             await Clients.Group(groupName).ReceiveMessage(username, message);
         }
     }
