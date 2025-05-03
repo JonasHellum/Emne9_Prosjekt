@@ -161,9 +161,9 @@
                     loggedIn = !string.IsNullOrEmpty(memberId);
                 
                     Console.WriteLine($"Set the memberId from OnAfterRenderAsync: {memberId}");
-                    await LoadLeaderboardPage();
                 }
             }
+            await LoadLeaderboardPage();
         }
     }
     

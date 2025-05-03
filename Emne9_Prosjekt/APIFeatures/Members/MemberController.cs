@@ -109,14 +109,14 @@ public class MemberController : ControllerBase
         {
             return Unauthorized("Invalid or expired refresh token");
         }
-
-        // Generate a new access token
+        
         var member = await _memberService.GetByIdAsync(memberId);
         if (member == null)
         {
             return Unauthorized("User not found");
         }
         
+        // Generate a new access token
         var newAccessToken = _memberService.MakeAccessToken(member);
         var storedToken = await _memberService.GetStoredRefreshTokenAsync(request);
         
@@ -129,7 +129,7 @@ public class MemberController : ControllerBase
             return Ok(new
             {
                 AccessToken = newAccessToken,
-                RefreshToken = newRefreshToken // New refresh token is issued
+                RefreshToken = newRefreshToken 
             });
         }
         

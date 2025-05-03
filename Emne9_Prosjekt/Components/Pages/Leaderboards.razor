@@ -59,7 +59,7 @@
         {
             <p>You are not logged in.</p>
         }
-        else
+        @if (loggedIn && !leaderboard.Any(entry => entry.MemberId.ToString() == memberId))
         {
             <p>Your stats are not available on the leaderboard.</p>
         }
@@ -208,8 +208,8 @@
                     loggedIn = !string.IsNullOrEmpty(memberId);
                 
                     Console.WriteLine($"Set the memberId from OnAfterRenderAsync: {memberId}");
-                    await LoadLeaderboardPage();
                 }
+                await LoadLeaderboardPage();
             }
         }
     }
