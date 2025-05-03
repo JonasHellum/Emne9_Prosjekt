@@ -53,69 +53,75 @@
                                font-family: Bahnschrift,serif;">
                         Local
                     </h5>
-                    <div style="display: flex; flex-direction: row; justify-content: center">
-                        <EditForm Model="@registrationDto" OnValidSubmit="RegistrationAsync" FormName="registerForm">
-                            <div style="width: 500px;
-                                        margin: 0 auto;
-                                        flex-direction: row">
-                                <div>
-                                    <label>Username:</label>
-                                    <InputText @bind-Value="@registrationDto.UserName" class="form-control" name="UserName" @onblur="CheckUserNameAsync"/>
-                                    @if (userNameTaken)
-                                    {
+                    <EditForm Model="@registrationDto" OnValidSubmit="RegistrationAsync" FormName="registerForm">
+                        <div style="display: flex;
+                                    flex-direction: row;
+                                    justify-content: center;
+                                    align-items: flex-start">
+                            <div style="display: flex;
+                                        flex-direction: row;
+                                        justify-content: center">
+                                <div style="width: 500px;
+                                                margin: 0 auto;
+                                                flex-direction: row">
+                                    <div>
+                                        <label>Username:</label>
+                                        <InputText @bind-Value="@registrationDto.UserName" class="form-control" name="UserName" @onblur="CheckUserNameAsync"/>
+                                        @if (userNameTaken)
+                                         {
                                         <div class="alert alert-danger">
-                                            Username is already taken.
-                                        </div>
-                                    }
-                                </div>
-
-                                @* <div> *@
-                                @*     <label>First name:</label> *@
-                                @*     <InputText @bind-Value="registrationDto.FirstName" class="form-control" name="FirstName"/> *@
-                                @* </div> *@
-                                @* *@
-                                @* <div> *@
-                                @*     <label>Last name:</label> *@
-                                @*     <InputText @bind-Value="registrationDto.LastName" class="form-control" name="LastName"/> *@
-                                @* </div> *@
-                                @* *@
-                                @* <div> *@
-                                @*     <label>Date of Birth:</label> *@
-                                @*     <InputDate @bind-Value="registrationDto.BirthYear" class="form-control" name="BirthYear"/> *@
-                                @* </div> *@
-
-                                <div>
-                                    <label>Email:</label>
-                                <InputText @bind-Value="registrationDto.Email" class="form-control" name="Email" @onblur="CheckEmailAsync"/>
-                                    @if (emailTaken)
-                                    {
-                                <div class="alert alert-danger">
-                                    Email is already taken.
-                                </div>
-                                    }
+                                                Username is already taken.
+                                            </div>
+                                            }
                                     </div>
 
-                                <div>
-                                    <label>Password:</label>
-                                <InputText @bind-Value="@registrationDto.Password" type="password" class="form-control" name="Password"/>
-                                </div>  
-                                
-                                <div>
-                                    <label>Confirm Password:</label>
-                                    <InputText @bind-Value="checkPassword" type="password" class="form-control" name="CheckPassword"/>
-                                </div>  
-                            </div>
-                            
-                        </EditForm>
-                        <div style="padding-left: 20px; padding-top: 60px">
-                            <button type="submit" class="register-button">
-                                Register
-                            </button>
-                        </div>
-                        
-                    </div>
-                        
+                                    @* <div> *@
+                                    @*     <label>First name:</label> *@
+                                    @*     <InputText @bind-Value="registrationDto.FirstName" class="form-control" name="FirstName"/> *@
+                                    @* </div> *@
+                                    @* *@
+                                    @* <div> *@
+                                    @*     <label>Last name:</label> *@
+                                    @*     <InputText @bind-Value="registrationDto.LastName" class="form-control" name="LastName"/> *@
+                                    @* </div> *@
+                                    @* *@
+                                    @* <div> *@
+                                    @*     <label>Date of Birth:</label> *@
+                                    @*     <InputDate @bind-Value="registrationDto.BirthYear" class="form-control" name="BirthYear"/> *@
+                                    @* </div> *@
 
+                                    <div>
+                                        <label>Email:</label>
+                                        <InputText @bind-Value="registrationDto.Email" class="form-control" name="Email" @onblur="CheckEmailAsync"/>
+                                        @if (emailTaken)
+                                         {
+                                            <div class="alert alert-danger">
+                                                Email is already taken.
+                                            </div>
+                                         }
+                                    </div>
+                                    <div>
+                                        <label>Password:</label>
+                                        <InputText @bind-Value="@registrationDto.Password" type="password" class="form-control" name="Password"/>
+                                    </div>
+                                    <div>
+                                        <label>Confirm Password:</label>
+                                        <InputText @bind-Value="checkPassword" type="password" class="form-control" name="CheckPassword"/>
+                                    </div>
+                                </div>
+                                <div style="padding-left: 20px; padding-top: 60px">
+                                    <button type="submit" class="register-button">
+                                        Register
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </EditForm>
+
+                    <div style="width: 500px;
+                                opacity: 0.7;
+                                padding-top: 50px;
+                                margin: 0 auto">
                         @if (registrationSuccess)
                         {
                             <div class="alert alert-success">
@@ -123,8 +129,8 @@
                             </div>
                         }
 
-                        @if (!string.IsNullOrEmpty(errorMessage))
-                        {
+                        @if (!string.IsNullOrEmpty(errorMessage)) 
+                        { 
                             <div class="alert alert-danger">
                                 @errorMessage
                             </div>
@@ -136,29 +142,29 @@
                                 Registration failed.
                             </div>
                         }
-                        }
+                    </div>
+                }
+        else if (registrationDto == null)
+        {
+            <p>Loading...</p>
+        }
 
-                        else if (registrationDto == null)
-                        {
-                        <p>Loading...</p>
-                        }
-
-                        <div style="width: 700px;
+        <div style="width: 700px;
                             padding-top: 70px;
                             padding-bottom: 200px;
                             justify-items: center;
                             margin: 0 auto;">
-                            <h5 style="text-align: center;
+            <h5 style="text-align: center;
                                text-decoration: underline;
                                font-family: Bahnschrift,serif;">
-                                Google
-                            </h5>
-                            <div id="buttonDiv"></div>
-                            <div style="font-size: smaller; padding-top: 10px">
-                                By using a Google account, your username\display name
-                                will be sett to the name tied to your Google account
-                            </div>
-                        </div>
+                Google
+            </h5>
+            <div id="buttonDiv"></div>
+            <div style="font-size: smaller; padding-top: 10px">
+                By using a Google account, your Username \ Display name
+                will be sett to the name tied to your Google account
+            </div>
+        </div>
     </div>
 </div>
 

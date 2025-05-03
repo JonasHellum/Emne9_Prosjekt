@@ -14,20 +14,21 @@
             padding-top: 200px;
             text-align: center;
             font-family: Bahnschrift,serif;
+            font-size: large;
             font-weight: bolder;
             flex-direction: column;
             padding-bottom: 70px"
      class="page-element">
-    <h2 data-aos="zoom-out-right"
+    <h1 data-aos="zoom-out-down"
         data-aos-duration="500"
         data-aos-delay="300">
         Your Score!
-    </h2>
+    </h1>
     
     <div style="font-size: larger"
-         data-aos="zoom-out-left"
-         data-aos-duration="500"
-         data-aos-delay="500">
+         data-aos="fade"
+         data-aos-duration="1000"
+         data-aos-delay="1000">
         @if (leaderboard != null && leaderboard.Any(entry => entry.MemberId.ToString() == memberId))
         {
             var loggedInUserEntry = leaderboard.First(entry => entry.MemberId.ToString() == memberId);
@@ -41,7 +42,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr class="table-info">
+                <tr style="background: #fff8dc">
                     <td>@loggedInUserEntry.Rank</td>
                     <td>@loggedInUserEntry.UserName</td>
                     <td>@loggedInUserEntry.Wins</td>
@@ -60,7 +61,7 @@
         }
     </div>
     
-    <div style="flex-direction: column; padding-top: 80px">
+    <div style="flex-direction: column; font-size: 25px; padding-top: 80px">
         <label for="gameTypeSelect">Sort by Game:</label>
         <select id="gameTypeSelect" class="game-selection" @onchange="OnGameTypeChanged">
             <option value="All">All</option>
@@ -74,6 +75,7 @@
      class="page-element">
     <div style="background: url('/Assets/PageAssets/LoopStripe.png') repeat fixed;
                 width: 100%;
+                font-size: larger;
                 padding-bottom: 200px;
                 text-align: center;
                 color: white;
@@ -96,7 +98,7 @@
             {
                 @foreach (var entry in filteredLeaderboard)
                 {
-                    <tr class="@(entry.MemberId.ToString() == memberId ? "table-info" : "")">
+                    <tr class="@(entry.MemberId.ToString() == memberId ? "player-table" : "")">
                         <td>@entry.Rank</td>
                         <td>@entry.UserName</td>
                         <td>@entry.Wins</td>
@@ -128,7 +130,7 @@
     }
     
     .game-selection {
-        height: 25px;
+        height: 30px;
         border-radius: 5px;
     }
     
@@ -154,6 +156,10 @@
     
     .page-button-left:hover {
         transform: translateX(-10px);
+    }
+    
+    .player-table {
+        background: #b8860b;
     }
 </style>
 

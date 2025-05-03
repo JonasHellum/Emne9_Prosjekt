@@ -2,14 +2,17 @@
 
 public class BattleShipComponents
 {
+    // Outdated variables. Replaced in SignalR. Left in code for testing.
+    private int HitCount { get; set; }
+    public int SunkenShipCount { get; set; }
+    
+    
+    
     private string? _selectedShip;
     private bool _shipOrientation = true;
-    public int HitCount { get; private set; }
-    public int SunkenShipCount { get; set; }
     private readonly Dictionary<string,int> _board = new ();
     private readonly Dictionary<string,int> _opponentBoard = new ();
     private readonly Dictionary<string, List<string>> _placedShips = new ();
-    private readonly Dictionary<string, List<string>> _opponentPlacedShips = new ();
     private readonly Dictionary<string,int> _ships = new ()
     {
         {"Carrier", 5},
@@ -101,6 +104,7 @@ public class BattleShipComponents
         _selectedShip = null;
     }
     
+    // Outdated function. Replaced by SignalR component. Left in code for testing.
     private void CheckShipStatus(string target)
     {
         foreach (var (_, positions) in _placedShips)
@@ -126,6 +130,7 @@ public class BattleShipComponents
         return _board;
     }
 
+    // Not in use Just for testing
     public Dictionary<string, int> GetOpponentBoard()
     {
         return _opponentBoard;
@@ -140,17 +145,13 @@ public class BattleShipComponents
     {
         return _placedShips;
     }
-
-    public Dictionary<string, List<string>> GetOpponentPlacedShips()
-    {
-        return _opponentPlacedShips;
-    }
     
     public bool GetOrientation()
     {
         return _shipOrientation;
     }
     
+    // Outdated function. Replaced by SignalR component. Left in code for testing.
     public void ShootBoard(string target)
     {
         Console.WriteLine($"ShootBoard: Skyter på posisjon {target}");

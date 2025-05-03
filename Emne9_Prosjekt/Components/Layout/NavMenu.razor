@@ -1,11 +1,13 @@
 @using Emne9_Prosjekt.Components.Pages.Interfaces
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
-@inject IJSRuntime JSRuntime
+@inject IJSRuntime JsRuntime
 @inject IAuthStateService AuthState
 @inject NavigationManager NavManager
 
-<div style=" background: linear-gradient(#404040,
+<div @onmouseleave="RemoveDropDown">
+    <div style=" z-index: 10; position: relative;
+             background: linear-gradient(#404040,
                                          #323232,
                                          #292929,
                                          #252525,
@@ -14,35 +16,35 @@
                                          #1b1b1b,
                                          #1b1b1b,
                                          #252525)">
-    <div style="display: flex;
+        <div style="display: flex;
                 flex-direction: row;
                 justify-content: center;
                 gap: 235px;"
-         data-aos="fade"
-         data-aos-delay="400">
-        <div style="text-align: left;
+             data-aos="fade"
+             data-aos-delay="400">
+            <div style="text-align: left;
                 padding-top: 10px;
                 padding-bottom: 10px">
-            <NavLink href="">
-                <img style="width: 120px"
-                     alt=""
-                     src="@_icon"
-                     @onmouseover="MouseOn"
-                     @onmouseout="MouseOff"/>
-            </NavLink>
-        </div>
-        <div style="color: white;
+                <NavLink href="">
+                    <img style="width: 120px"
+                         alt=""
+                         src="@_icon"
+                         @onmouseover="MouseOn"
+                         @onmouseout="MouseOff"/>
+                </NavLink>
+            </div>
+            <div style="color: white;
                 text-align: center;
                 font-style: oblique;
                 padding-top: 13px">
-            Published by Nubisoft™
-        </div>
+                Published by Nubisoft™
+            </div>
 
-        @if (AuthState.UserName.IsNullOrEmpty())
-        {
+            @if (AuthState.UserName.IsNullOrEmpty())
+            {
             <div style="color: white;
                         text-align: right;
-                        padding-top: 12px">
+                        padding-top: 14px">
                 <NavLink href="/Login"
                          class="user-links">
                     Login
@@ -52,83 +54,184 @@
                     Register
                 </NavLink>
             </div>
-        }
-        else
-        {
-            <div style="color: white;
-                            text-align: right;
-                            padding-top: 12px">
-                Welcome <NavLink href="/User"
-                                 class="user-links">
-                    @AuthState.UserName
-                </NavLink>
+            }
+            else
+            {
+            <div style="padding-top: 14px" class="user-links"
+                @onclick="ToggleDropDown">
+                @AuthState.UserName
             </div>
-        }
+            }
+        </div>
     </div>
-</div>
 
-<div style="display: flex;
+    <div style="display: flex;
             justify-content: center;
             padding-top: 10px;
             padding-bottom: 10px;
             background: #000000">
-    <div>
-        <NavLink href="Games"
-                 class="page-links">
-            All Games
-        </NavLink>
-    </div>
-    <div style="border-left: 1px solid white;
+        <div>
+            <NavLink href="Games"
+                     class="page-links">
+                <img  alt="" src="/Assets/PageAssets/IconB.png"
+                      class="image-icon-left"/>
+                All Games
+            </NavLink>
+        </div>
+        <div style="border-left: 1px solid white;
                         height: auto"></div>
-    <div>
-        <NavLink href="Leaderboards"
-                 class="page-links">
-            Leaderboards
-        </NavLink>
-    </div>
-    <div style="border-left: 1px solid white;
+        <div>
+            <NavLink href="Leaderboards"
+                     class="page-links">
+                <img  alt="" src="/Assets/PageAssets/IconT.png"
+                      class="image-icon-left"/>
+                Leaderboards
+            </NavLink>
+        </div>
+        <div style="border-left: 1px solid white;
                         height: auto"></div>
-    <div>
-        <NavLink href="Chat"
-                 class="page-links">
-            Big Chat
-        </NavLink>
-    </div>
-    <div style="border-left: 1px solid white;
+        <div>
+            <NavLink @onclick='() => NavManager.NavigateTo("/Chat", forceLoad: true)'
+                     class="page-links">
+                <img  alt="" src="/Assets/PageAssets/IconC.png"
+                      class="image-icon-left"/>
+                Big Chat
+            </NavLink>
+        </div>
+        <div style="border-left: 1px solid white;
                         height: auto"></div>
-    <div>
-        <NavLink href="MessageBoard"
-                 class="page-links">
-            Message Board
-        </NavLink>
-    </div>
-    <div style="border-left: 1px solid white;
+        <div>
+            <NavLink @onclick='() => NavManager.NavigateTo("/MessageBoard", forceLoad: true)'
+                     class="page-links">
+                <img  alt="" src="/Assets/PageAssets/IconMO.png"
+                      class="image-icon-left"/>
+                Message Board
+            </NavLink>
+        </div>
+        <div style="border-left: 1px solid white;
                         height: auto"></div>
-    <div>
-        <NavLink href="Tests"
-                 class="page-links">
-             Prototypes
-        </NavLink>
+        <div>
+            <NavLink href="Tests"
+                     class="page-links">
+                <img  alt="" src="/Assets/PageAssets/IconW.png"
+                      class="image-icon-left"/>
+                Prototypes
+            </NavLink>
+        </div>
     </div>
+
+    @if (!AuthState.UserName.IsNullOrEmpty())
+    {
+        <div style="text-align: center"
+             class="@(_showDropDownMenu ? "user-drop-down-menu" : "user-drop-down-menu-active")">
+        <a style="padding-top: 10px" class="page-links"
+           href="/User">
+            <img  alt="" src="/Assets/PageAssets/IconP.png"
+                  class="image-icon-left"/>
+            Profile
+        </a>
+        <a style="padding-top: 10px" class="page-links"
+           @onclick="Logout">
+            Logout
+            <img  alt="" src="/Assets/PageAssets/IconL.png"
+                  class="image-icon-right"/>
+        </a>
+    </div>
+    }
 </div>
 
 <style>
+    .home-button {
+        background-image: url("/Assets/logo/BWLogo.png");
+    }
+    
+    .home-button:hover {
+        background-image: url("/Assets/logo/ColorLogo.png");
+    }
+    
     .user-links {
         color: white;
+        text-align: center;
+        cursor: pointer;
         text-decoration: none;
     }
+    
     .user-links:hover {
         color: white;
         text-shadow: 0 0 10px white;
     }
+
+    .user-drop-down-menu {
+        color: white;
+        width: 180px;
+        height: 100px;
+        left: 50%;
+        position: absolute;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background: black;
+        border-radius: 5px;
+        border: 2px solid gainsboro;
+        transform: translateY(-55px) translateX(300px);
+        transition: transform 0.3s ease;
+    }
+
+    .user-drop-down-menu-active {
+        width: 180px;
+        height: 100px;
+        left: 50%;
+        position: absolute;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background: black;
+        border-radius: 5px;
+        border: 2px solid gainsboro;
+        transform: translateY(-500px) translateX(300px);
+        transition: transform 1s ease;
+    }
+
+
     .page-links {
         color: white;
+        cursor: pointer;
         text-decoration: none;
         padding-right: 50px;
         padding-left: 50px;
     }
+    
     .page-links:hover {
         color: white;
+    }
+    
+    .image-icon-left {
+        opacity: 0;
+        margin-left: -30px;
+        margin-top: -6px;
+        position: absolute;
+        width: 35px;
+        transition: 0.3s ease;
+    }
+    
+    .page-links:hover .image-icon-left {
+        opacity: 0.7;
+        margin-left: -40px;
+    }
+
+    .image-icon-right {
+        opacity: 0;
+        margin-top: -6px;
+        position: absolute;
+        width: 35px;
+        transition: 0.3s ease;
+    }
+
+    .page-links:hover .image-icon-right {
+        opacity: 0.7;
+        margin-left: 10px;
     }
 </style>
 
@@ -137,7 +240,8 @@
     private string _icon = "/Assets/logo/BWLogo.png";
     private string _userName;
     private string _loggedOut;
-
+    private bool _showDropDownMenu;
+    
     private bool _isClientSide;
     
     protected override void OnInitialized()
@@ -161,7 +265,7 @@
             try
             {
                 // Retrieve the token from cookies using JSInterop
-                var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
+                var token = await JsRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
                 
                 if (!string.IsNullOrEmpty(token))
                 {
@@ -190,7 +294,7 @@
         if (response.IsSuccessStatusCode)
         {
             // Remove cookie
-            await JSRuntime.InvokeVoidAsync("deleteCookie", "AuthTokenCOMON");
+            await JsRuntime.InvokeVoidAsync("deleteCookie", "AuthTokenCOMON");
 
             // Remove the JWT from the Authorization header
             Http.DefaultRequestHeaders.Authorization = null;
@@ -202,6 +306,15 @@
         {
             _loggedOut = "Logout failed";
         }
+    }
+    private void ToggleDropDown()
+    {
+        _showDropDownMenu = !_showDropDownMenu;
+    }
+
+    private void RemoveDropDown()
+    {
+        _showDropDownMenu = false;
     }
     
     private void MouseOn()

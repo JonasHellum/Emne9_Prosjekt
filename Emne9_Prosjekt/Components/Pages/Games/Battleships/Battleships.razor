@@ -9,10 +9,10 @@
 @using Emne9_Prosjekt.Features.Leaderboards.Models
 @inject BattleShipComponents GameComponents
 @inject IGameHubConnection GameHubConnection
-@inject IJSRuntime JSRuntime
+@inject IJSRuntime JsRuntime
 @inject NavigationManager Navigation
 @inject HttpClient Http
-@inject IConfiguration _config
+@inject IConfiguration Config
 @implements IAsyncDisposable
 
 @* Inserts video background for page *@
@@ -24,31 +24,10 @@
 
 @* Outer container for rendering ripple effect under components *@
 <div id="ripple-container"
-     style="background: transparent">
-
-    @* display final game state when game is over *@
-    @if (_gameState == GameState.GameOver)
-    {
-        <div style="text-align: center;
-                    margin: 20px;
-                    padding: 20px;
-                    background-color: @(_isWinner ? "#d4edda" : "#f8d7da");
-                    color: @(_isWinner ? "#155724" : "#721c24");
-                    border-radius: 10px;
-                    border: 3px solid @(_isWinner ? "#c3e6cb" : "#f5c6cb");">
-            <h2>@(_isWinner ? "You Won!" : "You Lost...")</h2>
-            <p>@(_isWinner ? "You have demolished your opponents fleet!" : "Your opponent has demolished your fleet.")</p>
-            <button style="width: 100px"
-                    @onclick="ForceReload">
-                Play again
-            </button>
-            <button style="width: 100px"
-                    @onclick="ForceReloadAndReturn">
-                Home
-            </button>
-        </div>
-    }
-
+     style="background: transparent;
+            justify-content: center">
+    
+    @* Toggle message besad on status *@
     <div style="justify-content: center;
             padding-bottom: 100px">
         @if (!_isConnected)
@@ -62,7 +41,7 @@
         {
             <div style="text-align: center;
                         padding-top: 125px">
-                @if (!_opponentSetupComplete && _isSetupComplete)
+                @if (_isSetupComplete)
                 {
                     <h3 data-aos="fade-down"
                         data-aos-delay="500"
@@ -306,28 +285,41 @@
                             </model-viewer>
                         }
                     </div>
+                    
+                    @* Secret button! Shh... *@
+                    <div style="cursor: pointer; transform: translateY(-50px)">
+                        <img  alt="" src="/Assets/Battleships/Secret.png"
+                              @onclick="ToggleSecret"
+                              class="@(_secretActive ? "secret-button-active" : "secret-button")"/>
+                    </div>
+                    
                 </div>
             </div>
         }
         else
         {
-
-
-
-
-
-
-
-
+            
+            
+            
+            
             @* ↓ Game start ↓ *@
             <div style="text-align: center;
                         color: white;
                         padding-top: 50px"
                  data-aos="fade-down"
                  data-aos-delay="500">
-                <h4 style="display: inline-block; transform: translateX(-30px)">
-                    @(_isMyTurn ? "Take your shot!" : "Your opponent is planning their attack...")
-                </h4>
+                @if (_gameState == GameState.GameOver)
+                {
+                    <h4 style="display: inline-block; transform: translateX(-30px)">
+                        Game Over!
+                    </h4>
+                }
+                else
+                {
+                    <h4 style="display: inline-block; transform: translateX(-30px)">
+                        @(_isMyTurn ? "Take your shot!" : "Your opponent is planning their attack...")
+                    </h4>
+                }
             </div>
 
             <div style="display: flex;
@@ -398,6 +390,7 @@
                             }
                         </div>
                         <div>
+                            
                             @* Opponent ships *@
                             @foreach (var ship in _opponentShipStatus)
                             {
@@ -473,7 +466,7 @@
                             overflow: hidden;
                             background: rgb(255, 255, 255, 0.5);
                             border: 1px solid white">
-                    @if (_gameState == GameState.Playing)
+                    @if (_gameState == GameState.Playing || _gameState == GameState.GameOver)
                     {
                         <GameChatFunction/>
                     }
@@ -481,13 +474,45 @@
             </div>
         }
     </div>
+    
+    @* display final game state when game is over *@
+    @if (_gameState == GameState.GameOver)
+    {
+        <div data-aos="zoom-in-left"
+             data-aos-delay="500"
+             data-aos-duration="1000"
+             style="text-align: center;
+                    left: 50%;
+                    margin: 0 auto;
+                    padding: 20px;
+                    opacity: 0.8;
+                    width: 900px;
+                    height: 600px;
+                    color: white;
+                    position: absolute;
+                    border-radius: 5px;
+                    transform: translateY(-675px) translateX(-675px);
+                    background-color: @(_isWinner ? "#006680" : "#212178");
+                    border: 3px solid @(_isWinner ? "#004455" : "#161650");">
+            <h1 style="padding-top: 200px">
+                @(_isWinner ? "You Won!" : "You Lost...")
+            </h1>
+            <h2>
+                @_gameOverMessage
+            </h2>
+            <button class="game-end-button"
+                    @onclick="ForceReload">
+                Play again
+            </button>
+            <button class="game-end-button"
+                    @onclick="ForceReloadAndReturn">
+                Home
+            </button>
+        </div>
+    }
 </div>
 
 <style>
-    body {
-        user-select: none;
-    }
-    
     .board-container {
         position: relative;
         z-index: 0;
@@ -595,6 +620,25 @@
         transition: transform 0.1s ease;
     }
     
+    .game-end-button {
+        background: @(_isWinner ? "#0088aa" : "#2c2ca0");
+        border: 3px solid @(_isWinner ? "#004455" : "#161650");
+        color: white;
+        width: 100px
+    }
+    
+    .secret-button {
+        position: absolute;
+        opacity: 0.1;
+        width: 10px;
+    }
+    
+    .secret-button-active {
+        position: absolute;
+        opacity: 1;
+        width: 10px;
+    }
+    
     .Background {
         width: 100%;
         height: 100%;
@@ -617,7 +661,7 @@
 <script>
     $(document).ready(function () {
         $('#ripple-container').ripples({
-            resolution: 300,
+            resolution: 200,
             dropRadius: 20,
             perturbance: 0.5
         });
@@ -631,36 +675,31 @@
         Setup,
         Playing,
         GameOver
-
     }
 
     private GameState _gameState = GameState.Setup;
     private Dictionary<string, int> _playerBoard = new();
     private Dictionary<string, int> _opponentBoard = new();
-    private Dictionary<string, bool> _opponentShipStatus = new();
-    private string _lastShotPosition;
+    private readonly Dictionary<string, bool> _opponentShipStatus = new();
+    private int _lastShotPositionValue;
     private string? _hoveredCell;
     private string _selectedShip = "";
-    private int _allShips;
     private bool _isConnected;
     private bool _isSetupComplete;
-    private bool _opponentSetupComplete;
     private bool _isMyTurn;
-    private bool _gameOver;
     private bool _isWinner;
     private string _gameOverMessage = "";
-    private int _pointToWinner = 0;
-    private int _pointToLoser = 0;
     private string _userName;
     private bool _loggedIn;
     private string _errorMessage;
     private bool _toWinnerOnDisconnect;
-    private bool _1pointToLosses = true;
-    private bool _1pointToWinner = true;
+    private bool _1PointToLosses = true;
+    private bool _1PointToWinner = true;
+    private bool _secretActive;
 
     protected override async Task OnInitializedAsync()
     {
-        try 
+        try
         {
             _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
             Console.WriteLine($"Username from Logintest: {_userName}");
@@ -671,14 +710,13 @@
         {
             Console.WriteLine(e);
             throw;
-        } 
+        }
         
         GameComponents.CreateBoard();
 
         foreach (var ship in GameComponents.GetShips())
         {
-            _allShips += ship.Value;
-            _opponentShipStatus[ship.Key] = false; // Initialize not sunk
+            _opponentShipStatus[ship.Key] = false; // Initialiserer alle skip som ikke sunket
         }
 
         GameHubConnection.RegisterWaitingForOpponentHandler(async () =>
@@ -703,44 +741,59 @@
             Console.WriteLine($"Mottok skudd: {position}, skytter: {shooterId}, treff: {isHit}");
             //Check if it's our shot or the opponent's shot
             bool isMyShot = shooterId == GameHubConnection.Connection.ConnectionId;
-
+            
             if (isMyShot)
             {
-                
+                _lastShotPositionValue = _opponentBoard[position];
+
                 //Update opponentboard ui
                 _opponentBoard[position] = isHit ? -1 : -2;
-                
+
                 Console.WriteLine($"Oppdaterte _opponentBoard[{position}] = {_opponentBoard[position]}");
-                
+
+                if (_secretActive)
+                {
+                    await PlaySecretSound(_lastShotPositionValue);
+                }
+                else
+                {
+                    await PlaySound(_lastShotPositionValue);
+                }
                 
                await CheckGameOver();
             }
             else
             {
+                _lastShotPositionValue = _playerBoard[position];
+                
                 GameComponents.ShootBoard(position);
                 // Updating playerboard ui
                 if (_playerBoard.ContainsKey(position))
                 {
                     _playerBoard[position] = GameComponents.GetBoard()[position];
                 } 
-                
+
                 //Check if any of our ships have been sunk and send status to opponent
                 foreach (var ship in GameComponents.GetPlacedShips())
                 {
                     bool isSunk = ship.Value.All(pos => _playerBoard.ContainsKey(pos) && _playerBoard[pos] < 0);
-                    
-                    //Send ship status to opponent
+
+                    // Send skipsstatus til motstanderen
                     if (isSunk)
                     {
                         await  GameHubConnection.SendUpdateShipStatusAsync(ship.Key, true);
                     }
                 }
-               await CheckGameOver();
+                
+               
+                await PlaySound(_lastShotPositionValue);
+                
+                await CheckGameOver();
                 Console.WriteLine("Sjekket om spillet er over etter motstanderens skudd");
             }
             //Update turn
-            _isMyTurn = !isMyShot; //If it was our shot, it's now the opponent's turn, and vice versa .. 
-           await InvokeAsync(StateHasChanged);
+            _isMyTurn = !isMyShot; //If it was our shot, it's now the opponent's turn, and vice versa... 
+            await InvokeAsync(StateHasChanged);
         });
 
         GameHubConnection.RegisterUpdateShipStatusHandler(async (shipName, isSunk) =>
@@ -770,9 +823,10 @@
                 Console.WriteLine("Setter spilltilstand til GameOver etter melding fra server");
                 _gameState = GameState.GameOver;
                 _isWinner = youWon;
-                _gameOverMessage = youWon ? "Du vant! Alle motstanderens skip er sunket." : "Du tapte! Alle dine skip er sunket.";
-                
-               await InvokeAsync(StateHasChanged);
+                _gameOverMessage = youWon ? "You obliterated your opponents fleet" : "Your opponent demolished your fleet";
+
+                // Oppdater UI
+                await InvokeAsync(StateHasChanged);
             }
         });
 
@@ -786,9 +840,10 @@
                 Console.WriteLine("Setter spilltilstand til GameOver etter at motstanderen koblet fra");
                 _gameState = GameState.GameOver;
                 _isWinner = true;
-                _gameOverMessage = "Du vant! Motstanderen koblet fra.";
-                
-               await InvokeAsync(StateHasChanged);
+                _gameOverMessage = "Your Opponent disconnected from the game.";
+
+                // Oppdater UI
+                await InvokeAsync(StateHasChanged);
             }
         });
 
@@ -804,7 +859,7 @@
                 try
                 {
                     // Retrieve the token from cookies using JSInterop
-                    var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
+                    var token = await JsRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
 
                     if (!string.IsNullOrEmpty(token))
                     {
@@ -819,11 +874,11 @@
 
                     // Trigger a re-render now that client-side data is available
                     StateHasChanged();
-                } 
+                }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error during initialization: {ex.Message}");
-                } 
+                }
                 
             }
             try
@@ -838,9 +893,9 @@
             }
         }
 
-        if (_loggedIn) 
+        if (_loggedIn)
         {
-            if (_gameState == GameState.Playing && _1pointToLosses)
+            if (_gameState == GameState.Playing && _1PointToLosses)
             {
                 var leaderboardLossToAdd = new LeaderboardAddOrUpdateDTO()
                 {
@@ -849,10 +904,10 @@
                     Losses = 1
                 };
                 await UpdateOrCreateLeaderboard(leaderboardLossToAdd);
-                _1pointToLosses = false;
+                _1PointToLosses = false;
             }
         
-            if (_isWinner && _1pointToWinner)
+            if (_isWinner && _1PointToWinner)
             {
                 var leaderboardWinToAdd = new LeaderboardAddOrUpdateDTO()
                 {
@@ -861,8 +916,8 @@
                     Losses = -1
                 };
                 await UpdateOrCreateLeaderboard(leaderboardWinToAdd);
-                _1pointToWinner = false;
-            } 
+                _1PointToWinner = false;
+            }
         }
         await base.OnAfterRenderAsync(firstRender);
     }
@@ -906,24 +961,15 @@
         await GameHubConnection.SendUpdateShotAsync(position, GameHubConnection.Connection.ConnectionId!);
         _isMyTurn = false;
     }
-
-    private int BoardValues()
-    {
-        int boardValue = 0;
-        foreach (var square in GameComponents.GetBoard())
-        {
-            boardValue += square.Value;
-        }
-
-        return boardValue;
-    }
-
+    
     private void Reset()
     {
         GameComponents.CreateBoard();
+        GameComponents.GetPlacedShips().Clear();
+        _selectedShip = "";
     }
 
-    private string BoardStatus(Dictionary<string, int> board, string pos) => board.ContainsKey(pos) switch
+    private static string BoardStatus(Dictionary<string, int> board, string pos) => board.ContainsKey(pos) switch
     {
         false => "Assets/Battleships/Empty.png",
         true when board[pos] == 1 => "Assets/Battleships/Segment.png",
@@ -932,7 +978,7 @@
         true when board[pos] == -2 => "Assets/Battleships/Miss.png"
     };
     
-    private string OpponentBoardStatus(Dictionary<string, int> board, string pos) => board.ContainsKey(pos) switch
+    private static string OpponentBoardStatus(Dictionary<string, int> board, string pos) => board.ContainsKey(pos) switch
     {
         false => "Assets/Battleships/Empty.png",
         true when board[pos] == 0 => "Assets/Battleships/Empty.png",
@@ -954,7 +1000,7 @@
         {
             _gameState = GameState.GameOver;
             _isWinner = false;
-            _gameOverMessage = "Du tapte! Alle dine skip er sunket.";
+            _gameOverMessage = "Your opponent demolished your fleet";
             await GameHubConnection.SendGameOverAsync(true);  // Motstanderen vant
             await InvokeAsync(StateHasChanged);
         }
@@ -963,7 +1009,7 @@
         {
             _gameState = GameState.GameOver;
             _isWinner = true;
-            _gameOverMessage = "Du vant! Alle motstanderens skip er sunket.";
+            _gameOverMessage = "You obliterated your opponents fleet";
             
             await GameHubConnection.SendGameOverAsync(false); // Motstanderen tapte
             await InvokeAsync(StateHasChanged);
@@ -979,12 +1025,29 @@
     {
         string sound = value switch
         {
-            -1 => "/Assets/Battleships/Audio/Hit.wav",
-            -2 => "/Assets/Battleships/Audio/Miss.wav",
-            _ => ""
+            1 => "/Assets/Battleships/Audio/Hit.wav",
+            0 => "/Assets/Battleships/Audio/Miss.wav",
+            _ => "/Assets/Battleships/Audio/Reshot.wav"
         };
 
-        await JSRuntime.InvokeVoidAsync("playSound", sound);
+        await JsRuntime.InvokeVoidAsync("playSound", sound);
+    }
+    
+    private async Task PlaySecretSound(int value)
+    {
+        string sound = value switch
+        {
+            1 => "/Assets/Battleships/Audio/Kaboom.wav",
+            0 => "/Assets/Battleships/Audio/Splysh.wav",
+            _ => "/Assets/Battleships/Audio/ReShot.wav"
+        };
+
+        await JsRuntime.InvokeVoidAsync("playSound", sound);
+    }
+
+    private void ToggleSecret()
+    {
+        _secretActive = !_secretActive;
     }
 
     private void ForceReload()
@@ -1005,7 +1068,7 @@
         }
     }
     
-    private async Task UpdateOrCreateLeaderboard(LeaderboardAddOrUpdateDTO leaderboardStatsToSend) //Ta med denne Line
+    private async Task UpdateOrCreateLeaderboard(LeaderboardAddOrUpdateDTO leaderboardStatsToSend)
     {
         var request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:80/api/leaderboards/updateOrCreate")
         {
@@ -1013,7 +1076,7 @@
         };
 
         // Add the custom header
-        request.Headers.Add("X-Blazor-Secret", _config["AppSettings:BlazorSecret"]);
+        request.Headers.Add("X-Blazor-Secret", Config["AppSettings:BlazorSecret"]);
 
         // Send the request using the injected HttpClient
         var response = await Http.SendAsync(request);

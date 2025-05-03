@@ -1,7 +1,6 @@
 ﻿@page "/User"
 @using System.Text.Json
 @using Emne9_Prosjekt.Features.Members.Models
-@using Emne9_Prosjekt.Components.Pages.FrontPage
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
 @inject NavigationManager NavManager
@@ -20,7 +19,7 @@
         data-aos="zoom-out-up"
         data-aos-duration="500"
         data-aos-delay="300">
-        Hello @memberDto.UserName!
+        Welcome @memberDto.UserName!
     </h1>
 </div>
 
@@ -33,54 +32,24 @@
              top: -35px"
              alt="" src="/Assets/PageAssets/PageBorderGu.png"/>
         <div style="color: white;
+                    font-family: Bahnschrift,serif;
+                    font-size: larger;
                     flex-direction: column;
-                    padding-top: 100px;
-                    padding-bottom: 250px">
+                    padding-left: 150px;
+                    padding-top: 20px;
+                    padding-bottom: 100px">
             @if (memberDto != null && !memberId.IsNullOrEmpty())
             {
-            <p>User:</p>
-            <p>Username: @memberDto.UserName</p>
-            <p>Current email: @memberDto.Email</p>
-
-            <button @onclick="ShowEditForm" class="user-button">Edit</button>
-
-            @if (showEditForm)
-            {
-                <EditForm Model="@memberUpdateDto" OnValidSubmit="EditMemberAsync" FormName="editForm">
+                <p style="text-decoration: underline; margin: 0">Username:</p>
+                <p style="font-weight: bold">@memberDto.UserName</p>
                 
-                    <div class="form-group">
-                        <label for="Content">Email:</label>
-                        <InputText @bind-Value="memberUpdateDto.Email" class="form-control" name="Email"/>
-                    </div>
+                <p style="text-decoration: underline; margin: 0">Current email:</p>
+                <p style="font-weight: bold">@memberDto.Email</p>
                 
-                    <div class="form-group">
-                        <label for="Address">Change Password:</label>
-                        <InputText @bind-Value="memberUpdateDto.Password" type="password" class="form-control" name="Password"/>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="Address">Confirm new Password:</label>
-                        <InputText @bind-Value="checkPassword" type="password" class="form-control" name="CheckPassword"/>
-                    </div>
-                
-                    <button type="submit" class="user-button">Save</button>
-                </EditForm>
-                
-            @if (editSuccess)
-            {
-                <div class="alert alert-success">
-                    Edit successful.
+                <div style="display: flex; gap: 50px; padding-top: 20px">
+                    <button @onclick="ShowEditForm" class="user-button">Edit</button>
+                    <button class="user-button" @onclick="Logout">Logout</button>
                 </div>
-            }
-            else if (editFailed)
-            {
-                <div class="alert alert-danger">
-                    Edit failed.
-                    <p>@errorMessage</p>
-                </div>
-            }
-            }
-                <button class="user-button" @onclick="Logout">Logout</button>
             }
         </div>
     </div>
@@ -88,7 +57,61 @@
 
 <div style="background: #ffffff"
      class="page-element">
-    <Credit/>
+    <div style="width: 100%">
+        <img style="position: relative;
+                    width: 1000px;
+                    top: -35px"
+             alt="" src="/Assets/PageAssets/PageBorderGu.png"/>
+        <div style="color: black;
+                    width: 600px;
+                    flex-direction: column;
+                    padding-left: 150px;
+                    padding-bottom: 150px">
+            @if (showEditForm)
+            {
+                <h2 style="font-family: Bahnschrift,serif;">
+                    Update your desired fields
+                </h2>
+                <EditForm Model="@memberUpdateDto" OnValidSubmit="EditMemberAsync" FormName="editForm">
+
+                    <div class="form-group">
+                        <label for="Content">Email:</label>
+                        <InputText @bind-Value="memberUpdateDto.Email" class="update-field" name="Email"/>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Address">Change Password:</label>
+                        <InputText @bind-Value="memberUpdateDto.Password" type="password" class="update-field" name="Password"/>
+                    </div>
+
+                    <div style="padding-bottom: 20px" class="form-group">
+                        <label for="Address">Confirm new Password:</label>
+                        <InputText @bind-Value="checkPassword" type="password" class="update-field" name="CheckPassword"/>
+                    </div>
+
+                    <button type="submit" class="save-button">Save</button>
+                </EditForm>
+
+                <div style="width: 500px;
+                            padding-top: 20px;
+                            opacity: 0.7">
+                    @if (editSuccess)
+                    {
+                        <div class="alert alert-success">
+                            Update successful.
+                        </div>
+                    }
+                    else if (editFailed)
+                    {
+                        <div class="alert alert-danger">
+                            Update failed.
+                            <p>@errorMessage</p>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
 </div>
 
 <style>
@@ -100,18 +123,48 @@
 
     .user-button {
         color: white;
+        width: 70px;
+        height: 30px;
+        text-align: center;
         background: dimgray;
-        font-size: smaller;
+        font-size: large;
         font-weight: bold;
         border-radius: 10px;
     }
-
+    
     .user-button:hover {
         background: silver;
     }
 
     .user-button:active {
         background: grey;
+    }
+
+    .update-field {
+        height: 30px;
+        width: 500px;
+        border: 1px solid grey;
+        border-radius: 5px;
+        background: silver;
+    }
+    
+    .save-button {
+        color: black;
+        width: 60px;
+        height: 30px;
+        text-align: center;
+        background: silver;
+        font-size: large;
+        font-weight: bold;
+        border-radius: 5px;
+    }
+    
+    .save-button:hover {
+        background: gainsboro;
+    }
+    
+    .save-button:active {
+        background: dimgray;
     }
 </style>
 
@@ -230,6 +283,7 @@
         {
             errorMessage = "Passwords do not match";
             editSuccess = false;
+            editFailed = true;
             return;
         }
 
