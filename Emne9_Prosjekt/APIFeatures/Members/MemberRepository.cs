@@ -144,7 +144,7 @@ public class MemberRepository : IMemberRepository
             .FirstOrDefaultAsync(t => t.Token == token && !t.Revoked && t.Expires > DateTime.UtcNow);
     }
 
-    // Revoke a refresh token (e.g., on logout)
+    // Revoke a refresh token (logout)
     public async Task RevokeRefreshTokenAsync(string token)
     {
         var refreshToken = await _dbContext.MemberRefreshToken.FirstOrDefaultAsync(t => t.Token == token);

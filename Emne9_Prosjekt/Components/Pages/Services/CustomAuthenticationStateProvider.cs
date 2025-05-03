@@ -88,7 +88,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                     var userName = userNameTask.Result;
                     var memberId = memberIdTask.Result;
                     
-                    if (!string.IsNullOrWhiteSpace(userName))
+                    if (!string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(memberId))
                     {
                         var claims = new[]
                         {
@@ -123,11 +123,17 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
         var userName = await _httpClient.GetStringAsync("http://localhost:80/api/members/Username-info");
-        var claims = new[] { new Claim(ClaimTypes.Name, userName) };
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.Name, userName)
+        };
         var identity = new ClaimsIdentity(claims, "Bearer");
         var principal = new ClaimsPrincipal(identity);
+        
+        _cachedAuthState = new AuthenticationState(principal);
+        _lastTokenRefresh = DateTime.UtcNow;
 
-        NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(principal)));
+        NotifyAuthenticationStateChanged(Task.FromResult(_cachedAuthState));
         Console.WriteLine("User authenticated and state updated.");
     }
 
