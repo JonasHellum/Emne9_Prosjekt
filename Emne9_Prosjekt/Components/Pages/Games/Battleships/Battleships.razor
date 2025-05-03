@@ -1,6 +1,7 @@
 ﻿@page "/Battleships"
 @using System.Text
 @using System.Text.Json
+@using Emne9_Prosjekt.Components.Pages.Interfaces
 @using Emne9_Prosjekt.GameComponents
 @using Emne9_Prosjekt.Hubs.Interfaces
 @using Microsoft.AspNetCore.SignalR.Client
@@ -14,6 +15,7 @@
 @inject HttpClient Http
 @inject IConfiguration Config
 @implements IAsyncDisposable
+@inject ICustomAuthenticationStateProvider AuthStateProvider
 
 @* Inserts video background for page *@
 <video class="Background" autoplay muted loop playsinline
@@ -675,6 +677,7 @@
         Setup,
         Playing,
         GameOver
+
     }
 
     private GameState _gameState = GameState.Setup;
@@ -684,9 +687,12 @@
     private int _lastShotPositionValue;
     private string? _hoveredCell;
     private string _selectedShip = "";
+    private int _allShips;
     private bool _isConnected;
     private bool _isSetupComplete;
+    private bool _opponentSetupComplete;
     private bool _isMyTurn;
+    private bool _gameOver;
     private bool _isWinner;
     private string? _gameOverMessage;
     private string? _userName;
@@ -698,17 +704,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        var user = await AuthStateProvider.GetLoggedInUserAsync();
+        if (user.Identity.IsAuthenticated)
         {
-            _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-            Console.WriteLine($"Username from Logintest: {_userName}");
-            _loggedIn = !string.IsNullOrEmpty(_userName);
-        
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
+            _userName = user.Identity?.Name;
+            _loggedIn = true;
+            Console.WriteLine("Set the username from: OnInitializedAsync");
         }
         
         GameComponents.CreateBoard();
@@ -854,30 +855,15 @@
         {
             if (_loggedIn == false) 
             {
-                try
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                if (authState.User.Identity.IsAuthenticated)
                 {
-                    // Retrieve the token from cookies using JSInterop
-                    var token = await JsRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
-
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        // Add the JWT token to the Authorization header of HttpClient
-                        Http.DefaultRequestHeaders.Authorization =
-                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-                    }
-
-                    // Fetch the username from the API
-                    _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+                    _userName = authState.User.Identity.Name ?? null;
                     _loggedIn = !string.IsNullOrEmpty(_userName);
-
-                    // Trigger a re-render now that client-side data is available
+                
+                    Console.WriteLine("Set the username from OnAfterRenderAsync");
                     StateHasChanged();
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error during initialization: {ex.Message}");
-                }
-                
             }
             try
             {
@@ -1068,6 +1054,16 @@
     
     private async Task UpdateOrCreateLeaderboard(LeaderboardAddOrUpdateDTO leaderboardStatsToSend)
     {
+        var user = await AuthStateProvider.GetLoggedInUserAsync();
+        if (!user.Identity.IsAuthenticated)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (!authState.User.Identity.IsAuthenticated)
+            {
+                return;
+            }
+        }
+        
         var request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:80/api/leaderboards/updateOrCreate")
         {
             Content = new StringContent(JsonSerializer.Serialize(leaderboardStatsToSend), Encoding.UTF8, "application/json")

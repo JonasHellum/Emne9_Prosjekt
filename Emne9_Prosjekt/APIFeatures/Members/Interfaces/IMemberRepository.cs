@@ -9,5 +9,9 @@ public interface IMemberRepository : IBaseRepository<Member>
     Task<Member?> GetByEmailAsync(string email);
     Task<bool> EmailExistsAsync(string email);
     Task<Member?> GetByIdAsync(Guid memberId);
+    Task SaveRefreshTokenAsync(MemberRefreshToken refreshToken);
+    Task<MemberRefreshToken> ValidateRefreshTokenAsync(string token);
+    Task RevokeRefreshTokenAsync(string token);
+    Task<MemberRefreshToken> GetStoredRefreshTokenAsync(string token);
 
 }

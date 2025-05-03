@@ -1,5 +1,7 @@
+using System.Net;
 using System.Security.Claims;
 using System.Text;
+using BitzArt.Blazor.Cookies;
 using Emne9_Prosjekt.Components;
 using Emne9_Prosjekt.Components.Pages.Interfaces;
 using Emne9_Prosjekt.Components.Pages.Services;
@@ -34,6 +36,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Cookie = System.Net.Cookie;
 using HttpVersion = System.Net.HttpVersion;
 
 
@@ -44,6 +47,16 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https:/
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+
+
+// builder.Services.AddRazorPages().WithRazorPagesRoot("/Components/Pages");
+
+
+
+// builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>(); 
+builder.Services.AddScoped<ICustomAuthenticationStateProvider, CustomAuthenticationStateProvider>();
+
 
 builder.Services.AddSignalR();
 builder.Services.AddSignalRHubs();
@@ -69,6 +82,8 @@ builder.Services.AddScoped(sp =>
     var handler = new HttpClientHandler
     {
         UseCookies = true, // Ensures cookies are stored and sent
+        CookieContainer = new CookieContainer(),
+        AllowAutoRedirect = true  
     };
 
     return new HttpClient(handler)
@@ -76,6 +91,16 @@ builder.Services.AddScoped(sp =>
         BaseAddress = new Uri("http://localhost:80") // Same base URL as API
     };
 });
+
+
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options => {
+        options.PayloadSerializerOptions.PropertyNamingPolicy = null;
+    });
+
+builder.AddBlazorCookies();
+
+
 
 builder.Services.AddSwaggerGen();
 
@@ -92,6 +117,13 @@ builder.Services
     .AddScoped<IMapper<Leaderboard, LeaderboardAddOrUpdateDTO>, LeaderboardAddMapper>();
 
 builder.Services.AddScoped<IAuthStateService, AuthStateService>();
+
+
+// GONNA FIX IT LATER
+// builder.Services.AddScoped<ICookieSettingService, CookieService>();
+
+
+
 
 
 builder.Services
@@ -145,7 +177,7 @@ var app = builder.Build();
 
 
 // Configure the HTTP request pipeline.
-//app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 
 app.UseRouting();
 app.UseMiddleware<JwtMiddleware>()
@@ -176,9 +208,11 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseStaticFiles();
-//app.UseRouting();
+app.UseRouting();
+
 app.UseAntiforgery();
 
+// app.MapRazorPages();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapHub<ChatHub>("/chatHub"); 
@@ -188,25 +222,6 @@ app.MapHub<BigChatHub>("/bigchathub");
 app.MapHub<ConnectFourGameHub>("/connectgamehub");
 
 
-// app.Use(async (context, next) =>
-// {
-//     // Look for Set-Cookie in responses
-//     if (context.Response.Headers.ContainsKey("Set-Cookie"))
-//     {
-//         Console.WriteLine($"Set-Cookie header: {context.Response.Headers["Set-Cookie"]}");
-//     }
-//     await next();
-//
-//     // Look for AuthToken in the incoming requests
-//     if (context.Request.Cookies.ContainsKey("AuthTokenCOMON"))
-//     {
-//         Console.WriteLine($"Incoming AuthToken Cookie: {context.Request.Cookies["AuthToken"]}");
-//     }
-//     else
-//     {
-//         Console.WriteLine("No AuthToken cookie found in request.");
-//     }
-// });
 
 
 app.MapControllers();

@@ -1,10 +1,14 @@
 ﻿@page "/LeaderboardStatsAndStuffTest"
+@using System.Security.Claims
+@using Emne9_Prosjekt.Components.Pages.Interfaces
+@using Emne9_Prosjekt.Components.Pages.Services
 @using Emne9_Prosjekt.Features.Leaderboards.Models
 @using Emne9_Prosjekt.Features.Members.Models
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager
+@inject ICustomAuthenticationStateProvider AuthStateProvider
 
 
 
@@ -35,11 +39,11 @@
         </tbody>
     </table>
 }
-else if (memberId == null)
+@if (!loggedIn)
 {
     <p>You are not logged in.</p>
 }
-else
+@if (loggedIn && !leaderboard.Any(entry => entry.MemberId.ToString() == memberId))
 {
     <p>Your stats are not available on the leaderboard.</p>
 }
@@ -85,7 +89,7 @@ else
 <div class="mt-3">
     <button class="btn btn-primary" @onclick="ShowAllPreviousPage" disabled="@(_currentPageForAll == 1)">Previous</button>
     <span class="mx-3">Page: @_currentPageForAll</span>
-    <button class="btn btn-primary" @onclick="ShowAllNextPage" disabled="@(AINTGOINGNOWHERENOWBISH == true)">Nextfookinshet</button>
+    <button class="btn btn-primary" @onclick="ShowAllNextPage" disabled="@(_disableNextPage == true)">Nextfookinshet</button>
 </div>
 
 
@@ -103,14 +107,13 @@ else
     private int _pageSize = 1;
 
 
-    private bool AINTGOINGNOWHERENOWBISH;
+    private bool _disableNextPage;
     
     private int _currentPageForAll = 1;
     private bool _disableAllNextPage;
     
     
     private int _currentPage = 1;
-    private bool _disableNextPage;
     private bool loading = false;
 
     private string gameType = "All";
@@ -129,24 +132,20 @@ else
     private string errorMessage;
     private bool _isClientSide;
     private bool loggedIn;
-    
-    
+    private bool _noNewPageAtAll;
+
+
     protected override async Task OnInitializedAsync()
     {
-        try
+        
+        var user = await AuthStateProvider.GetLoggedInUserAsync();
+        if (user.Identity.IsAuthenticated)
         {
-            memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
-            Console.WriteLine($"memberId from User: {memberId}");
-            loggedIn = !string.IsNullOrEmpty(memberId);
-            
+            memberId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            loggedIn = true;
+            Console.WriteLine($"memberId from LeaderboardStatsAndStuffTest: {memberId}");
             await LoadLeaderboardPage();
         }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
-        
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -155,28 +154,14 @@ else
         {
             if (loggedIn == false)
             {
-                // Perform JavaScript interop only after prerendering
-                _isClientSide = true;
-
-                try
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                if (authState.User.Identity.IsAuthenticated)
                 {
-                    // Retrieve the token from cookies using JSInterop
-                    var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
-
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        // Add the JWT token to the Authorization header of HttpClient
-                        Http.DefaultRequestHeaders.Authorization =
-                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-                    }
-
-                    memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+                    memberId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? null;
+                    loggedIn = !string.IsNullOrEmpty(memberId);
+                
+                    Console.WriteLine($"Set the memberId from OnAfterRenderAsync: {memberId}");
                     await LoadLeaderboardPage();
-                    
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error during initialization: {ex.Message}");
                 }
             }
         }
@@ -186,6 +171,8 @@ else
     {
         gameType = e.Value?.ToString() ?? "All"; // Update the gameType
         _currentPageForAll = 1; // Reset to the first page when the game type changes
+        _disableNextPage = false;
+        _noNewPageAtAll = false;
         await LoadLeaderboardPage();
     }
     
@@ -213,11 +200,12 @@ else
 
             if (leaderboard.Count < _pageSizeForAll)
             {
-                AINTGOINGNOWHERENOWBISH = true;
+                _disableNextPage = true;
             }
-            else
+
+            if (!filteredLeaderboard.Any())
             {
-                AINTGOINGNOWHERENOWBISH = false;
+                _noNewPageAtAll = true;
             }
 
             Console.WriteLine($"[LoadLeaderboardPage] Page: {_currentPageForAll}, Filtered: {filteredLeaderboard.Count}, Disable Next: {_disableAllNextPage}");
@@ -235,7 +223,7 @@ else
     
     private async Task ShowAllNextPage()
     {
-        if (_disableAllNextPage)
+        if (_disableNextPage)
         {
             Console.WriteLine("Next button is disabled. No further pages exist.");
             return;
@@ -245,7 +233,7 @@ else
         Console.WriteLine($"[Pagination] Navigating to Page: {_currentPageForAll}");
         await LoadLeaderboardPage();
 
-        if (_disableAllNextPage)
+        if (_noNewPageAtAll)
         {
             Console.WriteLine("Reverting navigation. No valid data for the next page.");
             _currentPageForAll--;
@@ -259,8 +247,8 @@ else
         {
             _currentPageForAll--;
             Console.WriteLine($"[Pagination] Current Page (Previous): {_currentPageForAll}");
-            AINTGOINGNOWHERENOWBISH = false;
-
+            _disableNextPage = false;
+            _noNewPageAtAll = false;
             await LoadLeaderboardPage();
         }
     }

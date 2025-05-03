@@ -1,15 +1,18 @@
 ﻿@page "/updatingtestin"
+@using System.Security.Claims
 @using System.Text.Json
+@using Emne9_Prosjekt.Components.Pages.Interfaces
 @using Emne9_Prosjekt.Features.Members.Models
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
+@inject ICustomAuthenticationStateProvider AuthStateProvider
 
 
-<h3 style="padding-top: 125px">UpdatingTestin</h3>
+<h3 style="padding-top: 150px">UpdatingTestin</h3>
 
-@if (memberDto != null && !memberId.IsNullOrEmpty())
+@if (memberDto != null && loggedIn)
 {
     <p>@memberDto.UserName</p>
     <p>@memberDto.FirstName</p>
@@ -86,44 +89,52 @@ else
     private bool editFailed = false;
     private string errorMessage;
     private bool _isClientSide;
+    private bool loggedIn;
 
+    
+    protected override async Task OnInitializedAsync()
+    {
+        memberDto = new MemberDTO();
+        
+        
+        var user = await AuthStateProvider.GetLoggedInUserAsync();
+        if (user.Identity.IsAuthenticated)
+        {
+            memberId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            loggedIn = true;
+            Console.WriteLine($"memberId from UpdateTestin: {memberId}");
+            if (loggedIn)
+            {
+                memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
+            }
+            StateHasChanged();
+        }
+    }
+    
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Perform JavaScript interop only after prerendering
-            _isClientSide = true;
-
-            try
+            if (loggedIn == false)
             {
-                // Retrieve the token from cookies using JSInterop
-                var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
-
-                if (!string.IsNullOrEmpty(token))
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                if (authState.User.Identity.IsAuthenticated)
                 {
-                    // Add the JWT token to the Authorization header of HttpClient
-                    Http.DefaultRequestHeaders.Authorization =
-                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                    memberId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? null;
+                    loggedIn = !string.IsNullOrEmpty(memberId);
+                    Console.WriteLine($"Set the memberId from OnAfterRenderAsync: {memberId}");
                 }
-                
-                memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
-                if (!memberId.IsNullOrEmpty())
-                {
-                    memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
-                }
-                else
-                {
-                    await Task.Delay(2000);
-                    NavManager.NavigateTo("/login");
-                }
-                
-                // Trigger a re-render now that client-side data is available
-                StateHasChanged();
             }
-            catch (Exception ex)
+            if (loggedIn)
             {
-                Console.WriteLine($"Error during initialization: {ex.Message}");
+                memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
             }
+            else
+            {
+                await Task.Delay(2000);
+                NavManager.NavigateTo("/login");
+            }
+            StateHasChanged();
         }
     }
 

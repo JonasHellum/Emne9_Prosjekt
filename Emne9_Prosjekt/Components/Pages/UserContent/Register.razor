@@ -1,6 +1,6 @@
 ﻿@page "/Register"
 @using System.Text.Json
-@using Emne9_Prosjekt.Features.Members.Models
+
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
@@ -8,7 +8,8 @@
 @inject IConfiguration Configuration
 @using Emne9_Prosjekt.Components.Pages.Interfaces
 @using Emne9_Prosjekt.Components.Pages.FrontPage
-@inject IAuthStateService AuthState
+@using Emne9_Prosjekt.Features.Members.Models
+@inject ICustomAuthenticationStateProvider AuthStateProvider
 
 <div data-aos="zoom"></div>
 
@@ -215,64 +216,43 @@
     {
         _clientId = Configuration["Google:ClientId"];
         registrationDto = new MemberRegistrationDTO();
-    
-        try
+        
+        var user = await AuthStateProvider.GetLoggedInUserAsync();
+        if (user.Identity.IsAuthenticated)
         {
-            userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+            userName = user.Identity?.Name;
+            loggedIn = true;
             Console.WriteLine($"Username from registerTestin: {userName}");
-            loggedIn = !string.IsNullOrEmpty(userName);
-
             if (loggedIn)
             {
                 NavManager.NavigateTo("/User");
             }
         }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
         
+        StateHasChanged();
     }
     
-    private bool _isClientSide;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await JSRuntime.InvokeVoidAsync("initGoogleSignIn", _clientId, DotNetObjectReference.Create(this));
-            
-            // Perform JavaScript interop only after prerendering
-            _isClientSide = true;
 
-            try
+            if (loggedIn == false)
             {
-                // Retrieve the token from cookies using JSInterop
-                var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
-                        
-                if (!string.IsNullOrEmpty(token))
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                if (authState.User.Identity!.IsAuthenticated)
                 {
-                    // Add the JWT token to the Authorization header of HttpClient
-                    Http.DefaultRequestHeaders.Authorization =
-                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                    userName = authState.User.Identity.Name ?? null!;
+                    loggedIn = !string.IsNullOrEmpty(userName);
+                    Console.WriteLine($"Username from registerTestin: {userName}");
+                    if (loggedIn)
+                    {
+                        NavManager.NavigateTo("/User");
+                    }
                 }
-
-                // Fetch the username from the API
-                userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-                loggedIn = !string.IsNullOrEmpty(userName);
-                        
-                if (loggedIn)
-                {
-                    NavManager.NavigateTo("/User");
-                }
-                        
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error during initialization: {ex.Message}");
-            }
-            
         }
     }
 
@@ -347,6 +327,7 @@
             registrationFailed = true;
         }
     }
+    
     private class ErrorResponse
     {
         public List<string> Errors { get; set; }
@@ -362,26 +343,14 @@
 
             if (response.IsSuccessStatusCode)
             {
-                Console.WriteLine("Login successful!");
-                var userName = await Http.GetStringAsync("http://localhost/api/members/Username-info");
-
-                // Notify AuthStateService to update the state
-                AuthState.SetUserName(userName);
+                Console.WriteLine("Registering successful!");
                 
-                // Manually parse the Set-Cookie header
-                if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
+                Console.WriteLine("Registering successful!");
+                var tokens = await response.Content.ReadFromJsonAsync<MemberTokenResponse>();
+                
+                if (tokens != null)
                 {
-                    foreach (var cookie in cookies)
-                    {
-                        // Extract the token value
-                        var tokenPair = cookie.Split(';')[0]; // "AuthTokenCOMON=jwt_token_value"
-                        var tokenName = tokenPair.Split('=')[0]; // AuthTokenCOMON
-                        var tokenValue = tokenPair.Split('=')[1];
-
-                        // Use JSRuntime to set the cookie in the browser
-                        await JSRuntime.InvokeVoidAsync("setCookie", tokenName, tokenValue, 10); // 10 = hours before expiry
-                        Console.WriteLine($"Cookie manually set: {tokenName} = {tokenValue}");
-                    }
+                    await AuthStateProvider.MarkUserAsAuthenticated(tokens.AccessToken, tokens.RefreshToken);
                 }
 
                 registrationSuccess = true;
@@ -392,7 +361,7 @@
             }
             else
             {
-                Console.WriteLine($"Login failed: {response.StatusCode}");
+                Console.WriteLine($"Registering failed: {response.StatusCode}");
                 var error = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Error message: {error}");
 

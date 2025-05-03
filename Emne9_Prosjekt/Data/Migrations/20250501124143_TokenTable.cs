@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Emne9_Prosjekt.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class init : Migration
+    public partial class TokenTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -115,6 +115,24 @@ namespace Emne9_Prosjekt.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Member", x => x.MemberId);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "MemberRefreshToken",
+                columns: table => new
+                {
+                    TokenId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Token = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    MemberId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Created = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Expires = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Revoked = table.Column<bool>(type: "tinyint(1)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MemberRefreshToken", x => x.TokenId);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -318,6 +336,9 @@ namespace Emne9_Prosjekt.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "Member");
+
+            migrationBuilder.DropTable(
+                name: "MemberRefreshToken");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

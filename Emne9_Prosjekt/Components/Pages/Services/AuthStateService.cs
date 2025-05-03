@@ -5,7 +5,7 @@ namespace Emne9_Prosjekt.Components.Pages.Services;
 public class AuthStateService : IAuthStateService
 {
     // State for whether the user is logged in
-    private string? _userName;
+    private string? _userName; 
     public string? UserName
     {
         get => _userName;
