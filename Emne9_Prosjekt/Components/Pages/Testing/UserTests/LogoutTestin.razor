@@ -7,7 +7,6 @@
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
-@inject IAuthStateService AuthState
 @inject ICustomAuthenticationStateProvider AuthStateProvider
 
 
@@ -92,7 +91,6 @@ else
         if (response.IsSuccessStatusCode)
         {
             AuthStateProvider.MarkUserAsLoggedOut();
-            AuthState.ClearUserName();
             
             logedout = "Logout successful";
             Task.Delay(500);

@@ -1,4 +1,5 @@
 ﻿@page "/Leaderboards"
+@using System.Security.Claims
 @using Emne9_Prosjekt.Components.Pages.FrontPage
 @using Emne9_Prosjekt.Components.Pages.Interfaces
 @using Emne9_Prosjekt.Components.Pages.Services
@@ -161,62 +162,31 @@
 </style>
 
 @code {
-    private string selectedGameType = "All";
-
     private List<LeaderboardDTO> leaderboard = new();
-    private List<LeaderboardDTO> leaderboardGameType = new();
     private List<LeaderboardDTO> filteredLeaderboard = new();
-
-    
     
     private int _pageSizeForAll = 5;
-    private int _pageSize = 1;
-
-    
-    
     private int _currentPageForAll = 1;
     private bool _disableAllNextPage;
     
-    
-    private int _currentPage = 1;
-    private bool _disableNextPage;
-    private bool loading = false;
-
     private string gameType = "All";
-
-    
-    
     private LeaderboardDTO loggedInUserEntry;
-
-    
-
-    
     private string memberId { get; set; }
-    private bool showEditForm = false;
-    private bool editSuccess = false;
-    private bool editFailed = false;
     private string errorMessage;
-    private bool _isClientSide;
     private bool loggedIn;
     private bool _noNewPageAtAll;
 
-
+    private bool loading = false;
     protected override async Task OnInitializedAsync()
     {
-        try
+        var user = await AuthStateProvider.GetLoggedInUserAsync();
+        if (user.Identity!.IsAuthenticated)
         {
-            memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
-            Console.WriteLine($"memberId from User: {memberId}");
-            loggedIn = !string.IsNullOrEmpty(memberId);
-            
+            memberId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            loggedIn = true;
+            Console.WriteLine($"memberId from LeaderboardStatsAndStuffTest: {memberId}");
             await LoadLeaderboardPage();
         }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
-        
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -225,29 +195,14 @@
         {
             if (loggedIn == false)
             {
-                // Perform JavaScript interop only after prerendering
-                _isClientSide = true;
-
-                try
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                if (authState.User.Identity!.IsAuthenticated)
                 {
-                    // Retrieve the token from cookies using JSInterop
-                    var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
-
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        // Add the JWT token to the Authorization header of HttpClient
-                        Http.DefaultRequestHeaders.Authorization =
-                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-                    }
-
-                    memberId = await Http.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+                    memberId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? null!;
                     loggedIn = !string.IsNullOrEmpty(memberId);
+                
+                    Console.WriteLine($"Set the memberId from OnAfterRenderAsync: {memberId}");
                     await LoadLeaderboardPage();
-                    
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error during initialization: {ex.Message}");
                 }
             }
         }

@@ -91,9 +91,6 @@ public class MemberController : ControllerBase
         var memberRefreshToken = _memberService.MakeRefreshToken();
         
         await _memberService.SaveRefreshTokenAsync(member.MemberId, memberRefreshToken);
-        
-        // Response.Headers.Add("Authorization", $"Bearer {memberAccessToken}");
-        // Response.Headers.Add("RefreshToken", $"Bearer {memberRefreshToken}");
 
         return Ok(new MemberTokenResponse
         {
@@ -163,7 +160,7 @@ public class MemberController : ControllerBase
     /// <returns>MemberDTO</returns>
     [AllowAnonymous]
     [HttpPost("GoogleCallBack", Name = "GoogleCallBack")]
-    public async Task<IActionResult> GoogleCallback([FromBody] string credential)
+    public async Task<ActionResult<MemberTokenResponse>> GoogleCallback([FromBody] string credential)
     {
         _logger.LogInformation("Doing a post on GoogleCallBack");
         
@@ -199,20 +196,16 @@ public class MemberController : ControllerBase
                 return BadRequest("Failed to login with Google");
             }
             
-            var memberToken = _memberService.MakeAccessToken(member!);
-            // Response.Headers.Add("Authorization", memberToken);
-            
-            Response.Cookies.Append("AuthTokenCOMON", memberToken, new CookieOptions
+            var memberAccessToken = _memberService.MakeAccessToken(member);
+            var memberRefreshToken = _memberService.MakeRefreshToken();
+        
+            await _memberService.SaveRefreshTokenAsync(member.MemberId, memberRefreshToken);
+
+            return Ok(new MemberTokenResponse
             {
-                HttpOnly = true,    // Ensures JavaScript cannot access the cookie
-                SameSite = SameSiteMode.Lax,
-                Secure = false,      // True ensures the cookie is only sent over HTTPS, but we on HTTP now
-                Expires = DateTime.UtcNow.AddHours(2),
-                Domain = "localhost",
-                Path = "/"
+                AccessToken = memberAccessToken,
+                RefreshToken = memberRefreshToken
             });
-            
-            return Ok(member);
         }
         catch (Exception e)
         {

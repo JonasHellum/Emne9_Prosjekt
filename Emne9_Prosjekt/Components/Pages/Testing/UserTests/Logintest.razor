@@ -87,9 +87,9 @@ else if (memberDto == null)
         
         
         var user = await AuthStateProvider.GetLoggedInUserAsync();
-        if (user.Identity.IsAuthenticated)
+        if (user.Identity!.IsAuthenticated)
         {
-            userName = user.Identity?.Name;
+            userName = user.Identity?.Name!;
             loggedIn = true;
             Console.WriteLine("Set the username from: OnInitializedAsync");
             StateHasChanged();
@@ -104,10 +104,9 @@ else if (memberDto == null)
             {
 
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-                if (authState.User.Identity.IsAuthenticated)
+                if (authState.User.Identity!.IsAuthenticated)
                 {
-                    var user = authState.User;
-                    userName = user.Identity.Name ?? null;
+                    userName = authState.User.Identity.Name ?? null!;
                     loggedIn = !string.IsNullOrEmpty(userName);
                 
                     Console.WriteLine("Set the username from OnAfterRenderAsync");

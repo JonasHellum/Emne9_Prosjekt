@@ -10,7 +10,7 @@
 @using Microsoft.IdentityModel.Tokens
 @using Microsoft.JSInterop
 @using Emne9_Prosjekt.Components.Pages.FrontPage
-@inject IAuthStateService AuthState
+@inject ICustomAuthenticationStateProvider AuthStateProvider
 
 <div data-aos="zoom"></div>
 
@@ -190,32 +190,19 @@
             if (response.IsSuccessStatusCode)
             {
                 Console.WriteLine("Login successful!");
-                var userName = await Http.GetStringAsync("http://localhost/api/members/Username-info");
-
-                // Notify AuthStateService to update the state
-                AuthState.SetUserName(userName);
                 
-                // Manually parse the Set-Cookie header
-                if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
+                Console.WriteLine("Login successful!");
+                var tokens = await response.Content.ReadFromJsonAsync<MemberTokenResponse>();
+                
+                if (tokens != null)
                 {
-                    foreach (var cookie in cookies)
-                    {
-                        // Extract the token value
-                        var tokenPair = cookie.Split(';')[0]; // "AuthTokenCOMON=jwt_token_value"
-                        var tokenName = tokenPair.Split('=')[0]; // AuthTokenCOMON
-                        var tokenValue = tokenPair.Split('=')[1];
-
-                        // Use JSRuntime to set the cookie in the browser
-                        await JSRuntime.InvokeVoidAsync("setCookie", tokenName, tokenValue, 10); // 10 = hours before expiry
-                        Console.WriteLine($"Cookie manually set: {tokenName} = {tokenValue}");
-                    }
+                    await AuthStateProvider.MarkUserAsAuthenticated(tokens.AccessToken, tokens.RefreshToken);
                 }
 
                 loginSuccess = true;
                 StateHasChanged();
                 Task.Delay(2000);
                 NavManager.NavigateTo("/");
-
             }
             else
             {
@@ -247,29 +234,15 @@
 
             if (response.IsSuccessStatusCode)
             {
-                // Manually parse the Set-Cookie header
-                if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
-                {
-                    foreach (var cookie in cookies)
-                    {
-                        // Extract the token value
-                        var tokenPair = cookie.Split(';')[0]; // "AuthTokenCOMON=jwt_token_value"
-                        var tokenName = tokenPair.Split('=')[0]; // AuthTokenCOMON
-                        var tokenValue = tokenPair.Split('=')[1];
-
-                        // Use JSRuntime to set the cookie in the browser
-                        await JSRuntime.InvokeVoidAsync("setCookie", tokenName, tokenValue, 10); // 10 = hours before expiry
-                        Console.WriteLine($"Cookie manually set: {tokenName} = {tokenValue}");
-                    }
-                }
                 Console.WriteLine("Login successful!");
-                var userName = await Http.GetStringAsync("http://localhost/api/members/Username-info");
-
-                // Notify AuthStateService to update the state
-                AuthState.SetUserName(userName);
-
-                loginSuccess = true;
-                StateHasChanged();
+                var tokens = await response.Content.ReadFromJsonAsync<MemberTokenResponse>();
+                
+                if (tokens != null)
+                {
+                    await AuthStateProvider.MarkUserAsAuthenticated(tokens.AccessToken, tokens.RefreshToken);
+                    loginSuccess = true;
+                }
+                
                 Task.Delay(2000);
                 NavManager.NavigateTo("/");
             }
@@ -292,24 +265,18 @@
         
         memberDto = new MemberDTO();
         
-        try
+        
+        var user = await AuthStateProvider.GetLoggedInUserAsync();
+        if (user.Identity.IsAuthenticated)
         {
-            userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-            Console.WriteLine($"Username from Logintest: {userName}");
-            loggedIn = !string.IsNullOrEmpty(userName);
-
+            userName = user.Identity?.Name;
+            loggedIn = true;
+            Console.WriteLine("Set the username from: OnInitializedAsync");
             if (loggedIn)
             {
                 NavManager.NavigateTo("/User");
             }
-        
         }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
-
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -317,36 +284,21 @@
         {
             await JSRuntime.InvokeVoidAsync("initGoogleSignIn", _clientId, DotNetObjectReference.Create(this));
             
-            // Perform JavaScript interop only after prerendering
-            _isClientSide = true;
-
-            try
+            if (loggedIn == false)
             {
-                // Retrieve the token from cookies using JSInterop
-                var token = await JSRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
-                
-                if (!string.IsNullOrEmpty(token))
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                if (authState.User.Identity.IsAuthenticated)
                 {
-                    // Add the JWT token to the Authorization header of HttpClient
-                    Http.DefaultRequestHeaders.Authorization =
-                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                    userName = authState.User.Identity.Name ?? null;
+                    loggedIn = !string.IsNullOrEmpty(userName);
+                    Console.WriteLine("Set the username from OnAfterRenderAsync");
+                    if (loggedIn)
+                    {
+                        NavManager.NavigateTo("/User");
+                    }
                 }
-
-                // Fetch the username from the API
-                userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-                loggedIn = !string.IsNullOrEmpty(userName);
-
-                if (loggedIn)
-                {
-                    StateHasChanged();
-                    NavManager.NavigateTo("/User");
-                }
-                
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error during initialization: {ex.Message}");
-            }
+            
         }
     }
 }

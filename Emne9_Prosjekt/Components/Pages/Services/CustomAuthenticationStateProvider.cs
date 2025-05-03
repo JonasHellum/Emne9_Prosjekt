@@ -107,7 +107,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
                         _cachedAuthState = new AuthenticationState(principal);
                         _lastTokenRefresh = DateTime.UtcNow;
                         NotifyAuthenticationStateChanged(Task.FromResult(_cachedAuthState));
-                        _authStateService.SetUserName(_cachedAuthState.User.Identity.Name);
+                        _authStateService.SetUserName(_cachedAuthState.User.Identity!.Name!);
                         return _cachedAuthState;
                     }
                 }

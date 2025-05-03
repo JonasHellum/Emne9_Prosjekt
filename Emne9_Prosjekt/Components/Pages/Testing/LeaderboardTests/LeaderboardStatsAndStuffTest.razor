@@ -143,7 +143,7 @@
         {
             memberId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             loggedIn = true;
-            Console.WriteLine($"memberId from User: {memberId}");
+            Console.WriteLine($"memberId from LeaderboardStatsAndStuffTest: {memberId}");
             await LoadLeaderboardPage();
         }
     }
@@ -157,8 +157,7 @@
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
                 if (authState.User.Identity.IsAuthenticated)
                 {
-                    var user = authState.User;
-                    memberId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? null;
+                    memberId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? null;
                     loggedIn = !string.IsNullOrEmpty(memberId);
                 
                     Console.WriteLine($"Set the memberId from OnAfterRenderAsync: {memberId}");
