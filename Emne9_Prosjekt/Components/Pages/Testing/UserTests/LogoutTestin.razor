@@ -1,11 +1,14 @@
 ﻿@page "/LogoutTestin"
 @using Emne9_Prosjekt.Components.Pages.Interfaces
+@using Emne9_Prosjekt.Components.Pages.Services
+@using Emne9_Prosjekt.Features.Members.Models
 @using Microsoft.EntityFrameworkCore.Metadata.Internal
 @using Microsoft.IdentityModel.Tokens
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
 @inject IAuthStateService AuthState
+@inject ICustomAuthenticationStateProvider AuthStateProvider
 
 
 <h3 style="padding-top: 125px">LogoutTestin</h3>
@@ -83,14 +86,12 @@ else
     
     private async Task Logout()
     {
-        var response = await Http.GetAsync("http://localhost:80/api/members/Logout");
+        var refreshToken = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "RefreshToken");
+        var memberRefreshToken = new MemberTokenRequest() { RefreshToken = refreshToken };
+        var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/Logout", memberRefreshToken);
         if (response.IsSuccessStatusCode)
         {
-            // Remove cookie
-            await JSRuntime.InvokeVoidAsync("deleteCookie", "AuthTokenCOMON");
-
-            // Remove the JWT from the Authorization header
-            Http.DefaultRequestHeaders.Authorization = null;
+            AuthStateProvider.MarkUserAsLoggedOut();
             AuthState.ClearUserName();
             
             logedout = "Logout successful";

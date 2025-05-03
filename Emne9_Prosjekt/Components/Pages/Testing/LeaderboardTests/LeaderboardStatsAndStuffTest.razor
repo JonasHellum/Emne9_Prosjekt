@@ -1,5 +1,6 @@
 ﻿@page "/LeaderboardStatsAndStuffTest"
 @using System.Security.Claims
+@using Emne9_Prosjekt.Components.Pages.Interfaces
 @using Emne9_Prosjekt.Components.Pages.Services
 @using Emne9_Prosjekt.Features.Leaderboards.Models
 @using Emne9_Prosjekt.Features.Members.Models
@@ -7,7 +8,7 @@
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager
-@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject ICustomAuthenticationStateProvider AuthStateProvider
 
 
 

@@ -1,25 +1,29 @@
 ﻿using System.Security.Claims;
+using Emne9_Prosjekt.Components.Pages.Interfaces;
 using Emne9_Prosjekt.Features.Members.Models;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 
 namespace Emne9_Prosjekt.Components.Pages.Services;
 
-public class CustomAuthenticationStateProvider : AuthenticationStateProvider
+public class CustomAuthenticationStateProvider : AuthenticationStateProvider, ICustomAuthenticationStateProvider
 {
     private AuthenticationState _cachedAuthState;
     private DateTime? _lastTokenRefresh;
     private readonly ILogger<CustomAuthenticationStateProvider> _logger;
+    private readonly IAuthStateService _authStateService;
     
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     private readonly IJSRuntime _jsRuntime;
     private readonly HttpClient _httpClient;
+    
 
     public CustomAuthenticationStateProvider(IJSRuntime jsRuntime, 
         HttpClient httpClient,
         ILogger<CustomAuthenticationStateProvider> logger,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IAuthStateService authStateService)
     {
         _jsRuntime = jsRuntime;
         _httpClient = httpClient;
@@ -27,6 +31,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         _cachedAuthState = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
         
         _httpContextAccessor = httpContextAccessor;
+        _authStateService = authStateService;
 
     }
 
@@ -36,6 +41,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         if (_cachedAuthState?.User.Identity?.IsAuthenticated == true && _lastTokenRefresh.HasValue && 
             DateTime.UtcNow.Subtract(_lastTokenRefresh.Value).TotalMinutes < 12)
         {
+            _authStateService.SetUserName(_cachedAuthState.User.Identity.Name);
             return Task.FromResult(_cachedAuthState.User);
         }
 
@@ -101,6 +107,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                         _cachedAuthState = new AuthenticationState(principal);
                         _lastTokenRefresh = DateTime.UtcNow;
                         NotifyAuthenticationStateChanged(Task.FromResult(_cachedAuthState));
+                        _authStateService.SetUserName(_cachedAuthState.User.Identity.Name);
                         return _cachedAuthState;
                     }
                 }
@@ -110,7 +117,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         {
             Console.WriteLine($"Error during token refresh: {ex.Message}");
         }
-
+        
         await MarkUserAsLoggedOut();
         return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
     }
@@ -122,17 +129,28 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         _httpClient.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-        var userName = await _httpClient.GetStringAsync("http://localhost:80/api/members/Username-info");
-        var claims = new[]
+        // Fetch user claims
+        var userNameTask = _httpClient.GetStringAsync("http://localhost:80/api/members/Username-info");
+        var memberIdTask = _httpClient.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+                    
+        await Task.WhenAll(userNameTask, memberIdTask);
+        var userName = userNameTask.Result;
+        var memberId = memberIdTask.Result;
+                    
+        if (!string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(memberId))
         {
-            new Claim(ClaimTypes.Name, userName)
-        };
-        var identity = new ClaimsIdentity(claims, "Bearer");
-        var principal = new ClaimsPrincipal(identity);
-        
-        _cachedAuthState = new AuthenticationState(principal);
-        _lastTokenRefresh = DateTime.UtcNow;
-
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Name, userName),
+                new Claim(ClaimTypes.NameIdentifier, memberId)
+            };
+            var identity = new ClaimsIdentity(claims, "Bearer");
+            var principal = new ClaimsPrincipal(identity);
+                        
+            _cachedAuthState = new AuthenticationState(principal);
+            _lastTokenRefresh = DateTime.UtcNow;
+        }
+        _authStateService.SetUserName(_cachedAuthState.User.Identity.Name);
         NotifyAuthenticationStateChanged(Task.FromResult(_cachedAuthState));
         Console.WriteLine("User authenticated and state updated.");
     }
@@ -142,6 +160,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
         await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "RefreshToken");
         _httpClient.DefaultRequestHeaders.Authorization = null;
+        _authStateService.ClearUserName();
 
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()))));
         Console.WriteLine("User logged out and state cleared.");

@@ -54,8 +54,8 @@ builder.Services.AddRazorComponents()
 
 
 
-builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>(); 
-builder.Services.AddScoped<CustomAuthenticationStateProvider>();
+// builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>(); 
+builder.Services.AddScoped<ICustomAuthenticationStateProvider, CustomAuthenticationStateProvider>();
 
 
 builder.Services.AddSignalR();
