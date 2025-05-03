@@ -7,19 +7,22 @@ namespace Emne9_Prosjekt.Hubs;
 public class ConnectFourGameHub : Hub<IConnectFourGameHubClientMethods>
 {
     private readonly IConnectFourGameService _connectGameService;
-    public ConnectFourGameHub(IConnectFourGameService connectGameService)
+    private readonly ILogger<ConnectFourGameHub> _logger;
+
+    public ConnectFourGameHub(IConnectFourGameService connectGameService, ILogger<ConnectFourGameHub> logger)
     {
         _connectGameService = connectGameService;
+        _logger = logger;
     }
      public async Task JoinGame(Dictionary<string, int> board)
     {
         var connectionId = Context.ConnectionId;
-        Console.WriteLine($"[Hub] {connectionId} prøver å bli med i spill.");
+        _logger.LogInformation($"User {connectionId} connected.");
         // Sjekk om spilleren allerede er i et spill
         if (_connectGameService.IsGameInProgress(connectionId))
         {
             // Spilleren er allerede i et spill, ikke gjør noe
-            Console.WriteLine($"[Hub] {connectionId} er allerede i et spill.");
+            _logger.LogInformation($"User {connectionId} is already in a game.");
             return;
         }
         
@@ -28,14 +31,13 @@ public class ConnectFourGameHub : Hub<IConnectFourGameHubClientMethods>
         if (game == null)
         {
             // Venter på en motspiller
-            Console.WriteLine($"[Hub] {connectionId} venter på motspiller.");
+            _logger.LogInformation($"User {connectionId} waiting for opponent.");
             await Clients.Caller.WaitingForOpponent();
         }
         else
         {
             // Spillere er matched! Send beskjed til begge
-            Console.WriteLine(
-                $"[Hub] {connectionId} matchet med {game.Player1.ConnectionId} og {game.Player2.ConnectionId}.");
+            _logger.LogInformation($"User {connectionId} matched with {game.Player1.ConnectionId} and {game.Player2.ConnectionId}.");
             await Clients.Client(game.Player1.ConnectionId).StartGame(game.Player2.Board, isMyTurn: true);
             await Clients.Client(game.Player2.ConnectionId).StartGame(game.Player1.Board, isMyTurn: false);
         }
@@ -44,7 +46,7 @@ public class ConnectFourGameHub : Hub<IConnectFourGameHubClientMethods>
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var connectionId = Context.ConnectionId;
-        Console.WriteLine($"[Hub] {connectionId} koblet fra.");
+        _logger.LogInformation($"User {connectionId} disconnected.");
 
         // Sjekk om spilleren er i et aktivt spill
         var isGameInProgress = _connectGameService.IsGameInProgress(connectionId);
@@ -67,29 +69,30 @@ public class ConnectFourGameHub : Hub<IConnectFourGameHubClientMethods>
     public async Task GameOver(bool youLost)
     {
         var connectionId = Context.ConnectionId;
-        Console.WriteLine($"[Hub] GameOver fra {connectionId}: {(youLost ? "Tapte" : "Vant")}.");
+        _logger.LogInformation($"[Hub] GameOver fra {connectionId}: {(youLost ? "Tapte" : "Vant")}.");
         var game = _connectGameService.GetGameByConnection(connectionId);
 
-        Console.WriteLine($"Mottok GameOver fra {connectionId}: {(youLost ? "Tapte" : "Vant")}");
+        
+        _logger.LogInformation($"Mottok GameOver fra {connectionId}: {(youLost ? "Tapte" : "Vant")}");
 
         if (game == null)
         {
-            Console.WriteLine($"[Hub] Ingen spill funnet for {connectionId}.");
-            Console.WriteLine("Fant ikke spill for denne tilkoblingen");
+            _logger.LogInformation($"Fant ikke spill for {connectionId}.");
             return;
         }
 
         // Send GameOver til motstanderen med motsatt resultat
         var opponentId = game.Player1.ConnectionId == connectionId ? game.Player2.ConnectionId : game.Player1.ConnectionId;
-        Console.WriteLine($"Sender GameOver til {opponentId}: {(!youLost ? "Tapte" : "Vant")}");
+        _logger.LogInformation($"Sender GameOver til {opponentId}: {(!youLost ? "Tapte" : "Vant")}");
         try
         {
             await Clients.Client(opponentId).GameOver(!youLost);
-            Console.WriteLine("GameOver-melding sendt til motstanderen");
+            _logger.LogInformation($"GameOver-melding sendt til {opponentId}.");
+            
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Feil ved sending av GameOver: {ex.Message}");
+            _logger.LogInformation($"Feil ved sending av GameOver: {ex.Message}");
         }
     }
     
@@ -112,6 +115,7 @@ public class ConnectFourGameHub : Hub<IConnectFourGameHubClientMethods>
     // Bytt tur
     public void SwitchTurn()
     {
+        _logger.LogInformation($"[Hub] Bytter tur.");
         var connectionId = Context.ConnectionId;
         _connectGameService.SwitchTurn(connectionId);
     }

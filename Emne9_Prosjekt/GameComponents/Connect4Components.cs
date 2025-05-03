@@ -78,8 +78,8 @@ public class Connect4Components
         }
         return storedValues;
     }
-
-    private Dictionary<string, int> CombineHorizontal()
+    //Made public for testing purposes atm - consideration of internalvisibleTo for later improvements
+    public Dictionary<string, int> CombineHorizontal()
     {
         Dictionary<string, int> storedValues = new ();
         

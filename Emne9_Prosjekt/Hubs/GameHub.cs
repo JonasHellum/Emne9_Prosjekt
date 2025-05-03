@@ -7,11 +7,13 @@ namespace Emne9_Prosjekt.Hubs;
 public class GameHub : Hub<IGameHubClientMethods>
 {
      private readonly IGameService _gameService;
+     private readonly ILogger<GameHub> _logger;
 
-    public GameHub(IGameService gameService)
-    {
-        _gameService = gameService;
-    }
+     public GameHub(IGameService gameService, ILogger<GameHub> logger)
+     {
+         _gameService = gameService;
+         _logger = logger;
+     }
 
     public async Task JoinGame(Dictionary<string, int> board)
     {
@@ -21,10 +23,12 @@ public class GameHub : Hub<IGameHubClientMethods>
         if (game == null)
         {
             // Venter på en motspiller
+            _logger.LogInformation($"User {connectionId} waiting for opponent.");
             await Clients.Caller.WaitingForOpponent();
         }
         else
         {
+            _logger.LogInformation($"User {connectionId} matched with {game.Player1.ConnectionId} and {game.Player2.ConnectionId}.");
             // Spillere er matched! Send beskjed til begge
             await Clients.Client(game.Player1.ConnectionId).StartGame(game.Player2.Board, isMyTurn: true);
             await Clients.Client(game.Player2.ConnectionId).StartGame(game.Player1.Board, isMyTurn: false);
@@ -56,18 +60,18 @@ public class GameHub : Hub<IGameHubClientMethods>
     {
         var connectionId = Context.ConnectionId;
         var game = _gameService.GetGameByConnection(connectionId);
-
-        Console.WriteLine($"Mottok skudd fra {connectionId} på posisjon {position}");
+        
+        _logger.LogInformation($"Mottok skudd fra {connectionId} på posisjon {position}");
 
         if (game == null)
         {
-            Console.WriteLine("Fant ikke spill for denne tilkoblingen");
+           _logger.LogInformation("Fant ikke spill for denne tilkoblingen");
             return;
         }
 
         if (!_gameService.IsPlayerTurn(connectionId))
         {
-            Console.WriteLine("Ikke spillerens tur");
+            _logger.LogInformation("Ikke spillerens tur");
             return;
         }
 
@@ -79,19 +83,21 @@ public class GameHub : Hub<IGameHubClientMethods>
         if (targetPlayer.Board.ContainsKey(position) && targetPlayer.Board[position] == 1)
         {
             isHit = true;
-            Console.WriteLine($"Treff på posisjon {position}!");
+            _logger.LogInformation($"Treff på posisjon {position}");
         }
         else
         {
-            Console.WriteLine($"Bom på posisjon {position}");
+            _logger.LogInformation($"Bom på posisjon {position}");
+            
         }
 
         // Send resultatet til begge spillere
-        Console.WriteLine($"Sender resultat til {game.Player1.ConnectionId} og {game.Player2.ConnectionId}");
+        _logger.LogInformation($"Sender resultat til {game.Player1.ConnectionId} og {game.Player2.ConnectionId}");
         await Clients.Client(game.Player1.ConnectionId).UpdateShot(position, shooterId, isHit);
         await Clients.Client(game.Player2.ConnectionId).UpdateShot(position, shooterId, isHit);
 
         // Bytt tur
+        _logger.LogInformation($"Bytter tur for {connectionId}");
         _gameService.SwitchTurn(connectionId);
     }
 
@@ -99,18 +105,17 @@ public class GameHub : Hub<IGameHubClientMethods>
     {
         var connectionId = Context.ConnectionId;
         var game = _gameService.GetGameByConnection(connectionId);
-
-        Console.WriteLine($"Mottok skipsstatus fra {connectionId}: {shipName}, sunket: {isSunk}");
+        _logger.LogInformation($"Mottok skipsstatus fra {connectionId}: {shipName}, sunket: {isSunk}");
 
         if (game == null)
         {
-            Console.WriteLine("Fant ikke spill for denne tilkoblingen");
+            _logger.LogInformation("Fant ikke spill for denne tilkoblingen");
             return;
         }
 
         // Send skipsstatus til motstanderen
         var opponentId = game.Player1.ConnectionId == connectionId ? game.Player2.ConnectionId : game.Player1.ConnectionId;
-        Console.WriteLine($"Sender skipsstatus til {opponentId}");
+        _logger.LogInformation($"Sender skipsstatus til {opponentId}");
         await Clients.Client(opponentId).UpdateShipStatus(shipName, isSunk);
     }
 
@@ -118,26 +123,26 @@ public class GameHub : Hub<IGameHubClientMethods>
     {
         var connectionId = Context.ConnectionId;
         var game = _gameService.GetGameByConnection(connectionId);
-
-        Console.WriteLine($"Mottok GameOver fra {connectionId}: {(youLost ? "Tapte" : "Vant")}");
+        
+        _logger.LogInformation($"Mottok GameOver fra {connectionId}: {(youLost ? "Tapte" : "Vant")}");
 
         if (game == null)
         {
-            Console.WriteLine("Fant ikke spill for denne tilkoblingen");
+            _logger.LogInformation("Fant ikke spill for denne tilkoblingen");
             return;
         }
 
         // Send GameOver til motstanderen med motsatt resultat
         var opponentId = game.Player1.ConnectionId == connectionId ? game.Player2.ConnectionId : game.Player1.ConnectionId;
-        Console.WriteLine($"Sender GameOver til {opponentId}: {(!youLost ? "Tapte" : "Vant")}");
+        _logger.LogInformation($"Sender GameOver til {opponentId}: {(!youLost ? "Tapte" : "Vant")}");
         try
         {
             await Clients.Client(opponentId).GameOver(!youLost);
-            Console.WriteLine("GameOver-melding sendt til motstanderen");
+            _logger.LogInformation($"GameOver-melding sendt til {opponentId}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Feil ved sending av GameOver: {ex.Message}");
+            _logger.LogError($"Feil ved sending av GameOver: {ex.Message}");
         }
     }
 

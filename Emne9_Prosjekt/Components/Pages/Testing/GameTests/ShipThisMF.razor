@@ -223,18 +223,8 @@ else
                 // Oppdater også _playerBoard for UI
                 if (_playerBoard.ContainsKey(position))
                 {
-                    int value = _playerBoard[position];
-                    if (value == 1)
-                    {
-                        _playerBoard[position] = -1; // Treffer skip som ikke var truffet
-                    }
-                    else if (value == 0)
-                    {
-                        _playerBoard[position] = -2; // Bommer på tomt felt
-                    }
-                    Console.WriteLine($"Oppdaterte _playerBoard[{position}] = {_playerBoard[position]}");
+                    _playerBoard[position] = GameComponents.GetBoard()[position];
                 }
-
                 // Sjekk om noen av våre skip er sunket og send status til motstanderen
                 foreach (var ship in GameComponents.GetPlacedShips())
                 {
@@ -246,7 +236,6 @@ else
                         GameHubConnection.Connection.SendAsync("UpdateShipStatus", ship.Key, true);
                     }
                 }
-
                 // Sjekk om spillet er over etter motstanderens skudd
                 CheckGameOver();
                 Console.WriteLine("Sjekket om spillet er over etter motstanderens skudd");
