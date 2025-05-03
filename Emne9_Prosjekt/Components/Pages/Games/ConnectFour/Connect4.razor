@@ -1,56 +1,89 @@
 ﻿@page "/Connect4"
+@using System.Text
+@using System.Text.Json
+@using Emne9_Prosjekt.Features.Leaderboards.Models
 @using Emne9_Prosjekt.GameComponents
 @using Emne9_Prosjekt.Hubs.Interfaces
 @using Microsoft.AspNetCore.SignalR.Client
+@using Emne9_Prosjekt.Components.Pages.SocialFeatures
 @inject IConnectFourGameHubConnection ConnectHubConnection
 @inject Connect4Components GameComponents
+@inject HttpClient Http
+@inject IConfiguration Config
+@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
-<div style="text-align: center">
-    <h3 style="padding-top: 125px">Connect 4 test</h3>
-
-    @if (_gameState == GameState.Connecting)
-    {
-        <div style="margin-bottom: 15px; font-weight: bold;">
-            Connecting to server...
-        </div>
-    }
-    else if (_gameState == GameState.WaitingForOpponent)
-    {
-        <div style="margin-bottom: 15px; font-weight: bold;">
-            Waiting for opponent...
-        </div>
-    }
-    else if (_gameState == GameState.Playing)
-    {
-        <div style="margin-bottom: 15px; font-weight: bold;">
-            @(_isMyTurn ? "Your turn" : "Opponent's turn")
-        </div>
-    }
-    else if (_gameState == GameState.GameOver)
-    {
-        <div style="margin-bottom: 15px; font-weight: bold;">
-            Game over: @_gameOverMessage
-        </div>
-    }
-
-    <table style="margin: auto">
-        @foreach (var row in "ABCDEF")
+<div style="display: flex; flex-direction: column; justify-content: center; padding-top: 150px">
+    
+    <div style="text-align: center">
+        @if (_gameState == GameState.Connecting)
         {
-            <tr>
-                @for (int col = 1; col <= 7; col++)
-                {
-                    var pos = $"{row}{col}";
-                    var value = _board[pos];
-                    <td style="width: 40px; height: 40px; text-align: center; border: 1px solid black;
-                            background: @BoardStatus(value);"
-                        @onclick="() => PlacePiece(pos)">
-                        @pos
-                    </td>
-                }
-            </tr>
+            <div style="margin-bottom: 15px; font-weight: bold;">
+                Connecting to server...
+            </div>
         }
-    </table>
+        else if (_gameState == GameState.WaitingForOpponent)
+        {
+            <div style="margin-bottom: 15px; font-weight: bold;">
+                Waiting for opponent...
+            </div>
+        }
+        else if (_gameState == GameState.Playing)
+        { 
+            <div style="margin-bottom: 15px; font-weight: bold;">
+                @(_isMyTurn ? "Your turn" : "Opponent's turn")
+            </div>
+        }
+        else if (_gameState == GameState.GameOver)
+        {
+            <div style="text-align: center; font-weight: bold;">
+                Game over!
+            </div>
+        }
+    </div>
+    
+    @if (_gameState == GameState.Playing || _gameState == GameState.GameOver)
+    {
+    <div style="display: flex;
+                justify-content: center;
+                flex-direction: row;
+                gap: 100px">
+             <div>
+                 <table style="margin: auto">
+                     @foreach (var row in "ABCDEF")
+                     {
+                     <tr>
+                             @for (int col = 1; col <= 7; col++)
+                             {
+                             var pos = $"{row}{col}";
+                                 var value = _board[pos];
+                                 <td style="width: 60px; height: 60px; text-align: center; border: 1px solid black;
+                                     background: @BoardStatus(value);"
+                                     @onclick="() => PlacePiece(pos)">
+                                     @pos
+                                 </td>
+                             }
+                         </tr>
+                     }
+                 </table>
+             </div>
+             <div style="width: 420px;
+                            height: 350px;
+                            overflow: hidden;
+                            background: rgb(255, 255, 255, 0.5);
+                            border: 1px solid white">
+                 <GameChatFunction/>
+             </div>
+         </div>
+    }
+    
+    @if (_gameState == GameState.GameOver)
+    {
+        <div style="text-align: center; font-weight: bold;">
+            @_gameOverMessage
+        </div>
+    }
+    
 </div>
 
 @code {
@@ -68,29 +101,47 @@
     private GameState _gameState = GameState.NotConnected;
     private string _gameOverMessage = "";
     private bool _connectionStarted = false;
+    private bool _isWinner;
+    private string _userName;
+    private bool _loggedIn;
+    private string _errorMessage;
+    private bool _1pointToLosses = true;
+    private bool _1pointToWinner = true;
 
     protected override async Task OnInitializedAsync()
     {
         GameComponents.CreateBoard();
         _board = GameComponents.GetBoard();
         _gameState = GameState.Connecting;
+        try //THIS
+        {
+            _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+            Console.WriteLine($"Username from Logintest: {_userName}");
+            _loggedIn = !string.IsNullOrEmpty(_userName);
+        
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        } 
 
         // Registrer eventhandlers før vi kobler til
-        ConnectHubConnection.Connection.On("WaitingForOpponent", () =>
+        ConnectHubConnection.RegisterWaitingForOpponentHandler(async () =>
         {
             _gameState = GameState.WaitingForOpponent;
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         });
 
-        ConnectHubConnection.Connection.On("StartGame", (Dictionary<string, int> board, bool isMyTurn) =>
+        ConnectHubConnection.RegisterStartGameHandler(async( board, isMyTurn) =>
         {
             _board = board;
             _isMyTurn = isMyTurn;
             _gameState = GameState.Playing;
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         });
 
-        ConnectHubConnection.Connection.On<string>("UpdateBoard", (pos) =>
+        ConnectHubConnection.RegisterUpdateBoardHandler(async(pos) =>
         {
             if (_gameState == GameState.Playing)
             {
@@ -104,36 +155,37 @@
                 {
                     _gameState = GameState.GameOver;
                     _gameOverMessage = "You lost!";
-                    ConnectHubConnection.Connection.SendAsync("GameOver", false);
+                    _isWinner = false;
+                   await ConnectHubConnection.SendGameOverAsync(false);
                 }
 
-                InvokeAsync(StateHasChanged);
+               await InvokeAsync(StateHasChanged);
             }
         });
 
-        ConnectHubConnection.Connection.On<bool>("GameOver", (youWon) =>
-        {
-            if (_gameState == GameState.Playing)
-            {
-                _gameState = GameState.GameOver;
-                _gameOverMessage = youWon ? "You won!" : "You lost!";
-                InvokeAsync(StateHasChanged);
-                Console.WriteLine("GameOver-melding mottatt");
-            }
-        });
-
-        ConnectHubConnection.Connection.On("OpponentDisconnected", () =>
+        ConnectHubConnection.RegisterGameOverHandler(async(youWon) =>
         {
             if (_gameState == GameState.Playing)
             {
                 _gameState = GameState.GameOver;
                 _gameOverMessage = "You won! (Opponent disconnected)";
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
+                Console.WriteLine("GameOver-melding mottatt");
+            }
+        });
+
+        ConnectHubConnection.RegisterOpponentDisconnectedHandler(async () =>
+        {
+            if (_gameState == GameState.Playing)
+            {
+                _gameState = GameState.GameOver;
+                _isWinner = true;
+               await InvokeAsync(StateHasChanged);
             }
             else if (_gameState == GameState.WaitingForOpponent)
             {
                 _gameState = GameState.WaitingForOpponent;
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
                 Console.WriteLine("OpponentDisconnected-melding mottatt");
             }
         });
@@ -144,6 +196,34 @@
     {
         if (firstRender && !_connectionStarted)
         {
+            if (_loggedIn == false) //THIS
+            {
+                try
+                {
+                    // Retrieve the token from cookies using JSInterop
+                    var token = await JsRuntime.InvokeAsync<string>("getCookie", "AuthTokenCOMON");
+
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        // Add the JWT token to the Authorization header of HttpClient
+                        Http.DefaultRequestHeaders.Authorization =
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                    }
+
+                    // Fetch the username from the API
+                    _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
+                    _loggedIn = !string.IsNullOrEmpty(_userName);
+
+                    // Trigger a re-render now that client-side data is available
+                    StateHasChanged();
+                } 
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error during initialization: {ex.Message}");
+                } //THIS
+                
+            }
+            
             try
             {
                 await ConnectHubConnection.Connection.StartAsync();
@@ -153,7 +233,7 @@
                 // Når forbindelsen er startet, join game
                 if (_gameState == GameState.Connecting)
                 {
-                    await ConnectHubConnection.Connection.SendAsync("JoinGame", _board);
+                    await ConnectHubConnection.SendJoinGameAsync(_board);
                     Console.WriteLine("Sendte JoinGame til server.");
                 }
             }
@@ -162,6 +242,33 @@
                 Console.WriteLine($"Feil ved oppstart av SignalR i OnAfterRenderAsync: {ex.Message}");
             }
         }
+        if (_loggedIn) //THIS
+        {
+            if (_gameState == GameState.Playing && _1pointToLosses)
+            {
+                var leaderboardLossToAdd = new LeaderboardAddOrUpdateDTO()
+                {
+                    GameType = "Connect 4",
+                    Wins = 0,
+                    Losses = 1
+                };
+                await UpdateOrCreateLeaderboard(leaderboardLossToAdd);
+                _1pointToLosses = false;
+            }
+        
+            if (_isWinner && _1pointToWinner)
+            {
+                var leaderboardWinToAdd = new LeaderboardAddOrUpdateDTO()
+                {
+                    GameType = "Connect 4",
+                    Wins = 1,
+                    Losses = -1
+                };
+                await UpdateOrCreateLeaderboard(leaderboardWinToAdd);
+                _1pointToWinner = false;
+            } //THIS
+        }
+        await base.OnAfterRenderAsync(firstRender);
     }
 
     private async Task PlacePiece(string pos)
@@ -172,18 +279,24 @@
         GameComponents.DropPiece(pos);
         _board = GameComponents.GetBoard();
 
+        var opponentId = await ConnectHubConnection.Connection.InvokeAsync<string>("GetOpponentId");
+        if (!string.IsNullOrEmpty(opponentId))
+        {
+            await ConnectHubConnection.SendUpdateBoardAsync(opponentId, pos);
+        }
+
         if (GameComponents.GameEnd())
         {
             _gameState = GameState.GameOver;
             _gameOverMessage = "You won!";
-            await ConnectHubConnection.Connection.SendAsync("GameOver", true);
-        }
+            _isWinner = true;
 
-        var opponentId = await ConnectHubConnection.Connection.InvokeAsync<string>("GetOpponentId");
-        if (!string.IsNullOrEmpty(opponentId))
+            // Inform opponent after board has been updated
+            await ConnectHubConnection.SendGameOverAsync(true);
+        }
+        else
         {
-            await ConnectHubConnection.Connection.SendAsync("UpdateOpponentBoard", opponentId, pos);
-            await ConnectHubConnection.Connection.SendAsync("SwitchTurn");
+            await ConnectHubConnection.SwitchTurnAsync();
             _isMyTurn = false;
         }
 
@@ -199,6 +312,10 @@
             2 => "yellow",
             _ => "black"
         };
+    }
+    private class ErrorResponse
+    {
+        public List<string> Errors { get; set; }
     }
 
     public async ValueTask DisposeAsync()
@@ -219,6 +336,52 @@
             }
 
             await ConnectHubConnection.DisposeAsync();
+        }
+    }
+    private async Task UpdateOrCreateLeaderboard(LeaderboardAddOrUpdateDTO leaderboardStatsToSend) //Ta med denne Line
+    {
+        var request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:80/api/leaderboards/updateOrCreate")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(leaderboardStatsToSend), Encoding.UTF8, "application/json")
+        };
+
+        // Add the custom header
+        request.Headers.Add("X-Blazor-Secret", Config["AppSettings:BlazorSecret"]);
+
+        // Send the request using the injected HttpClient
+        var response = await Http.SendAsync(request);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("IT WORKED TO SET THE POINTS");
+        }
+        else
+        {
+            // Extract validation errors from the response... Might not need if the validating is in blazor page?
+            var responseContent = await response.Content.ReadAsStringAsync();
+            try
+            {
+                // Try to parse error messages from response body
+                var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (errorResponse?.Errors != null)
+                {
+                    _errorMessage = string.Join(", ", errorResponse.Errors);
+                }
+                else
+                {
+                    _errorMessage = "An unknown error occurred.";
+                }
+            }
+            catch
+            {
+                _errorMessage = "Failed: " + responseContent;
+            }
+
+            Console.WriteLine(_errorMessage);
         }
     }
 }

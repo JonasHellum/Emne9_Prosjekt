@@ -688,11 +688,10 @@
     private bool _isSetupComplete;
     private bool _isMyTurn;
     private bool _isWinner;
-    private string _gameOverMessage = "";
-    private string _userName;
+    private string? _gameOverMessage;
+    private string? _userName;
     private bool _loggedIn;
-    private string _errorMessage;
-    private bool _toWinnerOnDisconnect;
+    private string? _errorMessage;
     private bool _1PointToLosses = true;
     private bool _1PointToWinner = true;
     private bool _secretActive;
@@ -823,8 +822,8 @@
                 Console.WriteLine("Setter spilltilstand til GameOver etter melding fra server");
                 _gameState = GameState.GameOver;
                 _isWinner = youWon;
-                _gameOverMessage = youWon ? "You obliterated your opponents fleet" : "Your opponent demolished your fleet";
-
+                _gameOverMessage = "Your Opponent disconnected from the game.";
+                
                 // Oppdater UI
                 await InvokeAsync(StateHasChanged);
             }
@@ -840,7 +839,6 @@
                 Console.WriteLine("Setter spilltilstand til GameOver etter at motstanderen koblet fra");
                 _gameState = GameState.GameOver;
                 _isWinner = true;
-                _gameOverMessage = "Your Opponent disconnected from the game.";
 
                 // Oppdater UI
                 await InvokeAsync(StateHasChanged);
