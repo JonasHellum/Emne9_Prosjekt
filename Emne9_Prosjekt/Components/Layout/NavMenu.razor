@@ -271,7 +271,7 @@
 
     private async Task Logout()
     {
-        var refreshToken = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "RefreshToken");
+        var refreshToken = await JsRuntime.InvokeAsync<string>("localStorage.getItem", "RefreshToken");
         var memberRefreshToken = new MemberTokenRequest() { RefreshToken = refreshToken };
         var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/Logout", memberRefreshToken);
         if (response.IsSuccessStatusCode)
