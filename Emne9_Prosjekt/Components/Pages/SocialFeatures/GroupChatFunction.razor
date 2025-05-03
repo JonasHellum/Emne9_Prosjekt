@@ -138,6 +138,10 @@
                     // Fetch the username from the API
                     _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
                     _loggedIn = !string.IsNullOrEmpty(_userName);
+                    if (string.IsNullOrEmpty(_userName))
+                    {
+                        _userName = "Guest";
+                    }
 
                     // Trigger a re-render now that client-side data is available
                     StateHasChanged();
@@ -148,7 +152,7 @@
                 }
             }
             Console.WriteLine("---Establishing connection...");
-
+            
             BigChatHubConnection.Connection.On<string, string>("ReceiveMessage", (user, message) =>
             {
                 _messages.Add((user, message));
@@ -157,13 +161,13 @@
 
             BigChatHubConnection.Connection.On<string>("UserConnected", (user) =>
             {
-                _messages.Add(("System", $"{user} har koblet til."));
+                _messages.Add(("System", $"{user} has connected."));
                 InvokeAsync(StateHasChanged);
             });
 
             BigChatHubConnection.Connection.On<string>("UserDisconnected", (user) =>
             {
-                _messages.Add(("System", $"{user} har forlatt chatten."));
+                _messages.Add(("System", $"{user} har has left the chat."));
                 InvokeAsync(StateHasChanged);
             });
 
@@ -207,6 +211,7 @@
         {
             await BigChatHubConnection.DisposeAsync();
             Console.WriteLine("--Connection closed.");
+           await InvokeAsync(StateHasChanged);
         }
     }
 }

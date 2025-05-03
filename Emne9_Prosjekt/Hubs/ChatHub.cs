@@ -22,15 +22,6 @@ public class ChatHub : Hub<IChatClientMethods>
     public override async Task OnConnectedAsync()
     {
         var connectionId = Context.ConnectionId;
-        _logger.LogInformation($"User connected. ConnectionId: {connectionId}");
-        
-        // Hent brukernavnet fra HTTP-headeren
-        var username = Context.GetHttpContext()?.Request.Headers["Username"].ToString() ?? "Guest";
-        _logger.LogInformation($"Username: {username}");
-        
-        // Legg til brukeren i den statiske ordboken
-        _connectedUsers[connectionId] = username;
-        
         // Prøver å tildele brukeren en gruppe
         var (groupName, partnerConnectionId) = _chatService.AssignUserToGroup(connectionId);
 
