@@ -25,31 +25,30 @@
 
     @foreach (var message in _messages)
         {
-    <div style="width: 700px; margin: 0 auto; background: darkorange" class="border rounded p-4 mb-4">
-    <h3 class="text-lg font-bold">@message.Title</h3>
-        <p>@message.Content</p>
+            <div style="width: 700px; margin: 0 auto; background: #aa4400" class="border rounded p-4 mb-4">
+            <h3 class="text-lg font-bold">@message.Title</h3>
+            <p>@message.Content</p>
 
-    <h4 class="mt-2 font-medium text-sm text-gray-700">Comments</h4>
+            <h4 class="mt-2 font-medium text-sm text-gray-700">Comments</h4>
             @if (message.Comments.Any())
             {
-            @foreach (var comment in message.Comments)
+                @foreach (var comment in message.Comments)
             {
-    <p class="ml-4 text-sm text-gray-800">- @comment.Text</p>
+                <p class="ml-4 text-sm text-gray-800">- @comment.Text</p>
             }
             }
-        else
-        {
-    <p class="ml-4 text-sm text-gray-500 italic">No comments yet</p>
-                    }
+            else
+            {
+                <p class="ml-4 text-sm text-gray-500 italic">No comments yet</p>
+            }
 
-    <div class="mt-2 flex gap-2">
-        <input
-            @bind="_commentTexts[message.Id]"
-            placeholder="New comment..."
-            class="p-1 border rounded w-2/3" />
-        <button class="message-board-button" @onclick="() => SendComment(message.Id)">Leave a comment</button>
-        </div>
-    </div>
+            <div class="mt-2 flex gap-2">
+                <input @bind="_commentTexts[message.Id]"
+                       placeholder="New comment..."
+                       class="p-1 border rounded w-2/3" />
+                <button class="message-board-button" @onclick="() => SendComment(message.Id)">Leave a comment</button>
+                </div>
+            </div>
         }
         </div>
     </div>
