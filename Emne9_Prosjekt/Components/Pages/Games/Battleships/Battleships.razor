@@ -7,6 +7,7 @@
 @using Microsoft.IdentityModel.Tokens
 @using Emne9_Prosjekt.Components.Pages.SocialFeatures
 @using Emne9_Prosjekt.Features.Leaderboards.Models
+@inject ILogger<Battleships> Logger
 @inject BattleShipComponents GameComponents
 @inject IGameHubConnection GameHubConnection
 @inject IJSRuntime JsRuntime
@@ -701,13 +702,13 @@
         try
         {
             _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-            Console.WriteLine($"Username from Logintest: {_userName}");
+            Logger.LogInformation($"Username from Logintest: {_userName}");
             _loggedIn = !string.IsNullOrEmpty(_userName);
         
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            Logger.LogError(e.Message);
             throw;
         }
         
@@ -721,13 +722,13 @@
         GameHubConnection.RegisterWaitingForOpponentHandler(async () =>
         {
             // Just a little message while we wait
-            Console.WriteLine("Venter på motstander...");
+            Logger.LogInformation("Venter på motstander...");
             await InvokeAsync(StateHasChanged);
         });
 
         GameHubConnection.RegisterStartGameHandler(async (opponentBoard, isMyTurn) =>
         {
-            Console.WriteLine("Spillet starter!");
+            Logger.LogInformation("Spillet starter!");
             _playerBoard = new Dictionary<string, int>(GameComponents.GetBoard());
             _opponentBoard = opponentBoard;
             _isMyTurn = isMyTurn;
@@ -737,7 +738,7 @@
         });
         GameHubConnection.RegisterUpdateShotHandler(async (position, shooterId, isHit) =>
         {
-            Console.WriteLine($"Mottok skudd: {position}, skytter: {shooterId}, treff: {isHit}");
+            Logger.LogDebug($"Mottok skudd: {position}, skytter: {shooterId}, treff: {isHit}");
             //Check if it's our shot or the opponent's shot
             bool isMyShot = shooterId == GameHubConnection.Connection.ConnectionId;
             
@@ -747,8 +748,7 @@
 
                 //Update opponentboard ui
                 _opponentBoard[position] = isHit ? -1 : -2;
-
-                Console.WriteLine($"Oppdaterte _opponentBoard[{position}] = {_opponentBoard[position]}");
+                Logger.LogDebug($"Oppdaterte _opponentBoard[{position}] = {_opponentBoard[position]}");
 
                 if (_secretActive)
                 {
@@ -788,7 +788,6 @@
                 await PlaySound(_lastShotPositionValue);
                 
                 await CheckGameOver();
-                Console.WriteLine("Sjekket om spillet er over etter motstanderens skudd");
             }
             //Update turn
             _isMyTurn = !isMyShot; //If it was our shot, it's now the opponent's turn, and vice versa... 
@@ -797,13 +796,13 @@
 
         GameHubConnection.RegisterUpdateShipStatusHandler(async (shipName, isSunk) =>
         {
-            Console.WriteLine($"Mottok skipsstatus: {shipName}, sunket: {isSunk}");
+            Logger.LogDebug($"Mottok skipsstatus: {shipName}, sunket: {isSunk}");
             
             //Update opponent ship status
             if (_opponentShipStatus.ContainsKey(shipName))
             {
                 _opponentShipStatus[shipName] = isSunk;
-                Console.WriteLine($"Oppdaterte _opponentShipStatus[{shipName}] = {isSunk}");
+                Logger.LogDebug($"Oppdaterte _opponentShipStatus[{shipName}] = {isSunk}");
             }
             
            await CheckGameOver();
@@ -814,12 +813,11 @@
 
         GameHubConnection.RegisterGameOverHandler(async (youWon) =>
         {
-            Console.WriteLine($"Mottok GameOver: Du {(youWon ? "vant" : "tapte")}");
+            Logger.LogDebug($"Mottok GameOver: Du {(youWon ? "vant" : "tapte")}");
 
             // Setting Gamestate to Gameover if not already
             if (_gameState != GameState.GameOver)
             {
-                Console.WriteLine("Setter spilltilstand til GameOver etter melding fra server");
                 _gameState = GameState.GameOver;
                 _isWinner = youWon;
                 _gameOverMessage = "Your Opponent disconnected from the game.";
@@ -832,11 +830,9 @@
         // Håndter når motstanderen kobler fra
         GameHubConnection.RegisterOpponentDisconnectedHandler(async () =>
         {
-            Console.WriteLine("Motstanderen koblet fra");
             //Setting Gamestate to Gameover if not already
             if (_gameState != GameState.GameOver)
             {
-                Console.WriteLine("Setter spilltilstand til GameOver etter at motstanderen koblet fra");
                 _gameState = GameState.GameOver;
                 _isWinner = true;
 
@@ -875,7 +871,7 @@
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error during initialization: {ex.Message}");
+                    Logger.LogError($"Error during initialization: {ex.Message}");
                 }
                 
             }
@@ -887,7 +883,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error connecting to hub: {ex.Message}");
+                Logger.LogError($"Error connecting to hub: {ex.Message}");
             }
         }
 
@@ -954,7 +950,7 @@
         if (!_isMyTurn || _gameState == GameState.GameOver)
             return;
 
-        Console.WriteLine($"Sender skudd: {position}");
+        Logger.LogDebug($"Sender skudd: {position}");
         //Send shot
         await GameHubConnection.SendUpdateShotAsync(position, GameHubConnection.Connection.ConnectionId!);
         _isMyTurn = false;
@@ -1081,7 +1077,7 @@
         
         if (response.IsSuccessStatusCode)
         {
-            Console.WriteLine("IT WORKED TO SET THE POINTS");
+            Logger.LogDebug("IT WORKED TO SET THE POINTS");
         }
         else
         {

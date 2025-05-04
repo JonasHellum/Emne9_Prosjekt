@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @using Emne9_Prosjekt.Hubs.Interfaces
 @using Microsoft.AspNetCore.SignalR.Client
+@inject IConnectFourGameHubConnection ConnectHubConnection
 @inject IGameHubConnection GameHubConnection
 
 <div style="position: fixed; width: 100%; z-index: 1000">
@@ -43,6 +44,12 @@
         {
             _gameState = GameState.Playing;
             InvokeAsync(StateHasChanged);
+        });
+        
+        ConnectHubConnection.RegisterStartGameHandler(async( board, isMyTurn) =>
+        {
+            _gameState = GameState.Playing;
+            await InvokeAsync(StateHasChanged);
         });
         return Task.CompletedTask;
     }
