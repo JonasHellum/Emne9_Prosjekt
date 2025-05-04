@@ -1,14 +1,15 @@
 ﻿@page "/Register"
 @using System.Text.Json
-
+@using System.Text.RegularExpressions
+@using Emne9_Prosjekt.Features.Members.Models
 @using Microsoft.IdentityModel.Tokens
+@inject ILogger<Register> Logger
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager
 @inject IConfiguration Configuration
 @using Emne9_Prosjekt.Components.Pages.Interfaces
 @using Emne9_Prosjekt.Components.Pages.FrontPage
-@using Emne9_Prosjekt.Features.Members.Models
 @inject ICustomAuthenticationStateProvider AuthStateProvider
 
 <div data-aos="zoom"></div>
@@ -222,7 +223,7 @@
         {
             userName = user.Identity?.Name;
             loggedIn = true;
-            Console.WriteLine($"Username from registerTestin: {userName}");
+            Logger.LogDebug($"Username from register OnInitiazliedAsync: {userName}");
             if (loggedIn)
             {
                 NavManager.NavigateTo("/User");
@@ -246,7 +247,7 @@
                 {
                     userName = authState.User.Identity.Name ?? null!;
                     loggedIn = !string.IsNullOrEmpty(userName);
-                    Console.WriteLine($"Username from registerTestin: {userName}");
+                    Logger.LogDebug($"Username from register OnAfterRenderAsync: {userName}");
                     if (loggedIn)
                     {
                         NavManager.NavigateTo("/User");
@@ -284,6 +285,30 @@
 
     protected async Task RegistrationAsync()
     {
+        if (registrationDto.UserName.IsNullOrEmpty() ||
+            registrationDto.Email.IsNullOrEmpty() ||
+            registrationDto.Password.IsNullOrEmpty())
+        {
+            errorMessage = "All fields are required!";
+            registrationFailed = true;
+            return;
+        }
+
+        if (!registrationDto.Email.Contains("@"))
+        {
+            errorMessage = "Enter a valid E-mail";
+            registrationFailed = true;
+            return;
+        }
+
+        if (!Regex.IsMatch(registrationDto.Password, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"))
+        {
+            errorMessage = "A password should contain at least one capital and one\n" +
+                           "lowercase letter, a number and have at least 8 characters";
+            registrationFailed = true;
+            return;
+        }
+        
         if (registrationDto.Password != checkPassword)
         {
             errorMessage = "Passwords do not match";
@@ -361,16 +386,15 @@
             }
             else
             {
-                Console.WriteLine($"Registering failed: {response.StatusCode}");
                 var error = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Error message: {error}");
+                Logger.LogError($"Error message: {error}");
 
             }
         }
         catch (Exception e)
         {
             errorMessage = "Something went wrong. Please try again later.";
-            Console.WriteLine($"An error occurred: {e}");
+            Logger.LogError($"An error occurred: {e}");
         }
     }
 

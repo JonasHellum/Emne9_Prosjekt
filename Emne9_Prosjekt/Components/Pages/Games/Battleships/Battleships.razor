@@ -8,6 +8,7 @@
 @using Microsoft.IdentityModel.Tokens
 @using Emne9_Prosjekt.Components.Pages.SocialFeatures
 @using Emne9_Prosjekt.Features.Leaderboards.Models
+@inject ILogger<Battleships> Logger
 @inject BattleShipComponents GameComponents
 @inject IGameHubConnection GameHubConnection
 @inject IJSRuntime JsRuntime
@@ -677,7 +678,6 @@
         Setup,
         Playing,
         GameOver
-
     }
 
     private GameState _gameState = GameState.Setup;
@@ -687,12 +687,9 @@
     private int _lastShotPositionValue;
     private string? _hoveredCell;
     private string _selectedShip = "";
-    private int _allShips;
     private bool _isConnected;
     private bool _isSetupComplete;
-    private bool _opponentSetupComplete;
     private bool _isMyTurn;
-    private bool _gameOver;
     private bool _isWinner;
     private string? _gameOverMessage;
     private string? _userName;
@@ -709,7 +706,7 @@
         {
             _userName = user.Identity?.Name;
             _loggedIn = true;
-            Console.WriteLine("Set the username from: OnInitializedAsync");
+            Logger.LogDebug($"Username from OnInitializedAsync: {_userName}");
         }
         
         GameComponents.CreateBoard();
@@ -722,13 +719,13 @@
         GameHubConnection.RegisterWaitingForOpponentHandler(async () =>
         {
             // Just a little message while we wait
-            Console.WriteLine("Venter på motstander...");
+            Logger.LogInformation("Venter på motstander...");
             await InvokeAsync(StateHasChanged);
         });
 
         GameHubConnection.RegisterStartGameHandler(async (opponentBoard, isMyTurn) =>
         {
-            Console.WriteLine("Spillet starter!");
+            Logger.LogInformation("Spillet starter!");
             _playerBoard = new Dictionary<string, int>(GameComponents.GetBoard());
             _opponentBoard = opponentBoard;
             _isMyTurn = isMyTurn;
@@ -738,7 +735,7 @@
         });
         GameHubConnection.RegisterUpdateShotHandler(async (position, shooterId, isHit) =>
         {
-            Console.WriteLine($"Mottok skudd: {position}, skytter: {shooterId}, treff: {isHit}");
+            Logger.LogDebug($"Mottok skudd: {position}, skytter: {shooterId}, treff: {isHit}");
             //Check if it's our shot or the opponent's shot
             bool isMyShot = shooterId == GameHubConnection.Connection.ConnectionId;
             
@@ -748,8 +745,7 @@
 
                 //Update opponentboard ui
                 _opponentBoard[position] = isHit ? -1 : -2;
-
-                Console.WriteLine($"Oppdaterte _opponentBoard[{position}] = {_opponentBoard[position]}");
+                Logger.LogDebug($"Oppdaterte _opponentBoard[{position}] = {_opponentBoard[position]}");
 
                 if (_secretActive)
                 {
@@ -798,13 +794,13 @@
 
         GameHubConnection.RegisterUpdateShipStatusHandler(async (shipName, isSunk) =>
         {
-            Console.WriteLine($"Mottok skipsstatus: {shipName}, sunket: {isSunk}");
+            Logger.LogDebug($"Mottok skipsstatus: {shipName}, sunket: {isSunk}");
             
             //Update opponent ship status
             if (_opponentShipStatus.ContainsKey(shipName))
             {
                 _opponentShipStatus[shipName] = isSunk;
-                Console.WriteLine($"Oppdaterte _opponentShipStatus[{shipName}] = {isSunk}");
+                Logger.LogDebug($"Oppdaterte _opponentShipStatus[{shipName}] = {isSunk}");
             }
             
            await CheckGameOver();
@@ -815,12 +811,11 @@
 
         GameHubConnection.RegisterGameOverHandler(async (youWon) =>
         {
-            Console.WriteLine($"Mottok GameOver: Du {(youWon ? "vant" : "tapte")}");
+            Logger.LogDebug($"Mottok GameOver: Du {(youWon ? "vant" : "tapte")}");
 
             // Setting Gamestate to Gameover if not already
             if (_gameState != GameState.GameOver)
             {
-                Console.WriteLine("Setter spilltilstand til GameOver etter melding fra server");
                 _gameState = GameState.GameOver;
                 _isWinner = youWon;
                 _gameOverMessage = "Your Opponent disconnected from the game.";
@@ -833,11 +828,9 @@
         // Håndter når motstanderen kobler fra
         GameHubConnection.RegisterOpponentDisconnectedHandler(async () =>
         {
-            Console.WriteLine("Motstanderen koblet fra");
             //Setting Gamestate to Gameover if not already
             if (_gameState != GameState.GameOver)
             {
-                Console.WriteLine("Setter spilltilstand til GameOver etter at motstanderen koblet fra");
                 _gameState = GameState.GameOver;
                 _isWinner = true;
 
@@ -861,7 +854,7 @@
                     _userName = authState.User.Identity.Name ?? null;
                     _loggedIn = !string.IsNullOrEmpty(_userName);
                 
-                    Console.WriteLine("Set the username from OnAfterRenderAsync");
+                    Logger.LogDebug($"Set the username from OnAfterRenderAsync: {_userName}");
                     StateHasChanged();
                 }
             }
@@ -873,7 +866,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error connecting to hub: {ex.Message}");
+                Logger.LogError($"Error connecting to hub: {ex.Message}");
             }
         }
 
@@ -940,7 +933,7 @@
         if (!_isMyTurn || _gameState == GameState.GameOver)
             return;
 
-        Console.WriteLine($"Sender skudd: {position}");
+        Logger.LogDebug($"Sender skudd: {position}");
         //Send shot
         await GameHubConnection.SendUpdateShotAsync(position, GameHubConnection.Connection.ConnectionId!);
         _isMyTurn = false;
@@ -1055,10 +1048,10 @@
     private async Task UpdateOrCreateLeaderboard(LeaderboardAddOrUpdateDTO leaderboardStatsToSend)
     {
         var user = await AuthStateProvider.GetLoggedInUserAsync();
-        if (!user.Identity.IsAuthenticated)
+        if (!user.Identity!.IsAuthenticated)
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            if (!authState.User.Identity.IsAuthenticated)
+            if (!authState.User.Identity!.IsAuthenticated)
             {
                 return;
             }
@@ -1077,7 +1070,7 @@
         
         if (response.IsSuccessStatusCode)
         {
-            Console.WriteLine("IT WORKED TO SET THE POINTS");
+            Logger.LogDebug("IT WORKED TO SET THE POINTS");
         }
         else
         {
