@@ -7,7 +7,7 @@ namespace Emne9_Prosjekt.Hubs;
 public class ChatHub : Hub<IChatClientMethods>
 {
     private readonly ILogger<ChatHub> _logger;
-    private readonly IChatService _chatService; // Bruker tjenesten
+    private readonly IChatService _chatService; 
     private static Dictionary<string, string> _connectedUsers = new();
 
     public ChatHub(ILogger<ChatHub> logger, IChatService chatService)
