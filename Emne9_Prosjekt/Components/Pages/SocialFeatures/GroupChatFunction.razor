@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
+@inject ILogger<GroupChatFunction> Logger
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 @inject ICustomAuthenticationStateProvider AuthStateProvider
@@ -94,16 +95,16 @@
     private string _message = "";
     private bool _isConnected;
     private readonly List<(string, string)> _messages = [];
-    private bool loggedIn;
-
+    private bool _loggedIn;
+    
     protected override async Task OnInitializedAsync()
     {
         var user = await AuthStateProvider.GetLoggedInUserAsync();
         if (user.Identity.IsAuthenticated)
         {
             _userName = user.Identity?.Name ?? null;
-            loggedIn = !string.IsNullOrEmpty(_userName);
-            Console.WriteLine("Set the username from: OnInitializedAsync");
+            _loggedIn = !string.IsNullOrEmpty(_userName);
+            Logger.LogDebug($"[GroupChatFunction] Set the username from: OnInitializedAsync: {_userName}");
             StateHasChanged();
         }
         else
@@ -116,21 +117,21 @@
     {
         if (firstRender)
         {
-            if (loggedIn == false)
+            if (_loggedIn == false)
             {
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
                 if (authState.User.Identity.IsAuthenticated)
                 {
                     _userName = authState.User.Identity.Name ?? null;
-                    loggedIn = !string.IsNullOrEmpty(_userName);
+                    _loggedIn = !string.IsNullOrEmpty(_userName);
                 
-                    Console.WriteLine("Set the username from OnAfterRenderAsync");
+                    Logger.LogDebug($"[GroupChatFunction] Set the username from: OnAfterRenderAsync: {_userName}");
                     StateHasChanged();
                 }
             }
 
             Console.WriteLine("---Establishing connection...");
-
+            
             BigChatHubConnection.Connection.On<string, string>("ReceiveMessage", (user, message) =>
             {
                 _messages.Add((user, message));
@@ -139,13 +140,13 @@
 
             BigChatHubConnection.Connection.On<string>("UserConnected", (user) =>
             {
-                _messages.Add(("System", $"{user} har koblet til."));
+                _messages.Add(("System", $"{user} has connected."));
                 InvokeAsync(StateHasChanged);
             });
 
             BigChatHubConnection.Connection.On<string>("UserDisconnected", (user) =>
             {
-                _messages.Add(("System", $"{user} har forlatt chatten."));
+                _messages.Add(("System", $"{user} har has left the chat."));
                 InvokeAsync(StateHasChanged);
             });
 
@@ -186,6 +187,7 @@
         {
             await BigChatHubConnection.DisposeAsync();
             Console.WriteLine("--Connection closed.");
+           await InvokeAsync(StateHasChanged);
         }
     }
 }
