@@ -51,6 +51,8 @@ builder.Services.AddSingleton<IChatService, ChatService>();
 builder.Services.AddSingleton<IGameService, GameService>();
 builder.Services.AddSingleton<IForumService, ForumService>();
 builder.Services.AddSingleton<IConnectFourGameService, ConnectFourGameService>();
+builder.Services.RegisterMappers();
+builder.Services.RegisterRepositories();
 
 
 builder.Services.AddScoped<BattleShipComponents>();
@@ -80,16 +82,16 @@ builder.Services.AddScoped(sp =>
 builder.Services.AddSwaggerGen();
 
 builder.Services
-    .AddScoped<IMemberService, MemberService>()
-    .AddScoped<IMemberRepository, MemberRepository>()
-    .AddScoped<IMapper<Member, MemberDTO>, MemberMapper>()
-    .AddScoped<IMapper<Member, MemberRegistrationDTO>, MemberRegistrationMapper>();
+    .AddScoped<IMemberService, MemberService>();
+   /* .AddScoped<IMemberRepository, MemberRepository>() */
+   /* .AddScoped<IMapper<Member, MemberDTO>, MemberMapper>() */
+  /*  .AddScoped<IMapper<Member, MemberRegistrationDTO>, MemberRegistrationMapper>();*/
 
-builder.Services
-    .AddScoped<ILeaderboardService, LeaderboardService>()
-    .AddScoped<ILeaderboardRepository, LeaderboardRepository>()
-    .AddScoped<IMapper<Leaderboard, LeaderboardDTO>, LeaderboardMapper>()
-    .AddScoped<IMapper<Leaderboard, LeaderboardAddOrUpdateDTO>, LeaderboardAddMapper>();
+  builder.Services
+      .AddScoped<ILeaderboardService, LeaderboardService>();
+   /* .AddScoped<ILeaderboardRepository, LeaderboardRepository>() */
+  /*  .AddScoped<IMapper<Leaderboard, LeaderboardDTO>, LeaderboardMapper>()
+    .AddScoped<IMapper<Leaderboard, LeaderboardAddOrUpdateDTO>, LeaderboardAddMapper>();*/
 
 builder.Services.AddScoped<IAuthStateService, AuthStateService>();
 
