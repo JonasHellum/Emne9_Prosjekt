@@ -17,14 +17,17 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
 
     private readonly IJSRuntime _jsRuntime;
     private readonly HttpClient _httpClient;
+    private readonly IConfiguration _config;
     
 
     public CustomAuthenticationStateProvider(IJSRuntime jsRuntime, 
         HttpClient httpClient,
         ILogger<CustomAuthenticationStateProvider> logger,
         IHttpContextAccessor httpContextAccessor,
-        IAuthStateService authStateService)
+        IAuthStateService authStateService,
+        IConfiguration config)
     {
+        _config = config;
         _jsRuntime = jsRuntime;
         _httpClient = httpClient;
         _logger = logger;
@@ -53,17 +56,18 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
         // Retrieve the refresh token from localStorage
-        var refreshToken = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "RefreshToken");
+        var encryptedRefreshTokenFromStorage = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "RefreshToken");
 
         // If no refresh token, the user is not authenticated
-        if (string.IsNullOrWhiteSpace(refreshToken))
+        if (string.IsNullOrWhiteSpace(encryptedRefreshTokenFromStorage))
         {
             _logger.LogDebug("No refresh token in local storage.");
             return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
         }
-
+        
         try
         {
+            var refreshToken = Decrypt(encryptedRefreshTokenFromStorage);
             _logger.LogDebug($"Refresh token: {refreshToken}");
             // Attempt to refresh the access token using the refresh token
             var response = await _httpClient.PostAsJsonAsync("http://localhost:80/api/members/RefreshToken", refreshToken);
@@ -76,10 +80,11 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
 
                 if (tokens != null)
                 {
-                    // Update tokens in localStorage
+                    // Update token in localStorage
                     if (!string.IsNullOrWhiteSpace(tokens.RefreshToken))
                     {
-                        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "RefreshToken", tokens.RefreshToken);
+                        var encryptedRefreshToken = Encrypt(tokens.RefreshToken);
+                        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "RefreshToken", encryptedRefreshToken);
                     }
 
                     // Update the Authorization header for the HTTP client
@@ -125,7 +130,8 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
     // Store the authenticated state and token
     public async Task MarkUserAsAuthenticated(string accessToken, string refreshToken)
     {
-        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "RefreshToken", refreshToken);
+        var encryptedRefreshToken = Encrypt(refreshToken);
+        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "RefreshToken", encryptedRefreshToken);
         _httpClient.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -165,5 +171,38 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()))));
         Console.WriteLine("User logged out and state cleared.");
     }
+
+    private string Encrypt(string refreshToken)
+    {
+        using var aes = System.Security.Cryptography.Aes.Create();
+        aes.Key = System.Text.Encoding.UTF8.GetBytes(_config.GetValue<string>("AppSettings:JWTKey"));;
+        aes.IV = new byte[16]; // Initialization vector for AES is typically 16 bytes of zero for simplicity
+    
+        using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+        using var ms = new MemoryStream();
+        using (var cs = new System.Security.Cryptography.CryptoStream(ms, encryptor, System.Security.Cryptography.CryptoStreamMode.Write))
+        using (var writer = new StreamWriter(cs))
+        {
+            writer.Write(refreshToken);
+        }
+    
+        return Convert.ToBase64String(ms.ToArray());
+    }
+    
+    private string Decrypt(string cipherText)
+    {
+        using var aes = System.Security.Cryptography.Aes.Create();
+        aes.Key = System.Text.Encoding.UTF8.GetBytes(_config.GetValue<string>("AppSettings:JWTKey"));
+        aes.IV = new byte[16]; // Must match the IV used during encryption
+
+        using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+        var buffer = Convert.FromBase64String(cipherText);
+        using var ms = new MemoryStream(buffer);
+        using var cs = new System.Security.Cryptography.CryptoStream(ms, decryptor, System.Security.Cryptography.CryptoStreamMode.Read);
+        using var reader = new StreamReader(cs);
+    
+        return reader.ReadToEnd();
+    }
+
 
 }
