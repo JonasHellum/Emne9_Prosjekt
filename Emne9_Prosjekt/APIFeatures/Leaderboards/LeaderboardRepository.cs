@@ -77,11 +77,6 @@ public class LeaderboardRepository : ILeaderboardRepository
         throw new NotImplementedException();
     }
 
-    public Task<IEnumerable<Leaderboard>> GetPagedAsync(int pageNumber, int pageSize)
-    {
-        throw new NotImplementedException();
-    }
-
     /// <summary>
     /// Retrieves a leaderboard record based on the provided member ID and game type.
     /// </summary>

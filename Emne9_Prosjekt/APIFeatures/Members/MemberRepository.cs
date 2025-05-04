@@ -91,11 +91,6 @@ public class MemberRepository : IMemberRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Member>> GetPagedAsync(int pageNumber, int pageSize)
-    {
-        throw new NotImplementedException("Will be implemented later. Maybe???");
-    }
-
     /// <summary>
     /// Checks if a username already exists in the database.
     /// </summary>
