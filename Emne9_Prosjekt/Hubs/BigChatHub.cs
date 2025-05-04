@@ -12,7 +12,7 @@ public class BigChatHub : Hub
         _logger = logger;
     }
     public override async Task OnConnectedAsync()
-    {
+    { 
         var connectionId = Context.ConnectionId;
         _logger.LogInformation($"User connected. ConnectionId: {connectionId}");
         await base.OnConnectedAsync();
@@ -21,7 +21,7 @@ public class BigChatHub : Hub
     {
         var connectionId = Context.ConnectionId;
         _connectedUsers[connectionId] = username;
-        Console.WriteLine($"Username {username} registered for connection {connectionId}");
+        _logger.LogInformation($"Username {username} registered for connection {connectionId}");
         await Clients.All.SendAsync("UserConnected", username);
     }
 
