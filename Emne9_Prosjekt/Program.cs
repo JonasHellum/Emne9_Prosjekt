@@ -43,40 +43,8 @@ using HttpVersion = System.Net.HttpVersion;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:80/api") });
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:44388/api") });
 
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
-
-
-// builder.Services.AddRazorPages().WithRazorPagesRoot("/Components/Pages");
-
-
-
-// builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>(); 
-builder.Services.AddScoped<ICustomAuthenticationStateProvider, CustomAuthenticationStateProvider>();
-
-
-builder.Services.AddSignalR();
-builder.Services.AddSignalRHubs();
-builder.Services.AddSingleton<IChatService, ChatService>();
-builder.Services.AddSingleton<IGameService, GameService>();
-builder.Services.AddSingleton<IForumService, ForumService>();
-builder.Services.AddSingleton<IConnectFourGameService, ConnectFourGameService>();
-
-
-builder.Services.AddScoped<BattleShipComponents>();
-builder.Services.AddScoped<Connect4Components>();
-
-builder.Services.AddControllers();
-
-builder.Services
-    .AddEndpointsApiExplorer();
-//    .AddHttpContextAccessor();
-
-// EXPERIMENTING A LOT
-builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped(sp =>
 {
     var handler = new HttpClientHandler
@@ -88,21 +56,24 @@ builder.Services.AddScoped(sp =>
 
     return new HttpClient(handler)
     {
-        BaseAddress = new Uri("http://localhost:80") // Same base URL as API
+        BaseAddress = new Uri("http://localhost:80")
     };
 });
 
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
 
-builder.Services.AddSignalR()
-    .AddJsonProtocol(options => {
-        options.PayloadSerializerOptions.PropertyNamingPolicy = null;
-    });
+builder.Services.AddScoped<ICustomAuthenticationStateProvider, CustomAuthenticationStateProvider>();
 
-builder.AddBlazorCookies();
+builder.Services.AddSignalR();
+builder.Services.AddSignalRHubs();
+builder.Services.AddSingleton<IChatService, ChatService>();
+builder.Services.AddSingleton<IGameService, GameService>();
+builder.Services.AddSingleton<IForumService, ForumService>();
+builder.Services.AddSingleton<IConnectFourGameService, ConnectFourGameService>();
 
-
-
-builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<BattleShipComponents>();
+builder.Services.AddScoped<Connect4Components>();
 
 builder.Services
     .AddScoped<IMemberService, MemberService>()
@@ -118,13 +89,23 @@ builder.Services
 
 builder.Services.AddScoped<IAuthStateService, AuthStateService>();
 
+builder.Services.AddControllers();
 
-// GONNA FIX IT LATER
-// builder.Services.AddScoped<ICookieSettingService, CookieService>();
+builder.Services
+    .AddEndpointsApiExplorer();
+
+// EXPERIMENTING A LOT
+builder.Services.AddHttpContextAccessor();
 
 
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options => {
+        options.PayloadSerializerOptions.PropertyNamingPolicy = null;
+    });
 
+builder.AddBlazorCookies();
 
+builder.Services.AddSwaggerGen();
 
 builder.Services
     .AddValidatorsFromAssemblyContaining<Program>(
@@ -145,8 +126,6 @@ builder.Services.AddDbContext<Emne9EksamenDbContext>(options =>
         new MySqlServerVersion(new Version(8, 0, 33))));
 
 builder.Services.AddScoped<JwtMiddleware>();
-
-
 
 
 builder.Host.UseSerilog((context, configuration) => 
@@ -197,7 +176,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-//app.UseHttpsRedirection();
 
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -212,7 +190,6 @@ app.UseRouting();
 
 app.UseAntiforgery();
 
-// app.MapRazorPages();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapHub<ChatHub>("/chatHub"); 
@@ -220,8 +197,6 @@ app.MapHub<GameHub>("/gameHub");
 app.MapHub<ForumHub>("/forumHub");
 app.MapHub<BigChatHub>("/bigchathub");
 app.MapHub<ConnectFourGameHub>("/connectgamehub");
-
-
 
 
 app.MapControllers();

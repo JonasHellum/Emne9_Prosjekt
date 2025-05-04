@@ -27,14 +27,7 @@
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AUri_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FSourcesCache_003Febe65732adf281db03e388c6486e28a574c76c8be32d99ca59dcfbecc65_003FUri_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=e586a8c8_002Dba8e_002D4e6c_002D8e8b_002D7091885abdf8/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="RegisterMemberAsync_WithValidInput_ReturnsOkWithMemberDTO" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
   &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;xUnit::612A9FFF-4D63-4BCD-8C63-9DB044AA460F::net8.0::APIMembersIntegrationTests.Members.RegistrationMemberControllerIntegrationTest.RegisterMemberAsync_WithValidInput_ReturnsOkWithMemberDTO&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::612A9FFF-4D63-4BCD-8C63-9DB044AA460F::net8.0::APIMembersIntegrationTests.Members.RegistrationMemberControllerIntegrationTest.RegisterMemberAsync_WithInvalidInput_ReturnsBadRequest_WithValidationErrors&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::5A37CE7D-2CEF-456A-8D1B-64FBADAADC74::net8.0::GameComponentsUnitTests.ConnectFourComponent.ConnectFourCompTest.CombineHorizontal_ReturnsCorrectHorizontalChain&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::03236264-C4E4-4154-B812-2C76EC44C2FF::net8.0::UnitTestForBattleShip.PageTests.GamePageTests.CheckGameOver_SendsGameOverTrue_WhenAllMyShipsAreSunk&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::03236264-C4E4-4154-B812-2C76EC44C2FF::net8.0::UnitTestForBattleShip.PageTests.GamePageTests.CheckGameOver_SendsGameOverFalse_WhenAllOpponentShipsAreSunk&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::5A37CE7D-2CEF-456A-8D1B-64FBADAADC74::net8.0::GameComponentsUnitTests.ConnectFourComponent.ConnectFourCompTest.CombineHorizontal_CheckAllRows&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::5A37CE7D-2CEF-456A-8D1B-64FBADAADC74::net8.0::GameComponentsUnitTests.ConnectFourComponent.ConnectFourCompTest.CombineHorizontal_ShouldReturnCorrectTurnValues&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::5A37CE7D-2CEF-456A-8D1B-64FBADAADC74::net8.0::GameComponentsUnitTests.ConnectFourComponent.ConnectFourCompTest.CombineHorizontal_CheckRowValues&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::612A9FFF-4D63-4BCD-8C63-9DB044AA460F::net8.0::APIMembersIntegrationTests.Members.RegistrationMemberControllerIntegrationTest&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
 	

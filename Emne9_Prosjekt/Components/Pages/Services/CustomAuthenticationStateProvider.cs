@@ -155,8 +155,8 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
         
         _logger.LogDebug("getting username and memberId from api");        
-        var userNameTask = _httpClient.GetStringAsync("http://localhost:80/api/members/Username-info");
-        var memberIdTask = _httpClient.GetStringAsync("http://localhost:80/api/members/MemberId-info");
+        var userNameTask = _httpClient.GetStringAsync("/api/members/Username-info");
+        var memberIdTask = _httpClient.GetStringAsync("/api/members/MemberId-info");
                     
         await Task.WhenAll(userNameTask, memberIdTask);
         var userName = userNameTask.Result;

@@ -236,7 +236,7 @@
 
         try
         {
-            var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/login", memberDto);
+            var response = await Http.PostAsJsonAsync("/api/members/login", memberDto);
             Logger.LogDebug($"Logging in with {memberDto.UserName} and {memberDto.Password}");
 
             if (response.IsSuccessStatusCode)
@@ -262,7 +262,7 @@
         catch (Exception e)
         {
             errorMessage = "Something went wrong. Please try again later.";
-            Logger.LogError($"Exception during login: {e.Message}");
+            Logger.LogError($"Exception during login: {e}");
         }
     }
 
