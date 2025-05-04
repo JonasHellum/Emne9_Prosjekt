@@ -175,33 +175,50 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
     private string Encrypt(string refreshToken)
     {
         using var aes = System.Security.Cryptography.Aes.Create();
-        aes.Key = System.Text.Encoding.UTF8.GetBytes(_config.GetValue<string>("AppSettings:JWTKey"));;
-        aes.IV = new byte[16]; // Initialization vector for AES is typically 16 bytes of zero for simplicity
-    
+        aes.Key = System.Text.Encoding.UTF8.GetBytes(_config.GetValue<string>("AppSettings:JWTKey"));
+        aes.GenerateIV();
+
         using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
         using var ms = new MemoryStream();
+
+        // Prepend the IV to the encrypted data
+        ms.Write(aes.IV, 0, aes.IV.Length);
+
         using (var cs = new System.Security.Cryptography.CryptoStream(ms, encryptor, System.Security.Cryptography.CryptoStreamMode.Write))
         using (var writer = new StreamWriter(cs))
         {
             writer.Write(refreshToken);
         }
-    
+
+        // Convert the MemoryStream (ciphertext + prepended IV) to a Base64 string
         return Convert.ToBase64String(ms.ToArray());
+
     }
     
     private string Decrypt(string cipherText)
     {
         using var aes = System.Security.Cryptography.Aes.Create();
         aes.Key = System.Text.Encoding.UTF8.GetBytes(_config.GetValue<string>("AppSettings:JWTKey"));
-        aes.IV = new byte[16]; // Must match the IV used during encryption
+
+        // Convert the cipherText back to a byte array
+        var buffer = Convert.FromBase64String(cipherText);
+
+        // Get the IV from the first 16 bytes
+        byte[] iv = new byte[16];
+        Array.Copy(buffer, 0, iv, 0, iv.Length);
+        aes.IV = iv;
+
+        // Get the actual encrypted data (everything after the IV)
+        byte[] cipherBytes = new byte[buffer.Length - iv.Length];
+        Array.Copy(buffer, iv.Length, cipherBytes, 0, cipherBytes.Length);
 
         using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-        var buffer = Convert.FromBase64String(cipherText);
-        using var ms = new MemoryStream(buffer);
+        using var ms = new MemoryStream(cipherBytes);
         using var cs = new System.Security.Cryptography.CryptoStream(ms, decryptor, System.Security.Cryptography.CryptoStreamMode.Read);
         using var reader = new StreamReader(cs);
-    
+
         return reader.ReadToEnd();
+
     }
 
 
