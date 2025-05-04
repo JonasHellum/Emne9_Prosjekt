@@ -14,31 +14,32 @@ public class BigChatHub : Hub
     public override async Task OnConnectedAsync()
     { 
         var connectionId = Context.ConnectionId;
-        _logger.LogInformation($"User connected. ConnectionId: {connectionId}");
+        _logger.LogDebug($"User connected. ConnectionId: {connectionId}");
         await base.OnConnectedAsync();
     }
     public async Task RegisterUsername(string username)
     {
         var connectionId = Context.ConnectionId;
         _connectedUsers[connectionId] = username;
-        _logger.LogInformation($"Username {username} registered for connection {connectionId}");
+        _logger.LogDebug($"Username {username} registered for connection {connectionId}");
         await Clients.All.SendAsync("UserConnected", username);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var connectionId = Context.ConnectionId;
+
         if (_connectedUsers.TryGetValue(connectionId, out var username))
         {
             _connectedUsers.Remove(connectionId);
-            _logger.LogInformation($"User {username} disconnected.");
-            await Clients.All.SendAsync("UserDisconnected", username);
+            _logger.LogDebug($"User {username} disconnected.");
         }
         else
         {
-            _logger.LogWarning($"Disconnected connection {connectionId} had no registered username.");
+            _logger.LogDebug($"Disconnected connection {connectionId} had no registered username.");
         }
 
+        await Clients.All.SendAsync("UserDisconnected", username);
         await base.OnDisconnectedAsync(exception);
     }
     public async Task SendMessage(string message)
