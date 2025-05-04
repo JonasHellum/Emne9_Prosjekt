@@ -128,7 +128,7 @@ public class MemberService : IMemberService
     /// <exception cref="DataException">Thrown if the member does not exist or the password is incorrect.</exception>
     public async Task<MemberDTO?> LoginMemberAsync(string username, string password)
     {
-        _logger.LogInformation($"Trying to login member with username: {username}");
+        _logger.LogDebug($"Trying to login member with username: {username}");
         Expression<Func<Member, bool>> expr = member => member.UserName == username; 
         var memb = (await _memberRepository.FindAsync(expr)).FirstOrDefault();
         
@@ -190,7 +190,7 @@ public class MemberService : IMemberService
             string? userName = jwtSecurityToken?.Claims
                 .FirstOrDefault(claim => claim.Type == "unique_name")?.Value;
             
-            Console.WriteLine($"[ValidateAccessToken] memberId: {memberId}, userName: {userName}");
+            _logger.LogDebug($"[ValidateAccessToken] memberId: {memberId}, userName: {userName}");
             
             return (memberId, userName);
         }
@@ -213,7 +213,7 @@ public class MemberService : IMemberService
     public async Task<MemberDTO?> UpdateAsync(Guid memberId, MemberUpdateDTO updateDTO)
     {
         var loggedMember = await GetLoggedInMemberAsync();
-        _logger.LogInformation($"Trying to update member by memberId: {memberId} by logged in member memberId: {loggedMember.MemberId}");
+        _logger.LogDebug($"Trying to update member by memberId: {memberId} by logged in member memberId: {loggedMember.MemberId}");
 
         _logger.LogDebug($"Trying to find member to update based on memberId: {memberId}");
         var memberToUpdate = await _memberRepository.GetByIdAsync(memberId);
@@ -289,7 +289,7 @@ public class MemberService : IMemberService
     /// <exception cref="DataException">Thrown if there is an issue accessing the data source.</exception>
     public async Task<MemberDTO?> GetByIdAsync(Guid memberId)
     {
-        Console.WriteLine($"Getting member in service by memberId: {memberId}");
+        _logger.LogDebug($"Getting member in service by memberId: {memberId}");
         var member = await _memberRepository.GetByIdAsync(memberId);
         return member is null
             ? null
@@ -329,21 +329,35 @@ public class MemberService : IMemberService
     }
     
     /// <summary>
-    /// Generates a JWT token for the given member.
+    /// Generates a JWT Access Token token for the given member.
     /// </summary>
     /// <param name="member">The member for whom the token will be generated.</param>
     /// <returns>A string containing the generated JWT token.</returns>
     public string MakeAccessToken(MemberDTO member)
     {
+        _logger.LogDebug("Generating new access token.");
         var memberModel = _memberMapper.MapToModel(member);
         return GenerateJwtAccessToken(memberModel);
     }
 
+    /// <summary>
+    /// Generates a new refresh token for authentication purposes.
+    /// </summary>
+    /// <returns>A string representing the newly generated refresh token.</returns>
     public string MakeRefreshToken()
     {
+        _logger.LogDebug("Generating new refresh token.");
         return GenerateJwtRefreshToken();
     }
-    
+
+    /// <summary>
+    /// Saves a refresh token associated with a specific member.
+    /// </summary>
+    /// <param name="memberId">The unique identifier of the member.</param>
+    /// <param name="refreshToken">The refresh token to be saved.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="ArgumentException">Thrown if the provided arguments are invalid or null.</exception>
+    /// <exception cref="DataException">Thrown if an error occurs while saving the refresh token in the database.</exception>
     public async Task SaveRefreshTokenAsync(Guid memberId, string refreshToken)
     {
         var token = new MemberRefreshToken
@@ -351,35 +365,54 @@ public class MemberService : IMemberService
             Token = refreshToken,
             MemberId = memberId,
             Created = DateTime.UtcNow,
-            Expires = DateTime.UtcNow.AddDays(1), // Expires in 1 day
+            Expires = DateTime.UtcNow.AddDays(1),
             Revoked = false
         };
 
         await _memberRepository.SaveRefreshTokenAsync(token);
+        _logger.LogDebug($"Saved refresh token for member with memberId: {memberId}.");
     }
 
-    // Validate Refresh Token
+    /// <summary>
+    /// Validates the provided refresh token and retrieves the associated member's identifier.
+    /// </summary>
+    /// <param name="token">The refresh token to be validated.</param>
+    /// <returns>The unique identifier of the member associated with the valid token, or <see cref="Guid.Empty"/> if the token is invalid or not found.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the provided token is null or empty.</exception>
     public async Task<Guid> ValidateRefreshTokenAsync(string token)
     {
         var storedToken = await _memberRepository.ValidateRefreshTokenAsync(token);
 
         if (storedToken == null)
         {
-            // Token is invalid, revoked, or expired
+            _logger.LogWarning("Refresh token is invalid or not found.");
             return Guid.Empty;
         }
 
-        return storedToken.MemberId; // Return the associated member ID
+        _logger.LogDebug($"Refresh token is valid for member with memberId: {storedToken.MemberId}.");
+        return storedToken.MemberId; 
     }
 
-    // Revoke a Refresh Token
+    /// <summary>
+    /// Revokes the specified refresh token to terminate its validity.
+    /// </summary>
+    /// <param name="token">The refresh token to be revoked.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task RevokeRefreshTokenAsync(string token)
     {
+        _logger.LogDebug($"Revoking refresh token.");
         await _memberRepository.RevokeRefreshTokenAsync(token);
     }
-    
+
+    /// <summary>
+    /// Retrieves a stored refresh token from the database using the provided token string.
+    /// </summary>
+    /// <param name="token">The refresh token string to be retrieved.</param>
+    /// <returns>An instance of <see cref="MemberRefreshToken"/> representing the stored refresh token, or null if it does not exist in the database.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the database operation fails or multiple tokens are found for the given string.</exception>
     public async Task<MemberRefreshToken> GetStoredRefreshTokenAsync(string token)
     {
+        _logger.LogDebug($"Retrieving stored refresh token.");
         return await _memberRepository.GetStoredRefreshTokenAsync(token);
     }
 
@@ -395,6 +428,7 @@ public class MemberService : IMemberService
     /// <returns>A base username in lowercase format derived from the names, or "googleUser" if both names are empty.</returns>
     private string GenerateBaseUsername(string firstName, string lastName)
     {
+        _logger.LogDebug("Generating base username.");
         if (!string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(lastName))
         {
             
@@ -417,6 +451,7 @@ public class MemberService : IMemberService
     /// <returns>A unique username that does not already exist in the system.</returns>
     private async Task<string> UniqueUsernameAsync(string baseUsername)
     {
+        _logger.LogDebug("Generating unique username.");
         var username = baseUsername;
         var counter = 1;
 
@@ -436,7 +471,7 @@ public class MemberService : IMemberService
     /// <returns>A string representing the generated JWT token.</returns>
     private string GenerateJwtAccessToken(Member member)
     {
-        _logger.LogInformation("Generating JWT token for member.");
+        _logger.LogDebug("Generating JwtAccessToken for member.");
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
@@ -469,8 +504,13 @@ public class MemberService : IMemberService
         return tokenHandler.WriteToken(token);
     }
 
+    /// <summary>
+    /// Generates a new JWT refresh token.
+    /// </summary>
+    /// <returns>A base64-encoded string representing the refresh token.</returns>
     private string GenerateJwtRefreshToken()
     {
+        _logger.LogDebug("Generating JwtRefreshToken.");
         return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
     }
 
@@ -482,7 +522,7 @@ public class MemberService : IMemberService
     private async Task<Member?> GetLoggedInMemberAsync()
     {
         var loggedInMemberId = _httpContextAccessor.HttpContext?.Items["MemberId"] as string;
-        _logger.LogInformation("Logged in member ID: {LoggedInMemberId}", loggedInMemberId);
+        _logger.LogDebug("Logged in member ID: {LoggedInMemberId}", loggedInMemberId);
     
         if (string.IsNullOrEmpty(loggedInMemberId))
         {

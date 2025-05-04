@@ -322,55 +322,23 @@
         {
             registrationSuccess = true;
             NavManager.NavigateTo("/login");
+            return;
         }
-        else
-        {
-            
-            // Extract validation errors from the response... Might not need if the validating is in blazor page?
-            var responseContent = await response.Content.ReadAsStringAsync();
-            try
-            {
-                // Try to parse error messages from response body
-                var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseContent, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                if (errorResponse?.Errors != null)
-                {
-                    errorMessage = string.Join(", ", errorResponse.Errors);
-                }
-                else
-                {
-                    errorMessage = "An unknown error occurred.";
-                }
-            }
-            catch
-            {
-                errorMessage = "Failed to parse error response: " + responseContent;
-            }
-            registrationFailed = true;
-        }
+        registrationFailed = true;
     }
     
-    private class ErrorResponse
-    {
-        public List<string> Errors { get; set; }
-    }
     
     [JSInvokable]
     public async Task HandleGoogleSignIn(string idToken)
     {
-        Console.WriteLine($"Received ID Token: {idToken}");
+        Logger.LogDebug($"Received ID Token: {idToken}");
         try
         {
             var response = await Http.PostAsJsonAsync("http://localhost/api/members/GoogleCallback", idToken);
 
             if (response.IsSuccessStatusCode)
             {
-                Console.WriteLine("Registering successful!");
-                
-                Console.WriteLine("Registering successful!");
+                Logger.LogInformation("Login successful!");
                 var tokens = await response.Content.ReadFromJsonAsync<MemberTokenResponse>();
                 
                 if (tokens != null)

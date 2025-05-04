@@ -85,6 +85,7 @@ public class MemberRepository : IMemberRepository
     /// <returns>A collection of member entities that satisfy the predicate.</returns>
     public async Task<IEnumerable<Member>> FindAsync(Expression<Func<Member, bool>> predicate)
     {
+        _logger.LogDebug($"Finding members based on predicate: {predicate}");
         return await _dbContext.Member
             .Where(predicate)
             .ToListAsync();
@@ -92,7 +93,7 @@ public class MemberRepository : IMemberRepository
 
     public async Task<IEnumerable<Member>> GetPagedAsync(int pageNumber, int pageSize)
     {
-        throw new NotImplementedException("Will be implemented later");
+        throw new NotImplementedException("Will be implemented later. Maybe???");
     }
 
     /// <summary>
@@ -131,22 +132,38 @@ public class MemberRepository : IMemberRepository
     
     #region For Refresh Tokens
 
+    /// <summary>
+    /// Saves a refresh token for a member entity into the database.
+    /// </summary>
+    /// <param name="refreshToken">The refresh token entity to be saved.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task SaveRefreshTokenAsync(MemberRefreshToken refreshToken)
     {
+        _logger.LogDebug($"Saving refresh token for member with id: {refreshToken.MemberId} and token: {refreshToken.Token}");
         _dbContext.MemberRefreshToken.Add(refreshToken);
         await _dbContext.SaveChangesAsync();
     }
 
-    // Validate a refresh token from the database
+    /// <summary>
+    /// Validates a refresh token to ensure it is valid, not revoked, and not expired.
+    /// </summary>
+    /// <param name="token">The refresh token to be validated.</param>
+    /// <returns>The matching <see cref="MemberRefreshToken"/> object if the token is valid, otherwise null.</returns>
     public async Task<MemberRefreshToken> ValidateRefreshTokenAsync(string token)
     {
+        _logger.LogDebug($"Validating refresh token: {token}");
         return await _dbContext.MemberRefreshToken
             .FirstOrDefaultAsync(t => t.Token == token && !t.Revoked && t.Expires > DateTime.UtcNow);
     }
 
-    // Revoke a refresh token (logout)
+    /// <summary>
+    /// Revokes a refresh token by marking it as revoked in the database.
+    /// </summary>
+    /// <param name="token">The refresh token to revoke.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task RevokeRefreshTokenAsync(string token)
     {
+        _logger.LogDebug($"Revoking refresh token: {token}");
         var refreshToken = await _dbContext.MemberRefreshToken.FirstOrDefaultAsync(t => t.Token == token);
         if (refreshToken != null)
         {
@@ -155,13 +172,17 @@ public class MemberRepository : IMemberRepository
             await _dbContext.SaveChangesAsync();
         }
     }
-    
+
+    /// <summary>
+    /// Retrieves a specific refresh token from the database.
+    /// </summary>
+    /// <param name="token">The refresh token string to look up.</param>
+    /// <returns>The matching refresh token entity if found, otherwise null.</returns>
     public async Task<MemberRefreshToken> GetStoredRefreshTokenAsync(string token)
     {
+        _logger.LogDebug($"Retrieving refresh token: {token}");
         return await _dbContext.MemberRefreshToken
             .FirstOrDefaultAsync(rt => rt.Token == token);
     }
-
-    
     #endregion
 }

@@ -79,11 +79,11 @@ public class MemberController : ControllerBase
     [HttpPost("Login", Name = "Login")]
     public async Task<ActionResult<MemberTokenResponse>> LoginAsync([FromBody] MemberDTO memberDTO)
     {
-        Console.WriteLine($"Login attempt for user: {memberDTO.UserName}");
+        _logger.LogInformation($"Login attempt for user: {memberDTO.UserName}");
         var member = await _memberService.LoginMemberAsync(memberDTO.UserName, memberDTO.Password);
         if (member == null)
         {
-            Console.WriteLine($"Login failed for user: {memberDTO.UserName}");
+            _logger.LogWarning($"Login failed for user: {memberDTO.UserName}");
             return Unauthorized("Username or password is incorrect");
         }
         
@@ -98,30 +98,40 @@ public class MemberController : ControllerBase
             RefreshToken = memberRefreshToken
         });
     }
-            
-    
+
+    /// <summary>
+    /// Refreshes the user's access token by validating the provided refresh token
+    /// and issuing a new access token. If necessary, generates a new refresh token as well.
+    /// </summary>
+    /// <param name="request">The refresh token provided by the client for validation.</param>
+    /// <returns>An HTTP response containing a new access token, and optionally a new refresh token, if successful;
+    /// otherwise, returns an Unauthorized status for invalid or expired tokens.</returns>
     [AllowAnonymous]
     [HttpPost("RefreshToken", Name = "RefreshToken")]
     public async Task<ActionResult> RefreshTokenAsync([FromBody] string request)
     {
+        _logger.LogInformation("Doing a post on RefreshToken");
         var memberId = await _memberService.ValidateRefreshTokenAsync(request);
         if (memberId == Guid.Empty)
         {
+            _logger.LogWarning("Invalid or expired refresh token");
             return Unauthorized("Invalid or expired refresh token");
         }
         
         var member = await _memberService.GetByIdAsync(memberId);
         if (member == null)
         {
+            _logger.LogWarning("User not found");
             return Unauthorized("User not found");
         }
         
-        // Generate a new access token
+        _logger.LogDebug("Generating a new access token.");
         var newAccessToken = _memberService.MakeAccessToken(member);
         var storedToken = await _memberService.GetStoredRefreshTokenAsync(request);
         
         if (storedToken.Expires.Subtract(DateTime.UtcNow).TotalHours <= 1)
         {
+            _logger.LogDebug("Generating a new refresh token because the old one is about to expire.");
             // Generate a new refresh token and save it
             var newRefreshToken = _memberService.MakeRefreshToken();
             await _memberService.SaveRefreshTokenAsync(memberId, newRefreshToken);
@@ -138,19 +148,20 @@ public class MemberController : ControllerBase
             AccessToken = newAccessToken
         });
     }
-            
-    
+
+    /// <summary>
+    /// Logs out a user by revoking their refresh token.
+    /// </summary>
+    /// <param name="request">The request containing the refresh token to be revoked.</param>
+    /// <returns>A response indicating the success of the logout operation.</returns>
     [Authorize]
     [HttpPost("Logout")]
     public async Task<IActionResult> LogoutAsync([FromBody] MemberTokenRequest request)
     {
+        _logger.LogInformation("Doing a post on Logout");
         await _memberService.RevokeRefreshTokenAsync(request.RefreshToken);
         return Ok("Logged out successfully");
     }
-
-            
-    
-
             
     /// <summary>
     /// Google Call Back, redirects to this after logging in through Google
@@ -268,12 +279,12 @@ public class MemberController : ControllerBase
     [HttpGet("Username-info")]
     public string GetUserNameFromJWT()
     {
-        Console.WriteLine($"[Controller] User.Identity.Name: {User?.Identity?.Name}");
-        Console.WriteLine($"[Controller] IsAuthenticated: {User?.Identity?.IsAuthenticated}");
+        _logger.LogDebug($"[Controller] User.Identity.Name: {User?.Identity?.Name}");
+        _logger.LogDebug($"[Controller] IsAuthenticated: {User?.Identity?.IsAuthenticated}");
 
         
         var userName = HttpContext.Items["UserName"] as string;
-        Console.WriteLine($"[Controller] ITEMS: {HttpContext.Items["UserName"]}");
+        _logger.LogDebug($"[Controller] ITEMS: {userName}");
 
         // Fallback to use claims if Items are gone "poof"
         if (string.IsNullOrEmpty(userName))
@@ -283,7 +294,7 @@ public class MemberController : ControllerBase
 
         if (string.IsNullOrEmpty(userName))
         {
-            Console.WriteLine("From user-info controller: No authenticated user found.");
+            _logger.LogWarning("[Controller] No authenticated user found.");
         }
 
         return userName is null
@@ -299,10 +310,11 @@ public class MemberController : ControllerBase
     [HttpGet("MemberId-info")]
     public string GetMemberIdFromJWT()
     {
-        Console.WriteLine($"[Controller] User.Claims: {string.Join(", ", User?.Claims?.Select(c => c.Type + "=" + c.Value))}");
+        _logger.LogDebug($"[Controller] User.Claims: {string.Join(", ", User?.Claims?.Select(c => c.Type + "=" + c.Value))}");
 
         
         var memberId = HttpContext.Items["MemberId"] as string;
+        _logger.LogDebug($"[Controller] ITEMS: {memberId}");
 
         // Fallback to use claims if Items are gone "poof"
         if (string.IsNullOrEmpty(memberId))
@@ -312,7 +324,7 @@ public class MemberController : ControllerBase
 
         if (string.IsNullOrEmpty(memberId))
         {
-            Console.WriteLine("From user-info controller: No authenticated user found.");
+            _logger.LogWarning("[Controller] No authenticated user found.");
         }
 
         return memberId is null
@@ -329,6 +341,7 @@ public class MemberController : ControllerBase
     [HttpGet("username/{username}")]
     public async Task<IActionResult> UserNameExistsAsync(string username)
     {
+        _logger.LogInformation("Doing a post on UserNameExistsAsync");
         var exists = await _memberService.UserNameExistsAsync(username);
         return Ok(exists);
     }
@@ -342,23 +355,8 @@ public class MemberController : ControllerBase
     [HttpGet("email/{email}")]
     public async Task<IActionResult> EmailExistsAsync(string email)
     {
+        _logger.LogInformation("Doing a post on EmailExistsAsync");
         var exists = await _memberService.EmailExistsAsync(email);
         return Ok(exists);
     }
-
-    // /// <summary>
-    // /// Logs out the currently authenticated user by ending their session and clearing associated authentication cookies.
-    // /// </summary>
-    // /// <returns>An OK result indicating that the logout operation was successful.</returns>
-    // [Authorize]
-    // [HttpGet("Logout")]
-    // public IActionResult Logout()
-    // {
-    //     Response.Cookies.Delete("AuthTokenCOMON");
-    //     HttpContext.SignOutAsync();
-    //     HttpContext.User = null;
-    //     Response.Headers.Append("Set-Cookie", "AuthTokenCOMON=; Max-Age=0; path=/; Secure; HttpOnly; SameSite=Lax");
-    //
-    //     return Ok(new { Message = "Logged out" });
-    // }
 }

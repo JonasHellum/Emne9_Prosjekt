@@ -10,6 +10,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager
 @inject ICustomAuthenticationStateProvider AuthStateProvider
+@inject ILogger<Leaderboards> Logger
 
 <div data-aos="zoom"></div>
 
@@ -190,7 +191,7 @@
         {
             memberId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
             loggedIn = true;
-            Console.WriteLine($"memberId from LeaderboardStatsAndStuffTest: {memberId}");
+            Logger.LogDebug($"memberId from Leaderboards: {memberId}");
             await LoadLeaderboardPage();
         }
     }
@@ -206,8 +207,7 @@
                 {
                     memberId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? null!;
                     loggedIn = !string.IsNullOrEmpty(memberId);
-                
-                    Console.WriteLine($"Set the memberId from OnAfterRenderAsync: {memberId}");
+                    Logger.LogDebug($"Set the memberId from OnAfterRenderAsync: {memberId}");
                 }
                 await LoadLeaderboardPage();
             }
@@ -255,11 +255,11 @@
                 _noNewPageAtAll = true;
             }
 
-            Console.WriteLine($"[LoadLeaderboardPage] Page: {_currentPageForAll}, Filtered: {filteredLeaderboard.Count}, Disable Next: {_disableAllNextPage}");
+            Logger.LogDebug($"[LoadLeaderboardPage] Page: {_currentPageForAll}, Filtered: {filteredLeaderboard.Count}, Disable Next: {_disableAllNextPage}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[LoadLeaderboardPage] Error loading leaderboard data: {ex.Message}");
+            Logger.LogError($"[LoadLeaderboardPage] Error loading leaderboard data: {ex.Message}");
             _disableAllNextPage = true; 
         }
         finally
@@ -272,17 +272,17 @@
     {
         if (_disableAllNextPage)
         {
-            Console.WriteLine("Next button is disabled. No further pages exist.");
+            Logger.LogInformation("Next button is disabled. No further pages exist.");
             return;
         }
 
         _currentPageForAll++;
-        Console.WriteLine($"[Pagination] Navigating to Page: {_currentPageForAll}");
+        Logger.LogDebug($"[Pagination] Navigating to Page: {_currentPageForAll}");
         await LoadLeaderboardPage();
 
         if (_noNewPageAtAll)
         {
-            Console.WriteLine("Reverting navigation. No valid data for the next page.");
+            Logger.LogDebug("Reverting navigation. No valid data for the next page.");
             _currentPageForAll--;
             await LoadLeaderboardPage(); 
         }
@@ -293,7 +293,7 @@
         if (_currentPageForAll > 1)
         {
             _currentPageForAll--;
-            Console.WriteLine($"[Pagination] Current Page (Previous): {_currentPageForAll}");
+            Logger.LogDebug($"[Pagination] Current Page (Previous): {_currentPageForAll}");
             _disableAllNextPage = false;
             _noNewPageAtAll = false;
             await LoadLeaderboardPage();

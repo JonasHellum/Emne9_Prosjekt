@@ -38,27 +38,40 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
 
     }
 
+    /// <summary>
+    /// Retrieves the currently logged-in user's claims principal.
+    /// Checks the cached authentication state to ensure the user is authenticated and the token has not exceeded a specified expiration time.
+    /// If authenticated, updates the user's name in the authentication state service.
+    /// If not authenticated or if the necessary conditions are not met, returns an unauthenticated claims principal.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation, containing the current <see cref="ClaimsPrincipal"/> representing the logged-in user or an empty claims principal if no valid user is found.</returns>
     public Task<ClaimsPrincipal> GetLoggedInUserAsync()
     {
-        // If the cached state is already authenticated, return the User directly
         if (_cachedAuthState?.User.Identity?.IsAuthenticated == true && _lastTokenRefresh.HasValue && 
             DateTime.UtcNow.Subtract(_lastTokenRefresh.Value).TotalMinutes < 12)
         {
+            _logger.LogDebug("Setting the user name in the authentication state service and returns the user's claims principal.");
             _authStateService.SetUserName(_cachedAuthState.User.Identity.Name);
             return Task.FromResult(_cachedAuthState.User);
         }
 
-        // Return an empty (unauthenticated) user
+        _logger.LogDebug("No logged in user found");
         return Task.FromResult(new ClaimsPrincipal(new ClaimsIdentity()));
     }
 
 
+    /// <summary>
+    /// Retrieves the current authentication state for the application.
+    /// Checks local storage for an encrypted refresh token, decryping it and refreshes the access token with refresh token.
+    /// If the refresh token is about to expire then we get a new one, encrypts it and saves it to local storage.
+    /// Gets the username and memberId from APi, creates a ClaimsPrincipal representing the authenticated user.
+    /// If no valid token exists, updates the authentication state to represent an anonymous user.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation, containing the current <see cref="AuthenticationState"/>.</returns>
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        // Retrieve the refresh token from localStorage
         var encryptedRefreshTokenFromStorage = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "RefreshToken");
-
-        // If no refresh token, the user is not authenticated
+        
         if (string.IsNullOrWhiteSpace(encryptedRefreshTokenFromStorage))
         {
             _logger.LogDebug("No refresh token in local storage.");
@@ -68,30 +81,28 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
         try
         {
             var refreshToken = Decrypt(encryptedRefreshTokenFromStorage);
-            _logger.LogDebug($"Refresh token: {refreshToken}");
-            // Attempt to refresh the access token using the refresh token
+            _logger.LogDebug($"Refreshing the access token using Refresh token: {refreshToken}");
             var response = await _httpClient.PostAsJsonAsync("http://localhost:80/api/members/RefreshToken", refreshToken);
             
 
             if (response.IsSuccessStatusCode)
             {
-                // Deserialize new tokens
                 var tokens = await response.Content.ReadFromJsonAsync<MemberTokenResponse>();
 
                 if (tokens != null)
                 {
-                    // Update token in localStorage
                     if (!string.IsNullOrWhiteSpace(tokens.RefreshToken))
                     {
+                        _logger.LogDebug("Setting encrypted refresh token in local storage.");
                         var encryptedRefreshToken = Encrypt(tokens.RefreshToken);
                         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "RefreshToken", encryptedRefreshToken);
                     }
-
-                    // Update the Authorization header for the HTTP client
+                    
+                    _logger.LogDebug("Setting access token into the Authorization header.");
                     _httpClient.DefaultRequestHeaders.Authorization =
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokens.AccessToken);
 
-                    // Fetch user claims
+                    _logger.LogDebug("getting username and memberId from api"); 
                     var userNameTask = _httpClient.GetStringAsync("http://localhost:80/api/members/Username-info");
                     var memberIdTask = _httpClient.GetStringAsync("http://localhost:80/api/members/MemberId-info");
                     
@@ -109,10 +120,12 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
                         var identity = new ClaimsIdentity(claims, "Bearer");
                         var principal = new ClaimsPrincipal(identity);
                         
+                        _logger.LogDebug($"Set user to authenticated with username: {userName} and memberId: {memberId} in a ClaimsPrincipal.");
                         _cachedAuthState = new AuthenticationState(principal);
                         _lastTokenRefresh = DateTime.UtcNow;
                         NotifyAuthenticationStateChanged(Task.FromResult(_cachedAuthState));
                         _authStateService.SetUserName(_cachedAuthState.User.Identity!.Name!);
+                        _logger.LogDebug("User authenticated and state updated.");
                         return _cachedAuthState;
                     }
                 }
@@ -120,22 +133,28 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error during token refresh: {ex.Message}");
+            _logger.LogWarning($"Error during token refresh: {ex.Message}");
         }
         
         await MarkUserAsLoggedOut();
         return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
     }
     
-    // Store the authenticated state and token
+    /// <summary>
+    /// Marks the user as authenticated and updates the authentication state.
+    /// Stores the provided access and refresh tokens, sets up the user claims, and updates the authentication state.
+    /// </summary>
+    /// <param name="accessToken">The access token issued for the user.</param>
+    /// <param name="refreshToken">The refresh token issued for the user.</param>
     public async Task MarkUserAsAuthenticated(string accessToken, string refreshToken)
     {
         var encryptedRefreshToken = Encrypt(refreshToken);
+        _logger.LogDebug("Setting encrypted refresh token in local storage and access token into the Authorization header.");
         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "RefreshToken", encryptedRefreshToken);
         _httpClient.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-
-        // Fetch user claims
+        
+        _logger.LogDebug("getting username and memberId from api");        
         var userNameTask = _httpClient.GetStringAsync("http://localhost:80/api/members/Username-info");
         var memberIdTask = _httpClient.GetStringAsync("http://localhost:80/api/members/MemberId-info");
                     
@@ -152,28 +171,42 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
             };
             var identity = new ClaimsIdentity(claims, "Bearer");
             var principal = new ClaimsPrincipal(identity);
-                        
+            
+            _logger.LogDebug($"Set user to authenticated with username: {userName} and memberId: {memberId} in a ClaimsPrincipal.");
             _cachedAuthState = new AuthenticationState(principal);
             _lastTokenRefresh = DateTime.UtcNow;
         }
         _authStateService.SetUserName(_cachedAuthState.User.Identity.Name);
         NotifyAuthenticationStateChanged(Task.FromResult(_cachedAuthState));
-        Console.WriteLine("User authenticated and state updated.");
+        _logger.LogInformation("User authenticated and state updated.");
     }
-
-    // Clear tokens and unauthenticate the user
+    
+    /// <summary>
+    /// Marks the user as logged out and clears the authentication state.
+    /// Removes the stored refresh token, clears the authorization header,
+    /// resets the user data, and notifies the application of the updated authentication state.
+    /// </summary>
+    /// <returns>A completed task once the user's logout process is finalized.</returns>
     public async Task MarkUserAsLoggedOut()
     {
+        _logger.LogDebug("Clearing refresh token from local storage and access token from Authorization header.");
         await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "RefreshToken");
         _httpClient.DefaultRequestHeaders.Authorization = null;
         _authStateService.ClearUserName();
 
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()))));
-        Console.WriteLine("User logged out and state cleared.");
+        _logger.LogInformation("User logged out and state cleared.");
     }
 
+    /// <summary>
+    /// Encrypts the provided refresh token using AES encryption and returns the encrypted data as a Base64 string.
+    /// The method appends the generated Initialization Vector (IV) to the encrypted data and uses a Key.
+    /// </summary>
+    /// <param name="refreshToken">The plaintext refresh token to be encrypted.</param>
+    /// <returns>A Base64-encoded string containing the encrypted refresh token combined with the IV.</returns>
     private string Encrypt(string refreshToken)
     {
+        _logger.LogDebug("Encrypting refresh token.");
         using var aes = System.Security.Cryptography.Aes.Create();
         aes.Key = System.Text.Encoding.UTF8.GetBytes(_config.GetValue<string>("AppSettings:JWTKey"));
         aes.GenerateIV();
@@ -190,13 +223,19 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
             writer.Write(refreshToken);
         }
 
+        _logger.LogDebug("Refresh token encrypted.");
         // Convert the MemoryStream (ciphertext + prepended IV) to a Base64 string
         return Convert.ToBase64String(ms.ToArray());
-
     }
-    
+
+    /// <summary>
+    /// Decrypts the provided cipher text using AES encryption, retrieving the original plain text.
+    /// </summary>
+    /// <param name="cipherText">The encrypted text to be decrypted.</param>
+    /// <returns>The decrypted plain text representation of the input cipher text.</returns>
     private string Decrypt(string cipherText)
     {
+        _logger.LogDebug("Decrypting refresh token.");
         using var aes = System.Security.Cryptography.Aes.Create();
         aes.Key = System.Text.Encoding.UTF8.GetBytes(_config.GetValue<string>("AppSettings:JWTKey"));
 
@@ -217,9 +256,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
         using var cs = new System.Security.Cryptography.CryptoStream(ms, decryptor, System.Security.Cryptography.CryptoStreamMode.Read);
         using var reader = new StreamReader(cs);
 
+        _logger.LogDebug("Refresh token decrypted.");
         return reader.ReadToEnd();
-
     }
-
-
 }

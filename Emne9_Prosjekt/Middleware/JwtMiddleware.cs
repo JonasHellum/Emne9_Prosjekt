@@ -19,7 +19,7 @@ public class JwtMiddleware : IMiddleware
         if (context.Request.Path.StartsWithSegments("/api"))
         {
             string? token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-            Console.WriteLine($"Token from Authorization header: {token}");
+            _logger.LogDebug($"Token from Authorization header: {token}");
             
 
             if (!string.IsNullOrEmpty(token))
@@ -33,9 +33,8 @@ public class JwtMiddleware : IMiddleware
                     context.Items["MemberId"] = memberId;
                     context.Items["UserName"] = userName;
 
-                    _logger.LogInformation($"Token validated. MemberId: {memberId}, Username: {userName}");
-
-                    // Create a ClaimsPrincipal and attach it to HttpContext.User
+                    _logger.LogDebug($"Token validated. HttpContext.Items: MemberId: {memberId}, Username: {userName}");
+                    
                     var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.NameIdentifier, memberId),
@@ -43,9 +42,7 @@ public class JwtMiddleware : IMiddleware
                     };
                     var identity = new ClaimsIdentity(claims, "Bearer");
                     context.User = new ClaimsPrincipal(identity);
-                    
-                    Console.WriteLine($"HttpContext.User initialized with Name: {context.User.Identity?.Name}");
-
+                    _logger.LogDebug($"ClaimsPrincipal created. MemberId: {memberId}, Username: {userName}");
                 }
                 else
                 {

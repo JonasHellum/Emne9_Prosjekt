@@ -64,7 +64,6 @@ public class LeaderboardRepository : ILeaderboardRepository
         _dbContext.Leaderboard.Update(leaderboard);
         await _dbContext.SaveChangesAsync();
         
-        _logger.LogInformation($"Updated leaderboard with id {leaderboard.LeaderboardId}");
         return leaderboard;
     }
 
@@ -109,6 +108,8 @@ public class LeaderboardRepository : ILeaderboardRepository
     public async Task<List<LeaderboardDTO>> GetLeaderboardPaginatedAsync(string gameType, int page, int pageSize,
         Guid? loggedInMemberId = null)
     {
+        _logger.LogDebug($"Searching, grouping and sorting leaderboard stats based on {gameType} and page {page} " +
+                         $"and pageSize {pageSize} and loggedInMemberId if logged in: {loggedInMemberId} ");
         // Step 1: Group and aggregate in the database
         var groupedQuery = _dbContext.Leaderboard
             .Where(l => gameType.ToLower() == "All".ToLower() || l.GameType.ToLower() == gameType.ToLower())
@@ -125,7 +126,9 @@ public class LeaderboardRepository : ILeaderboardRepository
 
         // Step 2: Load aggregated data into memory
         var aggregatedData = await groupedQuery.AsNoTracking().ToListAsync();
-
+        _logger.LogDebug($"Found {aggregatedData.Count} leaderboard records");
+        
+        _logger.LogDebug("Assigning ranks based on the aggregated data.");
         // Step 3: Apply ranking in memory
         var rankedData = aggregatedData
             .Select((entry, index) => new LeaderboardDTO
@@ -142,6 +145,7 @@ public class LeaderboardRepository : ILeaderboardRepository
         var loggedInUser = rankedData.FirstOrDefault(r => r.MemberId == loggedInMemberId);
         if (loggedInUser == null && loggedInMemberId != null)
         {
+            _logger.LogDebug("Getting out the logged-in user's stats from the database.");
             var userLeaderboard = await _dbContext.Leaderboard
                 .Where(l => l.MemberId == loggedInMemberId && (gameType.ToLower() == "All".ToLower() || l.GameType.ToLower() == gameType.ToLower()))
                 .GroupBy(l => new { l.MemberId, l.UserName })
@@ -157,10 +161,10 @@ public class LeaderboardRepository : ILeaderboardRepository
             {
                 userLeaderboard.Rank = rankedData.Count + 1;
                 rankedData.Add(userLeaderboard);
+                _logger.LogDebug($"Found logged-in user's stats and assigning rank: {userLeaderboard.Rank}");
             }
         }
-
-        // Step 5: Paginate the results
+        
         var paginatedResult = rankedData
             .Skip((page - 1) * pageSize) 
             .Take(pageSize)
@@ -168,11 +172,10 @@ public class LeaderboardRepository : ILeaderboardRepository
         
         if (loggedInUser != null && !paginatedResult.Any(r => r.MemberId == loggedInMemberId))
         {
-            // Manually add the logged-in user's stats to the result if not already present
+            _logger.LogDebug("Manually adding the logged in user's stats to the result after paginating.");
             paginatedResult.Add(loggedInUser);
         }
-
-
+        
         return paginatedResult;
     }
 }

@@ -1,6 +1,7 @@
 ﻿@page "/User"
 @using System.Security.Claims
 @using System.Text.Json
+@using System.Text.RegularExpressions
 @using Emne9_Prosjekt.Features.Members.Models
 @using Emne9_Prosjekt.Components.Pages.FrontPage
 @using Emne9_Prosjekt.Components.Pages.Interfaces
@@ -9,6 +10,7 @@
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
 @inject ICustomAuthenticationStateProvider AuthStateProvider
+@inject ILogger<User> Logger
 
 <div data-aos="zoom"></div>
 
@@ -79,7 +81,7 @@
 
                     <div class="form-group">
                         <label for="Content">Email:</label>
-                        <InputText @bind-Value="memberUpdateDto.Email" class="update-field" name="Email"/>
+                        <InputText @bind-Value="memberUpdateDto.Email" class="update-field" name="Email" @onblur="CheckEmailAsync"/>
                     </div>
 
                     <div class="form-group">
@@ -183,6 +185,7 @@
     private bool _isClientSide;
     private bool loggedIn;
     private string _loggedOut;
+    private bool emailTaken;
 
     protected override async Task OnInitializedAsync()
     {
@@ -193,7 +196,7 @@
         {
             memberId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             loggedIn = true;
-            Console.WriteLine($"memberId from UpdateTestin: {memberId}");
+            Logger.LogDebug($"Set the memberId from: OnInitializedAsync: {memberId}");
             if (loggedIn)
             {
                 memberDto = await Http.GetFromJsonAsync<MemberDTO>($"http://localhost:80/api/members/get/{memberId}");
@@ -214,7 +217,7 @@
                 {
                     memberId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? null;
                     loggedIn = !string.IsNullOrEmpty(memberId);
-                    Console.WriteLine($"Set the memberId from OnAfterRenderAsync: {memberId}");
+                    Logger.LogDebug($"Set the memberId from OnAfterRenderAsync: {memberId}");
                 }
             }
             if (loggedIn)
@@ -262,6 +265,37 @@
     
     private async Task EditMemberAsync()
     {
+        if (memberUpdateDto.UserName.IsNullOrEmpty() ||
+            memberUpdateDto.Email.IsNullOrEmpty() ||
+            memberUpdateDto.Password.IsNullOrEmpty())
+        {
+            errorMessage = "All fields are required!";
+            editFailed = true;
+            return;
+        }
+
+        if (!memberUpdateDto.Email.Contains("@"))
+        {
+            errorMessage = "Enter a valid E-mail";
+            editFailed = true;
+            return;
+        }
+
+        if (!Regex.IsMatch(memberUpdateDto.Password, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"))
+        {
+            errorMessage = "A password should contain at least one capital and one\n" +
+                           "lowercase letter, a number and have at least 8 characters";
+            editFailed = true;
+            return;
+        }
+        
+        if (memberUpdateDto.Password != checkPassword)
+        {
+            errorMessage = "Passwords do not match";
+            editFailed = true;
+            return;
+        }
+        
         Guid memberId = memberDto.MemberId;
         
         if (memberUpdateDto.Password != checkPassword)
@@ -278,34 +312,8 @@
             editSuccess = true;
             await LoadUserAfterChangeAsync();
         }
-        else
-        {
-            // Extract validation errors from the response... Might not need if the validating is in blazor page?
-            var responseContent = await response.Content.ReadAsStringAsync();
-            try
-            {
-                // Try to parse error messages from response body
-                var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseContent, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                if (errorResponse?.Errors != null)
-                {
-                    errorMessage = string.Join(", ", errorResponse.Errors);
-                }
-                else
-                {
-                    errorMessage = "An unknown error occurred.";
-                }
-            }
-            catch
-            {
-                errorMessage = "Failed: " + responseContent;
-            }
-
-            editFailed = true;
-        }
+        
+        editFailed = true;
     }
     
     private async Task Logout()
@@ -326,8 +334,16 @@
         }
     }
     
-    private class ErrorResponse
+    private async Task CheckEmailAsync()
     {
-        public List<string> Errors { get; set; }
+        var response = await Http.GetAsync($"http://localhost:80/api/members/email/{memberUpdateDto.Email}");
+        if (response.IsSuccessStatusCode)
+        {
+            emailTaken = await response.Content.ReadFromJsonAsync<bool>();
+        }
+        else
+        {
+            emailTaken = false;
+        }
     }
 }

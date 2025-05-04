@@ -71,10 +71,9 @@ public class LeaderboardService : ILeaderboardService
 
         if (leaderboardToUpdate != null)
         {
-            _logger.LogInformation($"Trying to update leaderboard for member with memberId: {loggedInMember.MemberId}");
-            // Update existing record
-            leaderboardToUpdate.Wins += addOrUpdateDto.Wins; // Add new wins to the existing wins
-            leaderboardToUpdate.Losses += addOrUpdateDto.Losses; // Add new losses to the existing losses
+            _logger.LogDebug($"Trying to update leaderboard for member with memberId: {loggedInMember.MemberId}");
+            leaderboardToUpdate.Wins += addOrUpdateDto.Wins;
+            leaderboardToUpdate.Losses += addOrUpdateDto.Losses;
             leaderboardToUpdate.LastUpdated = DateTime.UtcNow;
             
             var updatedLeaderboard = await _leaderboardRepository.UpdateAsync(leaderboardToUpdate);
@@ -85,11 +84,10 @@ public class LeaderboardService : ILeaderboardService
                 throw new DataException($"Did not update leaderboard with LeaderboardId: {leaderboardToUpdate.LeaderboardId}.");
             }
             
-            
             return _leaderboardMapper.MapToDTO(leaderboardToUpdate);
         }
         
-        _logger.LogInformation($"Trying to add a new leaderboard for member with memberId: {loggedInMember.MemberId}");
+        _logger.LogDebug($"Trying to add a new leaderboard for member with memberId: {loggedInMember.MemberId}");
         var leaderboard = _leaderboardAddMapper.MapToModel(addOrUpdateDto);
         leaderboard.MemberId = loggedInMember.MemberId;
         leaderboard.UserName = loggedInMember.UserName;
@@ -106,9 +104,16 @@ public class LeaderboardService : ILeaderboardService
         return _leaderboardMapper.MapToDTO(newLeaderboard);
     }
 
-   
+    /// <summary>
+    /// Retrieves a paginated list of leaderboard records + the logged-in member stats if logged in, ordered by wins and losses, and optionally filters by game type.
+    /// </summary>
+    /// <param name="gameType">The type of game for which to retrieve the leaderboard entries.</param>
+    /// <param name="page">The page number of the leaderboard entries to retrieve.</param>
+    /// <param name="pageSize">The number of leaderboard entries to include per page.</param>
+    /// <returns>A list of <see cref="LeaderboardDTO"/> representing the leaderboard entries for the specified game type and page.</returns>
     public async Task<List<LeaderboardDTO>> GetLeaderboardPaginatedAsync(string gameType, int page, int pageSize)
     {
+        _logger.LogDebug($"Trying to get leaderboard for gameType: {gameType} and page: {page} and pageSize: {pageSize}");
         var loggedInMember = await GetLoggedInMemberAsync();
         
         var loggedInMemberId = loggedInMember?.MemberId;
@@ -117,14 +122,13 @@ public class LeaderboardService : ILeaderboardService
 
 
     /// <summary>
-    /// Retrieves the currently logged-in member based on the information stored in the HTTP context.
+    /// Retrieves the member who is currently logged in based on the context information.
     /// </summary>
-    /// <returns>An instance of <see cref="Member"/> representing the logged-in member, or throws an exception if no member is logged in.</returns>
-    /// <exception cref="UnauthorizedAccessException">Thrown when no member is logged in or the member cannot be found.</exception>
+    /// <returns>An instance of <see cref="Member"/> representing the logged-in member, or null if no member is logged in or the member cannot be found.</returns>
     private async Task<Member?> GetLoggedInMemberAsync()
     {
         var loggedInMemberId = _httpContextAccessor.HttpContext?.Items["MemberId"] as string;
-        _logger.LogInformation("Logged in member ID: {LoggedInMemberId}", loggedInMemberId);
+        _logger.LogDebug("Logged in member ID: {LoggedInMemberId}", loggedInMemberId);
     
         if (string.IsNullOrEmpty(loggedInMemberId))
         {
