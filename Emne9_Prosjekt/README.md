@@ -34,7 +34,7 @@ Som utviklingsmetodikk har vi gått for noe Agile lignende, vi har hatt en form 
 ## Teknologistakk og implementasjon
 
 Språk: C#
-Rammeverk: ASP.NET Core med Blazor Web App (server).
+Rammeverk: ASP.NET Core med Blazor Web App (server). .NET 8.0
 Komponent -> Teknologi/verktøy
 Frontend/UI -> Blazor Server (.razor, C#,css)
 Backend  -> ASP.NET Core (C#)
@@ -110,7 +110,11 @@ Erfaringer fra utviklingsprosessen:
 -Bruke JWT tokens for autorisasjon og autentisering
 -SignalR tilkobling
 -Integrere og bruke informasjon fra API
-
+-Hvordan integrere spillgrafikk og funksjoner rett i blazor
+-Hvordan håndtere sanntidskommunikasjon via SignalR, samt få de forskjellige tilkoblingene til å leve parallelt
+-Hvordan skape og håndtere interaktivt design/Ui utenfor "blazor - standard"(Lyd, animasjon etc)
+-HOW TO CENTER A DIV
+-
 ## Konklusjon og videre arbeid
 Under prosjektets utvikling har det forekommet flere utfordringer, disse omhandler alt fra å sette sammen alle modulene slik at det ferdige produktet oppleves sømløst fra start til slutt – til små irritasjonsmomenter som hvorfor riktig data ikke blir sendt/vist eller lagret riktig. Hoved-modulene til prosjektet har i utgangspunktet blitt utviklet hver for seg (API, SIgnalR-Hub utforming, spill-regel komponenter med følgende razorpages). Noe som har ført til at vi til tider har jobbet litt rundt og ikke med hverandre – hvilket igjen da har ført til at det ikke alltid har gjort det like lett å samkjøre kode. Det har også forekommet nye oppdagelser ved valget av Blazor i sin helhet, og deretter også Server delen. Hub modulene(med servicer og alt) som et eksempel, har gått igjennom flere re faktoriseringer for å oppnå ønsket resultat, likevel er gjenstår det forbedringspotensialer som nok kunne ført til mer effektiv kode. Det ble også forsøkt å lagre JWT i cookie, men da blazor benytter SignalR  websockets sendes ikke nødvendigvis cookies på samme måte som ved vanlige http-forespørsler (hvilket vi fikk bekreftet da cookien fungerte som forventet ved bruk av postman). Det ble gjort flere forsøk for å oppnå ønsket resultat, uten hell – dermed ble løsningen heller en kryptert refresh session token i localstorage, hvilket gav ønsket resultat.
 
