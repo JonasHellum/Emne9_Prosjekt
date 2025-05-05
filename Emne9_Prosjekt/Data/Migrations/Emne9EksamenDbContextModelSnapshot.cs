@@ -121,6 +121,10 @@ namespace Emne9_Prosjekt.Data.Migrations
                     b.Property<DateTime>("Expires")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.Property<Guid>("MemberId")
                         .HasColumnType("char(36)");
 

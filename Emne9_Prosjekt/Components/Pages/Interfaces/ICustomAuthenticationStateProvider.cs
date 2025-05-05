@@ -9,5 +9,6 @@ public interface ICustomAuthenticationStateProvider
     Task<AuthenticationState> GetAuthenticationStateAsync();
     Task MarkUserAsAuthenticated(string accessToken, string refreshToken);
     Task MarkUserAsLoggedOut();
+    void SetIpAddress(string ipAddress);
 
 }

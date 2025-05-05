@@ -2,6 +2,7 @@
 using Emne9_Prosjekt.Components.Pages.Interfaces;
 using Emne9_Prosjekt.Features.Members.Models;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.JSInterop;
 
 namespace Emne9_Prosjekt.Components.Pages.Services;
@@ -12,6 +13,9 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
     private DateTime? _lastTokenRefresh;
     private readonly ILogger<CustomAuthenticationStateProvider> _logger;
     private readonly IAuthStateService _authStateService;
+    
+    
+    private readonly MemberTokenRequest _memberTokenRequest;
     
     private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -32,10 +36,16 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
         _httpClient = httpClient;
         _logger = logger;
         _cachedAuthState = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
-        
         _httpContextAccessor = httpContextAccessor;
         _authStateService = authStateService;
+        _memberTokenRequest = new MemberTokenRequest();
 
+    }
+    
+    public void SetIpAddress(string ipAddress)
+    {
+        _memberTokenRequest.IpAddress = ipAddress;
+        _memberTokenRequest.RefreshToken = string.Empty;
     }
 
     /// <summary>
@@ -59,7 +69,6 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
         return Task.FromResult(new ClaimsPrincipal(new ClaimsIdentity()));
     }
 
-
     /// <summary>
     /// Retrieves the current authentication state for the application.
     /// Checks local storage for an encrypted refresh token, decryping it and refreshes the access token with refresh token.
@@ -70,6 +79,11 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
     /// <returns>A task representing the asynchronous operation, containing the current <see cref="AuthenticationState"/>.</returns>
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
+        if (_memberTokenRequest.IpAddress.IsNullOrEmpty())
+        {
+            _logger.LogDebug("No Ip address found.");
+            return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+        }        
         var encryptedRefreshTokenFromStorage = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "RefreshToken");
         
         if (string.IsNullOrWhiteSpace(encryptedRefreshTokenFromStorage))
@@ -81,8 +95,9 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
         try
         {
             var refreshToken = Decrypt(encryptedRefreshTokenFromStorage);
+            _memberTokenRequest.RefreshToken = refreshToken;
             _logger.LogDebug($"Refreshing the access token using Refresh token: {refreshToken}");
-            var response = await _httpClient.PostAsJsonAsync("http://localhost:80/api/members/RefreshToken", refreshToken);
+            var response = await _httpClient.PostAsJsonAsync("http://localhost:80/api/members/RefreshToken", _memberTokenRequest);
             
 
             if (response.IsSuccessStatusCode)

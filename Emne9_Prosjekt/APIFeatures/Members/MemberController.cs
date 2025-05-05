@@ -1,4 +1,5 @@
-﻿using Emne9_Prosjekt.Features.Members.Interfaces;
+﻿using System.Data;
+using Emne9_Prosjekt.Features.Members.Interfaces;
 using Emne9_Prosjekt.Features.Members.Models;
 using Emne9_Prosjekt.Validators.Interfaces;
 using Emne9_Prosjekt.Validators.MemberValidators;
@@ -89,7 +90,11 @@ public class MemberController : ControllerBase
         
         var memberAccessToken = _memberService.MakeAccessToken(member);
         var memberRefreshToken = _memberService.MakeRefreshToken();
-        
+        if (memberDTO.IpAddress.IsNullOrEmpty())
+        {
+            _logger.LogWarning("IP Address is null or empty.");
+            return BadRequest("IP Address is null or empty.");
+        }
         await _memberService.SaveRefreshTokenAsync(member.MemberId, memberRefreshToken, memberDTO.IpAddress);
 
         return Ok(new MemberTokenResponse
@@ -108,7 +113,7 @@ public class MemberController : ControllerBase
     /// otherwise, returns an Unauthorized status for invalid or expired tokens.</returns>
     [AllowAnonymous]
     [HttpPost("RefreshToken", Name = "RefreshToken")]
-    public async Task<ActionResult> RefreshTokenAsync([FromBody] string request)
+    public async Task<ActionResult> RefreshTokenAsync([FromBody] MemberTokenRequest request)
     {
         _logger.LogInformation("Doing a post on RefreshToken");
         var memberId = await _memberService.ValidateRefreshTokenAsync(request);
@@ -127,14 +132,14 @@ public class MemberController : ControllerBase
         
         _logger.LogDebug("Generating a new access token.");
         var newAccessToken = _memberService.MakeAccessToken(member);
-        var storedToken = await _memberService.GetStoredRefreshTokenAsync(request);
+        var storedToken = await _memberService.GetStoredRefreshTokenAsync(request.RefreshToken);
         
         if (storedToken.Expires.Subtract(DateTime.UtcNow).TotalHours <= 1)
         {
             _logger.LogDebug("Generating a new refresh token because the old one is about to expire.");
             // Generate a new refresh token and save it
             var newRefreshToken = _memberService.MakeRefreshToken();
-            await _memberService.SaveRefreshTokenAsync(memberId, newRefreshToken);
+            await _memberService.SaveRefreshTokenAsync(memberId, newRefreshToken, request.IpAddress);
 
             return Ok(new
             {

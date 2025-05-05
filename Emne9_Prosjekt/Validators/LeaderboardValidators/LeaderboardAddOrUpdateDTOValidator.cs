@@ -15,7 +15,7 @@ public class LeaderboardAddOrUpdateDTOValidator : AbstractValidator<LeaderboardA
         RuleFor(x => x.Losses).NotEmpty().WithMessage("Losses value is required")
             .LessThanOrEqualTo(1).GreaterThanOrEqualTo(-1).WithMessage("Losses value must be between -1 and 1");
         
-        RuleFor(x => x.Wins).NotEmpty().WithMessage("Losses value is required")
-            .LessThanOrEqualTo(1).GreaterThanOrEqualTo(-1).WithMessage("Losses value must be between -1 and 1");
+        RuleFor(x => x.Wins).LessThanOrEqualTo(1).GreaterThanOrEqualTo(-1)
+            .WithMessage("Wins value must be between -1 and 1");
     }
 }
