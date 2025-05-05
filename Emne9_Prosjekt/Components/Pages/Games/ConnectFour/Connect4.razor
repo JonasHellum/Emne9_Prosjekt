@@ -8,6 +8,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Emne9_Prosjekt.Components.Pages.SocialFeatures
 @inject ILogger<Connect4> Logger
+@inject NavigationManager Navigation
 @inject IConnectFourGameHubConnection ConnectHubConnection
 @inject Connect4Components GameComponents
 @inject HttpClient Http
@@ -16,84 +17,63 @@
 @inject ICustomAuthenticationStateProvider AuthStateProvider
 @implements IAsyncDisposable
 
-@if (_gameState != GameState.Playing)
-{
-    <video muted playsinline
-           style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+<video id="bgVideo" muted playsinline
+       style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
               object-fit: cover; z-index: -1; pointer-events: none">
-        <source src="Assets/Connect4/ConnectIntro.mp4" type="video/mp4">
-    </video>
-}
-
-@if (_gameState == GameState.Playing)
-{
-    <video autoplay muted playsinline
-           style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-              object-fit: cover; z-index: -1; pointer-events: none">
-        <source src="Assets/Connect4/ConnectIntro.mp4" type="video/mp4">
-    </video>
-}
-
-@if (_gameState == GameState.GameOver)
-{
-    <video autoplay muted playsinline
-           style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-              object-fit: cover; z-index: -1; pointer-events: none">
-        <source src="Assets/Connect4/ConnectOutro.mp4" type="video/mp4">
-    </video>
-}
+    <source src="Assets/Connect4/ConnectIntroOutro.mp4" type="video/mp4">
+</video>
 
 <div style="display: flex;
 flex-direction: column;
 justify-content: center;
 color: white;
-padding-top: 100px">
+padding-top: 50px">
     
     @if (_gameState != GameState.Playing || _gameState != GameState.GameOver)
     {
-    <div data-aos="zoom-out-down"
-         data-aos-delay="300"
-        data-aos-duration="500"
-        style="text-align: center;
+        <div data-aos="zoom-out-down"
+             data-aos-delay="300"
+             data-aos-duration="500"
+             style="text-align: center;
                 transform: translateY(-30px);
                 height: 30px">
-        @if (_gameState == GameState.Connecting)
-                             {
-        <h2 style="padding-top: 150px">
-                Connecting to server...
-            </h2>
+            @if (_gameState == GameState.Connecting)
+            {
+                <h2 style="padding-top: 150px">
+                    Connecting to server...
+                </h2>
             }
-        else if (_gameState == GameState.WaitingForOpponent)
-                                 {
-        <h2 style="padding-top: 150px">
-                Waiting for opponent...
-            </h2>
+            else if (_gameState == GameState.WaitingForOpponent)
+            {
+                <h2 style="padding-top: 150px">
+                    Waiting for opponent...
+                </h2>
             }
-    </div>
+        </div>
     }
-    
     
     @if (_gameState == GameState.Playing || _gameState == GameState.GameOver)
     {
-    <div data-aos="zoom-out-down"
-         data-aos-delay="300"
-        data-aos-duration="500"
-        style="text-align: center;
-                transform: translateY(-30px);
+        <div data-aos="zoom-out-down"
+             data-aos-delay="300"
+             data-aos-duration="500"
+             style=" text-align: center;
+                padding-bottom: 50px;
+                transform: translateY(-30px) translateX(-15px);
                 height: 30px">
-        @if (_gameState == GameState.Playing)
-        {
-            <h3>
-                @(_isMyTurn ? "Your turn" : "Opponent's turn")
-            </h3>
-        }
-        else if (_gameState == GameState.GameOver)
-        {
-            <h1 class="top-text">
-                Game over!
-            </h1>
-        }
-    </div>
+            @if (_gameState == GameState.Playing)
+            {
+                <h2>
+                    @(_isMyTurn ? "Your turn" : "Opponent's turn")
+                </h2>
+            }
+            else if (_gameState == GameState.GameOver)
+            {
+                <h1 class="top-text">
+                    Game over!
+                </h1>
+            }
+        </div>
     }
     
     
@@ -111,7 +91,7 @@ padding-top: 100px">
                           alt="chip"
                           autoplay
                           camera-orbit="0deg 90deg auto"
-                          exposure="0.5"
+                          exposure="0.3"
                           scale="0.7 0.7 0.7">
             </model-viewer>
             <model-viewer data-aos="zoom-out-right"
@@ -121,7 +101,7 @@ padding-top: 100px">
                           alt="chip"
                           autoplay
                           camera-orbit="45deg 90deg auto"
-                          exposure="0.5"
+                          exposure="0.3"
                           scale="0.7 0.7 0.7">
             </model-viewer>
         </div>
@@ -135,50 +115,120 @@ padding-top: 100px">
                     justify-content: center;
                     flex-direction: row;
                     gap: 100px">
-             <div>
-                 <table style="margin: auto;">
-                     @foreach (var row in "ABCDEF")
-                     {
-                     <tr>
-                             @for (int col = 1; col <= 7; col++)
-                             {
-                             var pos = $"{row}{col}";
-                                 var value = _board[pos];
-                                 <td style="width: 60px;
+            <div style="transform: perspective(800px) rotateY(10deg);
+                        transform-style: preserve-3d;">
+                <img  alt="" src="/Assets/Connect4/Connect4Board.png"
+                      style=" position: absolute;
+                              pointer-events: none;
+                              transform: translateY(-23px) translateX(-27px);
+                              width: 475px"/>
+                <table style="margin: auto;">
+                    @foreach (var row in "ABCDEF")
+                    {
+                        <tr>
+                            @for (int col = 1; col <= 7; col++)
+                            {
+                                var pos = $"{row}{col}";
+                                var value = _board[pos];
+                                <td style=" width: 60px;
                                             height: 60px;
                                             text-align: center;
-                                            border: 1px solid black;
-                                            background: @BoardStatus(value);"
-                                     @onclick="() => PlacePiece(pos)">
-                                     @pos
-                                 </td>
-                             }
-                         </tr>
-                     }
-                 </table>
-             </div>
-             <div style="width: 420px;
-                         height: 360px;
+                                            border: 1px solid #374548;
+                                            background-color: rgb(0, 0, 0, 0.5);"
+                                    @onclick="() => PlacePiece(pos)">
+                                    <img  alt="" src="@BoardStatus(value)"
+                                          style="width: 100%"/>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </table>
+            </div>
+            <div style="width: 475px;
+                         height: 409px;
                          overflow: hidden;
                          background: rgb(0, 0, 0, 0.5);
-                         border: 1px solid white">
-                 <GameChatFunction/>
-             </div>
+                         transform: perspective(800px) rotateY(-10deg) translateY(-25px);
+                         transform-style: preserve-3d;
+                         border-radius: 40px;
+                         border: 30px solid #374548;">
+                <GameChatFunction/>
+            </div>
         </div>
     }
     
     @if (_gameState == GameState.GameOver)
     {
-        <h2 data-aos="fade-up"
-            data-aos-duration="300"
-            style="text-align: center;
-                   padding-top: 20px;
-                   white-space: pre-line;
-                   font-weight: bolder;">
-            @_gameOverMessage
-        </h2>
+        <div style="text-align: center;
+                    margin: 0;
+                    display: flex;
+                    transform: translateY(-95px) translateX(-15px);
+                    justify-content: center;
+                    flex-direction: column;
+                    white-space: pre-line;
+                    font-weight: bolder;">
+            <h2 style="margin: 0;">
+                @_gameOverMessage
+            </h2>
+            <h6 style="margin: 0;">
+                Play again?
+            </h6>
+            <div style="display: flex;
+                        gap: 50px;
+                        margin: 0;
+                        justify-content: center;
+                        text-align: center;
+                        flex-direction: row">
+                <button class="red-button"
+                        @onclick="ForceReload">
+                    Yes
+                </button>
+                <button class="yellow-button"
+                        @onclick="ForceReloadAndReturn">
+                    No
+                </button>
+            </div>
+        </div>
     }
 </div>
+
+<style>
+    .yellow-button {
+        background-color: #aa8800;
+        border: 5px solid #374548;
+        border-radius: 50px;
+        color: #ffe680;
+        font-weight: bolder;
+        width: 60px;
+        height: 60px;
+    }
+
+    .yellow-button:hover {
+        background-color: #806600;
+    }
+    
+    .yellow-button:active {
+        background-color: #2b2200;
+    }
+    
+    .red-button {
+        background-color: #800000;
+        border: 5px solid #374548;
+        border-radius: 50px;
+        color: #ff8080;
+        font-weight: bolder;
+        width: 60px;
+        height: 60px;
+    }
+
+    .red-button:hover {
+        background-color: #550000;
+    }
+    
+    .red-button:active {
+        background-color: #2b0000;
+    }
+</style>
 
 @code {
     private enum GameState
@@ -193,6 +243,7 @@ padding-top: 100px">
     private Dictionary<string, int>? _board;
     private bool _isMyTurn;
     private GameState _gameState = GameState.NotConnected;
+    private string? _hoveredCell;
     private string _gameOverMessage = "";
     private bool _connectionStarted = false;
     private bool _isWinner;
@@ -227,6 +278,9 @@ padding-top: 100px">
             _board = board;
             _isMyTurn = isMyTurn;
             _gameState = GameState.Playing;
+            
+            await JsRuntime.InvokeVoidAsync("updateGameState", "Playing");
+            
             await InvokeAsync(StateHasChanged);
         });
 
@@ -234,9 +288,18 @@ padding-top: 100px">
         {
             if (_gameState == GameState.Playing)
             {
-                GameComponents.DropPiece(pos); // Motstanderen er gul (player 2)
+                GameComponents.DropPiece(pos); // Opponent is Yellow(player 2)
+                
+                await JsRuntime.InvokeVoidAsync("playSound", "/Assets/Connect4/DropPiece.wav");
+                
                 _board = GameComponents.GetBoard();
                 _isMyTurn = true;
+
+                if (!_board.ContainsValue(0))
+                {
+                    _gameState = GameState.GameOver;
+                    _isWinner = false;
+                }
                 
                 if (GameComponents.GameEnd())
                 {
@@ -244,6 +307,8 @@ padding-top: 100px">
                     _gameOverMessage = "You lost!";
                     _isWinner = false;
                    await ConnectHubConnection.SendGameOverAsync(false);
+                   
+                   await JsRuntime.InvokeVoidAsync("updateGameState", "GameOver");
                 }
 
                await InvokeAsync(StateHasChanged);
@@ -256,6 +321,9 @@ padding-top: 100px">
             {
                 _gameState = GameState.GameOver;
                 _gameOverMessage = "You won!\n(Opponent disconnected)";
+                
+                await JsRuntime.InvokeVoidAsync("updateGameState", "GameOver");
+                
                 await InvokeAsync(StateHasChanged);
                 Logger.LogDebug("GameOver-melding mottatt");
             }
@@ -343,14 +411,25 @@ padding-top: 100px">
         }
         await base.OnAfterRenderAsync(firstRender);
     }
-
+    
     private async Task PlacePiece(string pos)
     {
         if (!_isMyTurn || _gameState != GameState.Playing)
             return;
 
-        GameComponents.DropPiece(pos);
+        bool successfulDrop = GameComponents.DropPiece(pos);
+        if (!successfulDrop)
+        {
+            return;
+        }
+        
         _board = GameComponents.GetBoard();
+        
+        if (!_board.ContainsValue(0))
+        {
+            _gameState = GameState.GameOver;
+            _isWinner = false;
+        }
 
         var opponentId = await ConnectHubConnection.Connection.InvokeAsync<string>("GetOpponentId");
         if (!string.IsNullOrEmpty(opponentId))
@@ -366,6 +445,8 @@ padding-top: 100px">
 
             // Inform opponent after the board has been updated
             await ConnectHubConnection.SendGameOverAsync(true);
+            
+            await JsRuntime.InvokeVoidAsync("updateGameState", "GameOver");
         }
         else
         {
@@ -380,10 +461,10 @@ padding-top: 100px">
     {
         return value switch
         {
-            0 => "lightblue",
-            1 => "red",
-            2 => "yellow",
-            _ => "black"
+            0 => "Assets/Connect4/ConnectEmpty.png",
+            1 => "Assets/Connect4/ConnectRed.png",
+            2 => "Assets/Connect4/ConnectYellow.png",
+            _ => "Assets/Connect4/ConnectEmpty.png"
         };
     }
     private class ErrorResponse
@@ -466,5 +547,15 @@ padding-top: 100px">
 
             Console.WriteLine(_errorMessage);
         }
+    }
+    
+    private void ForceReload()
+    {
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+
+    private void ForceReloadAndReturn()
+    {
+        Navigation.NavigateTo("/", forceLoad: true);
     }
 }

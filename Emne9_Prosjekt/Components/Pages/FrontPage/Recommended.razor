@@ -13,14 +13,39 @@
             Recommended
         </h1>
         <div style="color: white;
-                    text-align: center;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    flex-direction: row;
                     padding-bottom: 250px">
-            <div>
-                Here we'll recommend our latest game... eventually.
+            <div style="border: 10px solid #212178">
+                <img  alt="" src="/Assets/ArticleAssets/RecommendBattleship.png"
+                      style="width: 200px"/>
+            </div>
+            <div style="padding-left: 30px">
+                We recommend, <b style="text-decoration: line-through; font-weight: normal">our greatest struggle</b>
+                the age old classic: BattleShips!<br/>
+                This timeless two-player strategy game is all about stealth, logic, and a bit of luck.<br/>
+                Secure victory in this naval warfare by destroying your opponent’s fleet<br/>
+                before they sink yours!<br/>
+                <br/>
+                Check it out on the <NavLink class="style-link" href="/Games">Game page</NavLink>!
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .style-link {
+        text-decoration: none;
+        color: white;
+    }
+    
+    .style-link:hover {
+        text-decoration: underline;
+        color: white;
+    }
+</style>
 
 @code {
     
