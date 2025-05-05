@@ -155,7 +155,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
             _logger.LogWarning($"Error during token refresh: {ex.Message}");
         }
         
-        await MarkUserAsLoggedOut();
+        await MarkUserAsLoggedOutAsync();
         return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
     }
     
@@ -206,15 +206,25 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
     /// resets the user data, and notifies the application of the updated authentication state.
     /// </summary>
     /// <returns>A completed task once the user's logout process is finalized.</returns>
-    public async Task MarkUserAsLoggedOut()
+    public async Task MarkUserAsLoggedOutAsync()
     {
         _logger.LogDebug("Clearing refresh token from local storage and access token from Authorization header.");
+        var refreshToken = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "RefreshToken");
         await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "RefreshToken");
         _httpClient.DefaultRequestHeaders.Authorization = null;
         _authStateService.ClearUserName();
-
+        
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()))));
         _logger.LogInformation("User logged out and state cleared.");
+    }
+
+    public async Task<string> GetRefreshTokenAsync()
+    {
+        _logger.LogDebug("Getting refresh token from local storage.");
+        var refreshToken = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "RefreshToken");
+        var decryptedRefreshToken = Decrypt(refreshToken);
+        
+        return decryptedRefreshToken;
     }
 
     /// <summary>

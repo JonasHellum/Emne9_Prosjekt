@@ -239,7 +239,7 @@
         var response = await Http.PostAsJsonAsync("http://localhost:80/api/members/Logout", memberRefreshToken);
         if (response.IsSuccessStatusCode)
         {
-            AuthStateProvider.MarkUserAsLoggedOut();
+            AuthStateProvider.MarkUserAsLoggedOutAsync();
             
             Task.Delay(500);
             StateHasChanged();

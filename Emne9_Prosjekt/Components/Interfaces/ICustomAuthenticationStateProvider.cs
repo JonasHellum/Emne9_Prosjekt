@@ -8,7 +8,8 @@ public interface ICustomAuthenticationStateProvider
     Task<ClaimsPrincipal> GetLoggedInUserAsync();
     Task<AuthenticationState> GetAuthenticationStateAsync();
     Task MarkUserAsAuthenticated(string accessToken, string refreshToken);
-    Task MarkUserAsLoggedOut();
+    Task MarkUserAsLoggedOutAsync();
     void SetIpAddress(string ipAddress);
+    Task<string> GetRefreshTokenAsync();
 
 }

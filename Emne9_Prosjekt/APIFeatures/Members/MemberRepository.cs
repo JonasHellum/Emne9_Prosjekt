@@ -162,10 +162,12 @@ public class MemberRepository : IMemberRepository
         var refreshToken = await _dbContext.MemberRefreshToken.FirstOrDefaultAsync(t => t.Token == token);
         if (refreshToken != null)
         {
+            Console.WriteLine("REVOKE REFRESH TOKEN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
             refreshToken.Revoked = true;
             _dbContext.MemberRefreshToken.Update(refreshToken);
             await _dbContext.SaveChangesAsync();
         }
+        Console.WriteLine("Didn't find the refreshtoken for some fucked up raeson??????????????????????????????????????????????????????????");
     }
 
     /// <summary>
