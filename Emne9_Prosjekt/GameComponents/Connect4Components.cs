@@ -20,7 +20,7 @@ public class Connect4Components
         }
     }
     
-    public void DropPiece(string position)
+    public bool DropPiece(string position)
     {
         int col = int.Parse(position[1..]);
         char[] rows = "FEDCBA".ToCharArray();
@@ -34,9 +34,10 @@ public class Connect4Components
                 _lastPiece = pos;
                 CheckRows();
                 ToggleTurn();
-                break;
+                return true;
             }
         }
+        return false;
     }
 
     private Dictionary<string, int> StoreRight()
