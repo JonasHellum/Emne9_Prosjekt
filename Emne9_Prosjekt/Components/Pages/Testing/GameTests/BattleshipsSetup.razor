@@ -4,7 +4,7 @@
 
 
 <div style="text-align: center">
-<h3 style="padding-top: 125px">Battleships test</h3>
+<h3 style="padding-top: 125px">Battleships Test</h3>
 
 <table style="margin: auto">
     @foreach (var row in "ABCDEFGHIJ")
@@ -44,9 +44,6 @@ else
 }
 
 <div>
-    <NavLink href="/Battleshit">
-        <button>Start Game!</button>
-    </NavLink>
     All ships: @_shipCount - Current ships: @GameComponents.GetPlacedShips().Count
     @if (GameComponents.GetPlacedShips().Count == GameComponents.GetShips().Count)
     {

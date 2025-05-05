@@ -1,44 +1,118 @@
-﻿<div>
-    <div>
-        <NavLink class="nav-link" href="chat">Chat</NavLink>
-    </div>
+﻿<div style="display: flex; justify-content: center; flex-direction: row; gap: 50px">
+    
+    <div style="display: flex; flex-direction: column; gap: 20px">
+        <div>
+            <h3 class="test-title">
+                Game Tests
+            </h3>
+            <div>
+                <NavLink class="test-link" href="BattleshipsSetup">Battleship Test V1</NavLink>
+            </div>
 
-    <div>
-        <NavLink class="nav-link" href="logintest">Logintest</NavLink>
-    </div>
+            <div>
+                <NavLink class="test-link" href="Shipped">Battleship Test V2 (Outdated)</NavLink>
+            </div>
 
-    <div>
-        <NavLink class="nav-link" href="cry">SoHelpMeGod</NavLink>
-    </div>
+            <div>
+                <NavLink class="test-link" href="ConnectDat">Connect 4 Test</NavLink>
+            </div>
+        </div>
 
-    <div>
-        <NavLink class="nav-link" href="AuthenticationTestin">AuthenticationTestin</NavLink>
-    </div>
+        <div>
+            <h3 class="test-title">
+                Page Tests
+            </h3>
+            <div>
+                <NavLink class="test-link" href="ModelTest">Model Test</NavLink>
+            </div>
 
-    <div>
-        <NavLink class="nav-link" href="updatingtestin">updatingtestin</NavLink>
-    </div>
+            <div>
+                <NavLink class="test-link" href="Background">Background Test</NavLink>
+            </div>
+        </div>
 
-    <div>
-        <NavLink class="nav-link" href="User">User page</NavLink>
-    </div>
-  
-    <div>
-        <NavLink class="nav-link" href="registertestin">registertestin</NavLink>
-    </div>
+        <div>
+            <h3 class="test-title">
+                Social Feature Tests
+            </h3>
+            <div>
+                <NavLink class="test-link" href="GameChat">Test Chat</NavLink>
+            </div>
 
-    <div>
-        <NavLink class="nav-link" href="logouttestin">logouttestin</NavLink>
+            <div>
+                <NavLink class="test-link" href="BigChat">Group Test Chat</NavLink>
+            </div>
+
+            <div>
+                <NavLink class="test-link" href="forum">Test Forum</NavLink>
+            </div>
+        </div> 
     </div>
     
-    <div>
-        <NavLink class="nav-link" href="UpdatingOrAddingTest">UpdatingOrAddingTest</NavLink>
+    <div style="display: flex; flex-direction: column; gap: 20px">
+        <div>
+            <h3 class="test-title">
+                Leaderboard Tests
+            </h3>
+            <div>
+                <NavLink class="test-link" href="UpdatingOrAddingTest">Update Or Add Test</NavLink>
+            </div>
+
+            <div>
+                <NavLink class="test-link" href="LeaderboardStatsAndStuffTest">Leaderboard Stats Test</NavLink>
+            </div>
+        </div>
+
+        <div>
+            <h3 class="test-title">
+                User Related Tests
+            </h3>
+            <div>
+                <NavLink class="test-link" href="logintest">Login Test</NavLink>
+            </div>
+
+            <div>
+                <NavLink class="test-link" href="logouttestin">Logout Function Test</NavLink>
+            </div>
+
+            <div>
+                <NavLink class="test-link" href="User">Access User Page</NavLink>
+            </div>
+
+            <div>
+                <NavLink class="test-link" href="AuthenticationTestin">Authentication Test</NavLink>
+            </div>
+
+            <div>
+                <NavLink class="test-link" href="updatingtestin">Update Test</NavLink>
+            </div>
+
+            <div>
+                <NavLink class="test-link" href="registertestin">Register Test</NavLink>
+            </div>
+        </div>
     </div>
     
-    <div>
-        <NavLink class="nav-link" href="LeaderboardStatsAndStuffTest">LeaderboardStatsAndStuffTest</NavLink>
-    </div>
 </div>
+
+<style>
+    .test-title {
+        color: white;
+        text-decoration: underline;
+        font-weight: bolder;
+    }
+    
+    .test-link {
+        color: white;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    
+    .test-link:hover {
+        color: white;
+        text-decoration: underline;
+    }
+</style>
 
 @code {
     

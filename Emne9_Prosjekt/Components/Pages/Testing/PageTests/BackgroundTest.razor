@@ -1,5 +1,28 @@
 ﻿@page "/Background"
 
+<div id="ripple-container">
+    <video autoplay muted loop playsinline>
+        <source src="Assets/Battleships/WaterBackground.mp4" type="video/mp4">
+    </video>
+</div>
+
+<div class="page-content"
+     style="padding-top: 150px; padding-left: 150px">
+    <h2>Page content displays above background and effect.</h2>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/sirxemic/jquery.ripples/dist/jquery.ripples-min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#ripple-container').ripples({
+            resolution: 150,
+            dropRadius: 20,
+            perturbance: 0.5
+        });
+    });
+</script>
+
 <style>
     html, body {
         margin: 0;
@@ -35,31 +58,4 @@
         padding: 40px;
         color: white;
     }
-
 </style>
-
-
-<div id="ripple-container">
-    <video autoplay muted loop playsinline>
-        <source src="Assets/Battleships/WaterBackground.mp4" type="video/mp4">
-    </video>
-</div>
-
-
-<div class="page-content"
-     style="padding-top: 150px; padding-left: 150px">
-    <h2>Page content displays above background and effect.</h2>
-</div>
-
-<!-- Scripts -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/sirxemic/jquery.ripples/dist/jquery.ripples-min.js"></script>
-<script>
-    $(document).ready(function () {
-        $('#ripple-container').ripples({
-            resolution: 256,
-            dropRadius: 20,
-            perturbance: 0.04
-        });
-    });
-</script>
