@@ -80,7 +80,7 @@
     
     protected override async Task OnInitializedAsync()
     {
-        ForumConnection.Connection.On<List<Message>>("MessagesUpdated", (updatedMessages) =>
+        ForumConnection.RegisterMessagesUpdatedHandler(async (updatedMessages) =>
         {
             _messages = updatedMessages;
 
@@ -92,7 +92,7 @@
                 }
             }
 
-            InvokeAsync(StateHasChanged);
+           await InvokeAsync(StateHasChanged);
         });
         await ForumConnection.Connection.StartAsync();
     }
@@ -101,7 +101,7 @@
     {
         if (!string.IsNullOrEmpty(_newMessage.Title) && !string.IsNullOrEmpty(_newMessage.Content))
         {
-            await ForumConnection.Connection.SendAsync("SendMessage", _newMessage);
+            await ForumConnection.SendMessageAsync( _newMessage);
             _newMessage = new();
         }
     }
@@ -116,7 +116,7 @@
                 Text = commentText
             };
 
-            await ForumConnection.Connection.SendAsync("SendComment", comment);
+            await ForumConnection.SendCommentAsync(comment);
             _commentTexts[messageId] = string.Empty; // Tøm inputfeltet
         }
     }
