@@ -875,6 +875,7 @@
         {
             if (_gameState == GameState.Playing && _1PointToLosses)
             {
+                _1PointToLosses = false;
                 var leaderboardLossToAdd = new LeaderboardAddOrUpdateDTO()
                 {
                     GameType = "Battleships",
@@ -882,11 +883,11 @@
                     Losses = 1
                 };
                 await UpdateOrCreateLeaderboard(leaderboardLossToAdd);
-                _1PointToLosses = false;
             }
         
-            if (_isWinner && _1PointToWinner)
+            if (_isWinner && _1PointToWinner && _gameState == GameState.GameOver)
             {
+                _1PointToWinner = false;
                 var leaderboardWinToAdd = new LeaderboardAddOrUpdateDTO()
                 {
                     GameType = "Battleships",
@@ -894,7 +895,6 @@
                     Losses = -1
                 };
                 await UpdateOrCreateLeaderboard(leaderboardWinToAdd);
-                _1PointToWinner = false;
             }
         }
         await base.OnAfterRenderAsync(firstRender);

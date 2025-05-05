@@ -322,6 +322,7 @@ padding-top: 50px">
             {
                 _gameState = GameState.GameOver;
                 _gameOverMessage = "You won!\n(Opponent disconnected)";
+                _isWinner = true;
                 
                 await JsRuntime.InvokeVoidAsync("updateGameState", "GameOver");
                 
@@ -389,6 +390,7 @@ padding-top: 50px">
         {
             if (_gameState == GameState.Playing && _1PointToLosses)
             {
+                _1PointToLosses = false;
                 var leaderboardLossToAdd = new LeaderboardAddOrUpdateDTO()
                 {
                     GameType = "Connect 4",
@@ -396,11 +398,11 @@ padding-top: 50px">
                     Losses = 1
                 };
                 await UpdateOrCreateLeaderboard(leaderboardLossToAdd);
-                _1PointToLosses = false;
             }
         
             if (_isWinner && _1PointToWinner)
             {
+                _1PointToWinner = false;
                 var leaderboardWinToAdd = new LeaderboardAddOrUpdateDTO()
                 {
                     GameType = "Connect 4",
@@ -408,7 +410,6 @@ padding-top: 50px">
                     Losses = -1
                 };
                 await UpdateOrCreateLeaderboard(leaderboardWinToAdd);
-                _1PointToWinner = false;
             }
         }
         await base.OnAfterRenderAsync(firstRender);
@@ -430,7 +431,9 @@ padding-top: 50px">
         if (!_board.ContainsValue(0))
         {
             _gameState = GameState.GameOver;
+            _gameOverMessage = "Draw";
             _isWinner = false;
+            await JsRuntime.InvokeVoidAsync("updateGameState", "GameOver");
         }
 
         var opponentId = await ConnectHubConnection.Connection.InvokeAsync<string>("GetOpponentId");

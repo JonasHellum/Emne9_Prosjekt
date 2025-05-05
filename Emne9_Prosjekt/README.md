@@ -220,7 +220,7 @@ Dersom alt går gjennom så returnerer den en mappet member til controlleren.
 
 🠋
 > I controlleren så ber den Servicelaget om å opprette en refreshtoken og access token.\
-Controlleren tar deretter og sender refreshtokenen sammen med memberId til innlogget bruker til service\
+Controlleren tar deretter og sender refreshtokenen sammen med memberId og IP addresse til innlogget bruker til service\
 som lager tilleggs info for refreshtokenen (created, expires og revoked) så videre til repoet som lagrer refreshtokenen\med all infoen ned i databasen.
 
 🠋
