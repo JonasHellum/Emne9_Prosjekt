@@ -32,7 +32,7 @@ public class GameService : IGameService
         }
         else
         {
-            _logger.LogInformation($"User {connectionId} matched with {player.ConnectionId} and {player.ConnectionId}.");
+            
             var opponentEntry = _waitingPlayers.First();
             _waitingPlayers.Remove(opponentEntry.Key);
 
@@ -46,6 +46,7 @@ public class GameService : IGameService
                 Player2 = player,
                 CurrentTurnConnectionId = opponent.ConnectionId // La motstander (første inn) starte
             };
+            _logger.LogDebug($"User {connectionId} matched with {player.ConnectionId} and {opponent.ConnectionId}.");
 
             _games[gameId] = game;
             return game;
