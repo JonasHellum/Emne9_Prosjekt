@@ -325,7 +325,12 @@ både fordi det er en del av ASP.NET og har fall-back teknologier dersom websock
 - Tilrettelegge for deployment, benytte cloud-plattformer
 - Implementering av mindre manglende grafiske elementer i spillene
 - Språk filter for chat og brukernavn
+- Legge til admin bruker
 ***
+#### NB:
+- Prototype siden har <ins>**admin**</ins> som passord.
+***
+
 ### Utviklere
 - [Line Bratli Veddegjerde](https://github.com/Ariyelz)
 - [Jonas Lærke Hellum](https://github.com/JonasHellum)
