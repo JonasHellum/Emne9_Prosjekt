@@ -90,7 +90,7 @@ public class MemberController : ControllerBase
         var memberAccessToken = _memberService.MakeAccessToken(member);
         var memberRefreshToken = _memberService.MakeRefreshToken();
         
-        await _memberService.SaveRefreshTokenAsync(member.MemberId, memberRefreshToken);
+        await _memberService.SaveRefreshTokenAsync(member.MemberId, memberRefreshToken, memberDTO.IpAddress);
 
         return Ok(new MemberTokenResponse
         {
@@ -171,12 +171,12 @@ public class MemberController : ControllerBase
     /// <returns>MemberDTO</returns>
     [AllowAnonymous]
     [HttpPost("GoogleCallBack", Name = "GoogleCallBack")]
-    public async Task<ActionResult<MemberTokenResponse>> GoogleCallback([FromBody] string credential)
+    public async Task<ActionResult<MemberTokenResponse>> GoogleCallback([FromBody] GoogleCallbackRequest credential)
     {
         _logger.LogInformation("Doing a post on GoogleCallBack");
         
         // Validate the credential (ID Token)
-        if (string.IsNullOrEmpty(credential))
+        if (string.IsNullOrEmpty(credential.IdToken))
         {
             _logger.LogWarning("Credential (ID Token) is null or empty.");
             return BadRequest("Credential is required.");
@@ -189,7 +189,7 @@ public class MemberController : ControllerBase
                 Audience = new List<string>() { _clientId }
             };
             
-            GoogleJsonWebSignature.Payload payload = await GoogleJsonWebSignature.ValidateAsync(credential, settings);
+            GoogleJsonWebSignature.Payload payload = await GoogleJsonWebSignature.ValidateAsync(credential.IdToken, settings);
             
             if (payload == null)
             {
@@ -210,7 +210,7 @@ public class MemberController : ControllerBase
             var memberAccessToken = _memberService.MakeAccessToken(member);
             var memberRefreshToken = _memberService.MakeRefreshToken();
         
-            await _memberService.SaveRefreshTokenAsync(member.MemberId, memberRefreshToken);
+            await _memberService.SaveRefreshTokenAsync(member.MemberId, memberRefreshToken, credential.IpAddress);
 
             return Ok(new MemberTokenResponse
             {

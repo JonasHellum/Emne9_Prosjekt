@@ -190,11 +190,24 @@
     private bool _isClientSide;
     
     [JSInvokable]
+    public void SetClientIp(string ipAddress)
+    {
+        var clientIpAddress = ipAddress;
+        Logger.LogDebug($"Client IP: {clientIpAddress}");
+        if (memberDto != null)
+        {
+            memberDto.IpAddress = clientIpAddress;
+        }
+    }
+
+    
+    [JSInvokable]
     public async Task HandleGoogleSignIn(string idToken)
     {
         Logger.LogDebug($"Received ID Token: {idToken}");
         try
         {
+            var ipAddress = memberDto.IpAddress;
             var response = await Http.PostAsJsonAsync("http://localhost/api/members/GoogleCallback", idToken);
 
             if (response.IsSuccessStatusCode)
@@ -290,6 +303,7 @@
         if (firstRender)
         {
             await JSRuntime.InvokeVoidAsync("initGoogleSignIn", _clientId, DotNetObjectReference.Create(this));
+            await JSRuntime.InvokeVoidAsync("getClientIpAddress", DotNetObjectReference.Create(this));
             
             if (loggedIn == false)
             {

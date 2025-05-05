@@ -134,7 +134,7 @@ public class MemberService : IMemberService
         
         if (memb is null)
         {
-            _logger.LogWarning($"Member with username: {username} does not exist.");
+            _logger.LogError($"Member with username: {username} does not exist.");
             throw new DataException($"Member with username: {username} does not exist.");
         }
 
@@ -358,12 +358,13 @@ public class MemberService : IMemberService
     /// <returns>A task that represents the asynchronous operation.</returns>
     /// <exception cref="ArgumentException">Thrown if the provided arguments are invalid or null.</exception>
     /// <exception cref="DataException">Thrown if an error occurs while saving the refresh token in the database.</exception>
-    public async Task SaveRefreshTokenAsync(Guid memberId, string refreshToken)
+    public async Task SaveRefreshTokenAsync(Guid memberId, string refreshToken, string ipAddress)
     {
         var token = new MemberRefreshToken
         {
             Token = refreshToken,
             MemberId = memberId,
+            IpAddress = ipAddress,
             Created = DateTime.UtcNow,
             Expires = DateTime.UtcNow.AddDays(1),
             Revoked = false

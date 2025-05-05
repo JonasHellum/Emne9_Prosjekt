@@ -21,4 +21,6 @@ public class MemberDTO
     public DateOnly Updated { get; set; }
     
     public string Password { get; set; } = string.Empty;
+    
+    public string IpAddress { get; set; } = string.Empty;
 }

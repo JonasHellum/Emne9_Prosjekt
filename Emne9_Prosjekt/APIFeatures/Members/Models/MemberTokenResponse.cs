@@ -9,5 +9,6 @@ public class MemberTokenResponse
 
 public class MemberTokenRequest
 {
+    public string IpAdress { get; set; } = string.Empty;
     public string RefreshToken { get; set; }
 }
