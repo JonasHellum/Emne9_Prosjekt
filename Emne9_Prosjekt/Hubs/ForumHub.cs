@@ -14,6 +14,12 @@ public class ForumHub : Hub
         _forumService = forumService;
         _logger = logger;
     }
+    public override async Task OnConnectedAsync()
+    {
+        var allMessages = _forumService.GetAllMessages();
+        await Clients.Caller.SendAsync("MessagesUpdated", allMessages);
+        await base.OnConnectedAsync();
+    }
     
     public async Task SendMessage(Message message)
     {

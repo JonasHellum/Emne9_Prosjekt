@@ -5,4 +5,9 @@ namespace Emne9_Prosjekt.Hubs.Interfaces;
 public interface IChatHubConnection : IAsyncDisposable
 {
     HubConnection Connection { get; }
+    Task SendMessageAsync(string message);
+    Task RegisterUsernameAsync(string username);
+    void RegisterReceiveMessageHandler(Func<string, string, Task> handler);
+    void RegisterUserConnectedHandler(Func<string, Task> handler);
+    void RegisterUserDisconnectedHandler(Func<string, Task> handler);
 }

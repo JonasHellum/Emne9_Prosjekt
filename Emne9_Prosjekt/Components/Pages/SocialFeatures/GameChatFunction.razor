@@ -98,22 +98,22 @@
         {
             Console.WriteLine("---Establishing connection...");
 
-            ChatHubConnection.Connection.On<string, string>("ReceiveMessage", (user, message) =>
+            ChatHubConnection.RegisterReceiveMessageHandler(async(user, message) =>
             {
                 _messages.Add((user, message));
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
             });
 
-            ChatHubConnection.Connection.On<string>("NotifyUserConnected", (user) =>
+            ChatHubConnection.RegisterUserConnectedHandler(async (user) =>
             {
                 _messages.Add(("System", $"{user} has connected."));
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
             });
 
-            ChatHubConnection.Connection.On<string>("NotifyUserDisconnected", (user) =>
+            ChatHubConnection.RegisterUserDisconnectedHandler(async (user) =>
             {
                 _messages.Add(("System", $"{user} has left the game."));
-                InvokeAsync(StateHasChanged);
+               await InvokeAsync(StateHasChanged);
             });
 
             try
@@ -124,7 +124,7 @@
                 // Send brukernavnet til serveren for å registrere det
                 if (!string.IsNullOrEmpty(_userName))
                 {
-                    await ChatHubConnection.Connection.SendAsync("RegisterUsername", _userName);
+                    await ChatHubConnection.RegisterUsernameAsync(_userName);
                 }
             }
             catch (Exception ex)
@@ -138,7 +138,7 @@
     {
         if (!string.IsNullOrEmpty(_message))
         {
-            await ChatHubConnection.Connection.SendAsync("SendMessage", _message);
+            await ChatHubConnection.SendMessageAsync(_message);
             _message = string.Empty;
         }
     }

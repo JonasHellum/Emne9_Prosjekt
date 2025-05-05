@@ -1,21 +1,17 @@
-﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.SignalR.Client;
+﻿using Emne9_Prosjekt.Hubs.Connections;
+using Emne9_Prosjekt.Hubs.Interfaces;
 
 namespace Emne9_Prosjekt.Extensions;
 
 public static class SignalRHubServiceExtension
 {
-    public static IServiceCollection AddSignalRHubConnection(this IServiceCollection services, string hubPath)
+    public static IServiceCollection AddSignalRHubs(this IServiceCollection services)
     {
-        services.AddScoped(sp =>
-        {
-            var navigationManager = sp.GetRequiredService<NavigationManager>();
-            return new HubConnectionBuilder()
-                .WithUrl(navigationManager.ToAbsoluteUri(hubPath))
-                .WithAutomaticReconnect() // Automatisk reconnect ved frakobling
-                .Build();
-        });
-
+        services.AddScoped<IChatHubConnection, ChatHubConnection>();
+        services.AddScoped<IGameHubConnection, GameHubConnection>();
+        services.AddScoped<IForumConnection, ForumConnection>();
+        services.AddScoped<IBigChatHubConnection, BigChatHubConnection>(); 
+        services.AddScoped<IConnectFourGameHubConnection, ConnectFourGameHubConnection>();
         return services;
     }
 }

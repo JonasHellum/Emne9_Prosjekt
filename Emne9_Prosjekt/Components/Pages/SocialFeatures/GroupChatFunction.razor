@@ -132,22 +132,22 @@
 
             Console.WriteLine("---Establishing connection...");
             
-            BigChatHubConnection.Connection.On<string, string>("ReceiveMessage", (user, message) =>
+            BigChatHubConnection.RegisterReceiveMessageHandler(async(user, message) =>
             {
                 _messages.Add((user, message));
-                InvokeAsync(StateHasChanged);
+               await InvokeAsync(StateHasChanged);
             });
 
-            BigChatHubConnection.Connection.On<string>("UserConnected", (user) =>
+            BigChatHubConnection.RegisterUserConnectedHandler(async (user) =>
             {
                 _messages.Add(("System", $"{user} has connected."));
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
             });
 
-            BigChatHubConnection.Connection.On<string>("UserDisconnected", (user) =>
+            BigChatHubConnection.RegisterUserDisconnectedHandler(async (user) =>
             {
                 _messages.Add(("System", $"{user} har has left the chat."));
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
             });
 
             try
@@ -155,7 +155,7 @@
                 await BigChatHubConnection.Connection.StartAsync();
                 Console.WriteLine("--Connection established!");
                 _isConnected = true;
-                await BigChatHubConnection.Connection.SendAsync("RegisterUsername", _userName);
+                await BigChatHubConnection.RegisterUsernameAsync( _userName);
             }
             catch (Exception ex)
             {
@@ -168,7 +168,7 @@
     {
         if (!string.IsNullOrEmpty(_message))
         {
-            await BigChatHubConnection.Connection.SendAsync("SendMessage", _message);
+            await BigChatHubConnection.SendMessageAsync(_message);
             _message = string.Empty;
         }
     }

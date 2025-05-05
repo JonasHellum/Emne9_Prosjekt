@@ -1,4 +1,5 @@
-﻿using Emne9_Prosjekt.Hubs.Interfaces;
+﻿using Emne9_Prosjekt.Hubs.HubModels;
+using Emne9_Prosjekt.Hubs.Interfaces;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 
@@ -12,8 +13,17 @@ public class ForumConnection : IForumConnection
     {
         Connection = new HubConnectionBuilder()
             .WithUrl(navigationManager.ToAbsoluteUri("/forumHub"))
+            .WithAutomaticReconnect()
             .Build();
     }
+    public Task SendMessageAsync(Message message) =>
+        Connection.SendAsync("SendMessage", message);
+
+    public Task SendCommentAsync(Comment comment) =>
+        Connection.SendAsync("SendComment", comment);
+
+    public void RegisterMessagesUpdatedHandler(Func<List<Message>, Task> handler) =>
+        Connection.On("MessagesUpdated", handler);
 
     public async ValueTask DisposeAsync()
     {

@@ -20,4 +20,28 @@ public class ChatHubConnection : IChatHubConnection
     {
         await Connection.DisposeAsync();
     }
+    public Task SendMessageAsync(string message)
+    {
+        return Connection.SendAsync("SendMessage", message);
+    }
+
+    public Task RegisterUsernameAsync(string username)
+    {
+        return Connection.SendAsync("RegisterUsername", username);
+    }
+
+    public void RegisterReceiveMessageHandler(Func<string, string, Task> handler)
+    {
+        Connection.On("ReceiveMessage", handler);
+    }
+
+    public void RegisterUserConnectedHandler(Func<string, Task> handler)
+    {
+        Connection.On("NotifyUserConnected", handler);
+    }
+
+    public void RegisterUserDisconnectedHandler(Func<string, Task> handler)
+    {
+        Connection.On("NotifyUserDisconnected", handler);
+    }
 }
