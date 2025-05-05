@@ -33,22 +33,29 @@ Som utviklingsmetodikk har vi gått for noe Agile lignende, vi har hatt en form 
 
 ## Teknologistakk og implementasjon
 
-Språk: C#
+Språk: C#, JavaScript, CSS
 Rammeverk: ASP.NET Core med Blazor Web App (server). .NET 8.0
 Komponent -> Teknologi/verktøy
-Frontend/UI -> Blazor Server (.razor, C#,css)
+Frontend/UI -> Blazor Server (.razor, C#,css) + JavaScript
 Backend  -> ASP.NET Core (C#)
 Sanntidskommunikasjon -> SignalR (websockets)
 Autentisering & Autorisering -> JWT
 API-Sikkerhet/Robust -> Global exception handler, JWT, EF Core, Fluent Validation, API- Key
 Datatilgang -> REST API, EF Core, MySQL
 
+Grafiske moduldesign:
+Det er brukt .png(2D) .gld(3D) .mp4(Video/Bakgrunn) i blazorkomponentene for å supplementere til visualisering av spill, og overall design.
+Alle grafiske elementer ligger i wwwroot mappen, og er tilgjengelig for alle blazor komponenter.
+Alle grafiske elementer er selvprodusert av vår weaver of web-design.
+
+
 Oversikt spillmoduler:
 Spill-modulene er bygget som sanntids flerspillerapplikasjoner i Blazor, kommunikasjon mellom klient og server håndteres via SignalR. Spillerne blir paret basert på deres connectionId, og det opprettes en delt GameSession hvor turer, skudd/trekk og sluttstatus synkroniseres i sanntid.
 Arkitektur og komponenter
 Hver spillmodul består av følgende komponenter:
 Klientside (Blazor):
-BattleShip.razor / Connect4.razor: Design,UI -brukerinteraksjon.
+BattleShip.razor / Connect4.razor: Design,UI -brukerinteraksjon. Her er det også benyttet CSS for å gi elementene en animert og interaktiv effekt.
+JavaScript brukes for å trigge ulike lydeffekter når ConnectionHandlers trigges, samt kontroll over bakgrunns animasjon.
 Server-side logikk (Viktig: Merk at for enkelhetsskyld er ikke Interfaces nevnt i denne settingen- Services og HubConnections har tilhørende interfaces):
 BattleShipComponents.cs / Connect4Components.cs: Spillregler og validering.
 GameService.cs / ConnectFourGameService.cs: Håndtering av venteliste, GameSession, turstyring og spillerlogikk.
@@ -94,7 +101,6 @@ Prosjektets arkitektur følger en monolitisk modell, hvor både REST API, Signal
 Videre prosjektforbedring vil innebære:
 -Logging gjennom flere deler/komponenter i prosjektet.
 -Øke robusthet med exceptionhandling rundt de Hub-relaterte delene av prosjektet.
--Videre utforme enkelte Hub-relaterte deler slik at de er lettere testbare og i tråd med strukturen.
 -Undersøke videre connection-baserte events og oppdatering av states ift Blazor sin integrerte signalR.
 -Ta bedre høyde for eventuelle/potensielle overbelastnings trusler.
 -Integrere mindre deler oftere, contra større deler sjeldnere.
@@ -114,6 +120,8 @@ Erfaringer fra utviklingsprosessen:
 -Hvordan håndtere sanntidskommunikasjon via SignalR, samt få de forskjellige tilkoblingene til å leve parallelt
 -Hvordan skape og håndtere interaktivt design/Ui utenfor "blazor - standard"(Lyd, animasjon etc)
 -HOW TO CENTER A DIV
+-Hvordan kombinere JavaScript for bruk av lyd sammen med Blazor, der blazofunksjoner ikke helt strekker til.
+-Hvordan CSS kan brukes til å få animasjon og interaktivitet i Ui
 -
 ## Konklusjon og videre arbeid
 Under prosjektets utvikling har det forekommet flere utfordringer, disse omhandler alt fra å sette sammen alle modulene slik at det ferdige produktet oppleves sømløst fra start til slutt – til små irritasjonsmomenter som hvorfor riktig data ikke blir sendt/vist eller lagret riktig. Hoved-modulene til prosjektet har i utgangspunktet blitt utviklet hver for seg (API, SIgnalR-Hub utforming, spill-regel komponenter med følgende razorpages). Noe som har ført til at vi til tider har jobbet litt rundt og ikke med hverandre – hvilket igjen da har ført til at det ikke alltid har gjort det like lett å samkjøre kode. Det har også forekommet nye oppdagelser ved valget av Blazor i sin helhet, og deretter også Server delen. Hub modulene(med servicer og alt) som et eksempel, har gått igjennom flere re faktoriseringer for å oppnå ønsket resultat, likevel er gjenstår det forbedringspotensialer som nok kunne ført til mer effektiv kode. Det ble også forsøkt å lagre JWT i cookie, men da blazor benytter SignalR  websockets sendes ikke nødvendigvis cookies på samme måte som ved vanlige http-forespørsler (hvilket vi fikk bekreftet da cookien fungerte som forventet ved bruk av postman). Det ble gjort flere forsøk for å oppnå ønsket resultat, uten hell – dermed ble løsningen heller en kryptert refresh session token i localstorage, hvilket gav ønsket resultat.
