@@ -41,7 +41,11 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
         _memberTokenRequest = new MemberTokenRequest();
 
     }
-    
+
+    /// <summary>
+    /// Set the IpAddress from a .razor component, send it to CustomAtuehnticationStateProvider to be used in future calls to API about refreshtoken.
+    /// </summary>
+    /// <param name="ipAddress">The IP address.</param>
     public void SetIpAddress(string ipAddress)
     {
         _memberTokenRequest.IpAddress = ipAddress;

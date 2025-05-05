@@ -122,6 +122,12 @@ public class MemberController : ControllerBase
             _logger.LogWarning("Invalid or expired refresh token");
             return Unauthorized("Invalid or expired refresh token");
         }
+
+        if (request.IpAddress.IsNullOrEmpty())
+        {
+            _logger.LogError("IP Address is null or empty.");
+            return Unauthorized("IP Address is null or empty.");
+        }
         
         var member = await _memberService.GetByIdAsync(memberId);
         if (member == null)
@@ -172,7 +178,7 @@ public class MemberController : ControllerBase
     /// Google Call Back, redirects to this after logging in through Google
     /// so it saves all the userinfo, makes a jwtoken etc.
     /// </summary>
-    /// <param name="credential"></param>
+    /// <param name="credential">both the id token from google and the IP address from the client.</param>
     /// <returns>MemberDTO</returns>
     [AllowAnonymous]
     [HttpPost("GoogleCallBack", Name = "GoogleCallBack")]
@@ -185,6 +191,12 @@ public class MemberController : ControllerBase
         {
             _logger.LogWarning("Credential (ID Token) is null or empty.");
             return BadRequest("Credential is required.");
+        }
+
+        if (credential.IpAddress.IsNullOrEmpty())
+        {
+            _logger.LogWarning("IP Address is null or empty.");
+            return BadRequest("IP Address is null or empty.");
         }
 
         try

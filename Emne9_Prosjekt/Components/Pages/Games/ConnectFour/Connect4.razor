@@ -283,6 +283,7 @@ padding-top: 100px">
     {
         if (firstRender && !_connectionStarted)
         {
+            await JsRuntime.InvokeVoidAsync("getClientIpAddress", DotNetObjectReference.Create(this));
             if (_loggedIn == false)
             {
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -466,5 +467,12 @@ padding-top: 100px">
 
             Console.WriteLine(_errorMessage);
         }
+    }
+    
+    [JSInvokable]
+    public void SetClientIp(string ipAddress)
+    {
+        Logger.LogDebug($"Client IP: {ipAddress}");
+        AuthStateProvider.SetIpAddress(ipAddress);
     }
 }

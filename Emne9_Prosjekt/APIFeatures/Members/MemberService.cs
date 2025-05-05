@@ -553,7 +553,15 @@ public class MemberService : IMemberService
         
         return loggedInMember;
     }
-    
+
+    /// <summary>
+    /// Determines whether two IP addresses belong to the same network range based on a default CIDR prefix.
+    /// For IPv4 addresses, a /24 subnet is used; for IPv6, a /64 subnet is used.
+    /// </summary>
+    /// <param name="ipAddress1">The first IP address in string format.</param>
+    /// <param name="ipAddress2">The second IP address in string format.</param>
+    /// <returns>True if both IP addresses are within the same subnet based on the default CIDR; otherwise, false.</returns>
+    /// <exception cref="DataException">Thrown when either <paramref name="ipAddress1"/> or <paramref name="ipAddress2"/> is not a valid IP address.</exception>
     private bool IsIpInSameRange(string ipAddress1, string ipAddress2)
     {
         // Validate and parse the first IP
@@ -579,9 +587,6 @@ public class MemberService : IMemberService
         // Check if the second IP address is part of the range
         return ipRange.Contains(ip2);
     }
-
-
-
     
     #endregion
 
