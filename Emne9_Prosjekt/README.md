@@ -326,6 +326,7 @@ både fordi det er en del av ASP.NET og har fall-back teknologier dersom websock
 - Implementering av mindre manglende grafiske elementer i spillene
 - Språk filter for chat og brukernavn
 - Legge til admin bruker
+- Fjerne muligheten til å spille med seg selv på samme bruker
 ***
 #### NB:
 - Prototype siden har <ins>**admin**</ins> som passord.
