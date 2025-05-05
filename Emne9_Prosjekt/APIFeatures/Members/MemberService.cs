@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq.Expressions;
+using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -10,6 +11,7 @@ using Emne9_Prosjekt.Features.Members.Models;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Http.Connections.Features;
 using Microsoft.IdentityModel.Tokens;
+using NetTools;
 
 namespace Emne9_Prosjekt.Features.Members;
 
@@ -134,7 +136,7 @@ public class MemberService : IMemberService
         
         if (memb is null)
         {
-            _logger.LogWarning($"Member with username: {username} does not exist.");
+            _logger.LogError($"Member with username: {username} does not exist.");
             throw new DataException($"Member with username: {username} does not exist.");
         }
 
@@ -358,12 +360,13 @@ public class MemberService : IMemberService
     /// <returns>A task that represents the asynchronous operation.</returns>
     /// <exception cref="ArgumentException">Thrown if the provided arguments are invalid or null.</exception>
     /// <exception cref="DataException">Thrown if an error occurs while saving the refresh token in the database.</exception>
-    public async Task SaveRefreshTokenAsync(Guid memberId, string refreshToken)
+    public async Task SaveRefreshTokenAsync(Guid memberId, string refreshToken, string ipAddress)
     {
         var token = new MemberRefreshToken
         {
             Token = refreshToken,
             MemberId = memberId,
+            IpAddress = ipAddress,
             Created = DateTime.UtcNow,
             Expires = DateTime.UtcNow.AddDays(1),
             Revoked = false
@@ -379,13 +382,24 @@ public class MemberService : IMemberService
     /// <param name="token">The refresh token to be validated.</param>
     /// <returns>The unique identifier of the member associated with the valid token, or <see cref="Guid.Empty"/> if the token is invalid or not found.</returns>
     /// <exception cref="ArgumentNullException">Thrown if the provided token is null or empty.</exception>
-    public async Task<Guid> ValidateRefreshTokenAsync(string token)
+    public async Task<Guid> ValidateRefreshTokenAsync(MemberTokenRequest token)
     {
-        var storedToken = await _memberRepository.ValidateRefreshTokenAsync(token);
+        var storedToken = await _memberRepository.ValidateRefreshTokenAsync(token.RefreshToken);
 
         if (storedToken == null)
         {
             _logger.LogWarning("Refresh token is invalid or not found.");
+            return Guid.Empty;
+        }
+        
+        var storedTokenIpAddress = storedToken.IpAddress;
+        var clientTokenIpAddress = token.IpAddress;
+        
+        Console.WriteLine($"Stored token IP address inside database: {storedTokenIpAddress}");
+        Console.WriteLine($"Gotten token IP address from client {clientTokenIpAddress}");
+
+        if (IsIpInSameRange(storedTokenIpAddress, clientTokenIpAddress) == false)
+        {
             return Guid.Empty;
         }
 
@@ -538,6 +552,40 @@ public class MemberService : IMemberService
         }
         
         return loggedInMember;
+    }
+
+    /// <summary>
+    /// Determines whether two IP addresses belong to the same network range based on a default CIDR prefix.
+    /// For IPv4 addresses, a /24 subnet is used; for IPv6, a /64 subnet is used.
+    /// </summary>
+    /// <param name="ipAddress1">The first IP address in string format.</param>
+    /// <param name="ipAddress2">The second IP address in string format.</param>
+    /// <returns>True if both IP addresses are within the same subnet based on the default CIDR; otherwise, false.</returns>
+    /// <exception cref="DataException">Thrown when either <paramref name="ipAddress1"/> or <paramref name="ipAddress2"/> is not a valid IP address.</exception>
+    private bool IsIpInSameRange(string ipAddress1, string ipAddress2)
+    {
+        // Validate and parse the first IP
+        if (!IPAddress.TryParse(ipAddress1, out var ip1))
+        {
+            _logger.LogError($"Invalid IP address: {ipAddress1}");
+            throw new DataException($"Invalid IP address: {ipAddress1}");
+        }
+
+        // Validate and parse the second IP
+        if (!IPAddress.TryParse(ipAddress2, out var ip2))
+        {
+            _logger.LogError($"Invalid IP address: {ipAddress2}");
+            throw new DataException($"Invalid IP address: {ipAddress2}");
+        }
+
+        // Determine default CIDR
+        int cidr = ip1.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 24 : 64;
+
+        // Create an IP range from the first IP and CIDR
+        var ipRange = IPAddressRange.Parse($"{ip1}/{cidr}");
+
+        // Check if the second IP address is part of the range
+        return ipRange.Contains(ip2);
     }
     
     #endregion

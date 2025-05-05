@@ -4,6 +4,7 @@ using Emne9_Prosjekt.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Emne9_Prosjekt.Data.Migrations
 {
     [DbContext(typeof(Emne9EksamenDbContext))]
-    partial class Emne9EksamenDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250505133503_AddedIpAddressIntoToken")]
+    partial class AddedIpAddressIntoToken
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

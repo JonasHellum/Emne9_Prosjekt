@@ -13,6 +13,8 @@ public class MemberRefreshToken
     [ForeignKey("MemberId")]
     public Guid MemberId { get; set; }
     
+    public string IpAddress { get; set; } = string.Empty;
+    
     public DateTime Created { get; set; }
     
     public DateTime Expires { get; set; }

@@ -212,11 +212,13 @@
     private string userName;
     private bool loggedIn;
     private string? _clientId;
+    private GoogleCallbackRequest callbackRequest { get; set; }
     
     protected override async Task OnInitializedAsync()
     {
         _clientId = Configuration["Google:ClientId"];
         registrationDto = new MemberRegistrationDTO();
+        callbackRequest = new GoogleCallbackRequest();
         
         var user = await AuthStateProvider.GetLoggedInUserAsync();
         if (user.Identity.IsAuthenticated)
@@ -239,7 +241,8 @@
         if (firstRender)
         {
             await JSRuntime.InvokeVoidAsync("initGoogleSignIn", _clientId, DotNetObjectReference.Create(this));
-
+            await JSRuntime.InvokeVoidAsync("getClientIpAddress", DotNetObjectReference.Create(this));
+            
             if (loggedIn == false)
             {
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -334,7 +337,8 @@
         Logger.LogDebug($"Received ID Token: {idToken}");
         try
         {
-            var response = await Http.PostAsJsonAsync("http://localhost/api/members/GoogleCallback", idToken);
+            callbackRequest.IdToken = idToken;
+            var response = await Http.PostAsJsonAsync("http://localhost/api/members/GoogleCallback", callbackRequest);
 
             if (response.IsSuccessStatusCode)
             {
@@ -364,6 +368,14 @@
             errorMessage = "Something went wrong. Please try again later.";
             Logger.LogError($"An error occurred: {e}");
         }
+    }
+    
+    [JSInvokable]
+    public void SetClientIp(string ipAddress)
+    {
+        Logger.LogDebug($"Client IP: {ipAddress}");
+        callbackRequest.IpAddress = ipAddress;
+        AuthStateProvider.SetIpAddress(ipAddress);
     }
 
 }

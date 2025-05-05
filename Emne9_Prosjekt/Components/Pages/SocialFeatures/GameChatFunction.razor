@@ -1,9 +1,14 @@
 ﻿@inject IChatHubConnection ChatHubConnection
 @using System.Net
+@using Emne9_Prosjekt.Components.Pages.Interfaces
+@using Emne9_Prosjekt.Components.Pages.Services
 @using Emne9_Prosjekt.Hubs.Interfaces
 @using Microsoft.AspNetCore.SignalR.Client
 @inject HttpClient Http
 @implements IAsyncDisposable
+@inject ILogger<GameChatFunction> Logger
+@inject ICustomAuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JSRuntime
 
 <div style="display: flex; flex-direction: column; height: 100%">
     <div id="chat-box" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column-reverse; padding: 10px">
@@ -72,30 +77,31 @@
     private List<(string, string)> _messages = new();
     protected override async Task OnInitializedAsync()
     {
-        try 
+        var user = await AuthStateProvider.GetLoggedInUserAsync();
+        if (user.Identity.IsAuthenticated)
         {
-            _userName = await Http.GetStringAsync("http://localhost:80/api/members/Username-info");
-            Console.WriteLine($"Username from Logintest: {_userName}");
-            // Hvis brukernavnet er tomt eller null, sett det til "Guest"
-            if (string.IsNullOrEmpty(_userName))
-            {
-                _userName = "Guest";
-            }
-
-            Console.WriteLine($"Username from Logintest: {_userName}");
-            _loggedIn = _userName != "Guest";
-        
+            _userName = user.Identity?.Name;
+            _loggedIn = true;
+            Logger.LogDebug("Set the username from: OnInitializedAsync");
         }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        } 
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            await JSRuntime.InvokeVoidAsync("getClientIpAddress", DotNetObjectReference.Create(this));
+            if (_loggedIn == false)
+            {
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                if (authState.User.Identity.IsAuthenticated)
+                {
+                    _userName = authState.User.Identity.Name ?? null;
+                    _loggedIn = !string.IsNullOrEmpty(_userName);
+                
+                    Logger.LogDebug($"[GameChatFunction] Set the username from: OnAfterRenderAsync: {_userName}");
+                    StateHasChanged();
+                }
+            }
             Console.WriteLine("---Establishing connection...");
 
             ChatHubConnection.RegisterReceiveMessageHandler(async(user, message) =>
@@ -158,5 +164,12 @@
             await ChatHubConnection.DisposeAsync();
             Console.WriteLine("--Connection closed.");
         }
+    }
+    
+    [JSInvokable]
+    public void SetClientIp(string ipAddress)
+    {
+        Logger.LogDebug($"Client IP: {ipAddress}");
+        AuthStateProvider.SetIpAddress(ipAddress);
     }
 }

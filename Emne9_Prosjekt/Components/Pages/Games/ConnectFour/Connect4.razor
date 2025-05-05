@@ -52,6 +52,7 @@ padding-top: 50px">
         </div>
     }
     
+    
     @if (_gameState == GameState.Playing || _gameState == GameState.GameOver)
     {
         <div data-aos="zoom-out-down"
@@ -351,6 +352,7 @@ padding-top: 50px">
     {
         if (firstRender && !_connectionStarted)
         {
+            await JsRuntime.InvokeVoidAsync("getClientIpAddress", DotNetObjectReference.Create(this));
             if (_loggedIn == false)
             {
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -557,5 +559,12 @@ padding-top: 50px">
     private void ForceReloadAndReturn()
     {
         Navigation.NavigateTo("/", forceLoad: true);
+    }
+    
+    [JSInvokable]
+    public void SetClientIp(string ipAddress)
+    {
+        Logger.LogDebug($"Client IP: {ipAddress}");
+        AuthStateProvider.SetIpAddress(ipAddress);
     }
 }

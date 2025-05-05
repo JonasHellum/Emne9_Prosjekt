@@ -210,6 +210,7 @@
     {
         if (firstRender)
         {
+            await JSRuntime.InvokeVoidAsync("getClientIpAddress", DotNetObjectReference.Create(this));
             if (loggedIn == false)
             {
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -345,5 +346,13 @@
         {
             emailTaken = false;
         }
+    }
+    
+    [JSInvokable]
+    public void SetClientIp(string ipAddress)
+    {
+        memberDto.IpAddress = ipAddress;
+        Logger.LogDebug($"Client IP: {ipAddress}");
+        AuthStateProvider.SetIpAddress(ipAddress);
     }
 }

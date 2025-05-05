@@ -188,6 +188,9 @@
     private string userName;
     private bool loggedIn;
     private bool _isClientSide;
+    private GoogleCallbackRequest callbackRequest { get; set; }
+    
+                 
     
     [JSInvokable]
     public async Task HandleGoogleSignIn(string idToken)
@@ -195,7 +198,8 @@
         Logger.LogDebug($"Received ID Token: {idToken}");
         try
         {
-            var response = await Http.PostAsJsonAsync("http://localhost/api/members/GoogleCallback", idToken);
+            callbackRequest.IdToken = idToken; 
+            var response = await Http.PostAsJsonAsync("http://localhost/api/members/GoogleCallback", callbackRequest);
 
             if (response.IsSuccessStatusCode)
             {
@@ -271,7 +275,7 @@
         _clientId = Configuration["Google:ClientId"];
         
         memberDto = new MemberDTO();
-        
+        callbackRequest = new GoogleCallbackRequest();
         
         var user = await AuthStateProvider.GetLoggedInUserAsync();
         if (user.Identity.IsAuthenticated)
@@ -290,6 +294,7 @@
         if (firstRender)
         {
             await JSRuntime.InvokeVoidAsync("initGoogleSignIn", _clientId, DotNetObjectReference.Create(this));
+            await JSRuntime.InvokeVoidAsync("getClientIpAddress", DotNetObjectReference.Create(this));
             
             if (loggedIn == false)
             {
@@ -307,5 +312,14 @@
             }
             
         }
+    }
+    
+    [JSInvokable]
+    public void SetClientIp(string ipAddress)
+    {
+        callbackRequest.IpAddress = ipAddress;
+        memberDto.IpAddress = ipAddress;
+        Logger.LogDebug($"Client IP: {ipAddress}");
+        AuthStateProvider.SetIpAddress(ipAddress);
     }
 }

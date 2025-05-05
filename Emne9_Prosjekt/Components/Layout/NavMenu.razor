@@ -6,6 +6,7 @@
 @inject IAuthStateService AuthState
 @inject NavigationManager NavManager
 @inject ICustomAuthenticationStateProvider AuthStateProvider
+@inject ILogger<NavMenu> Logger
 
 <div @onmouseleave="RemoveDropDown">
     <div style=" z-index: 10; position: relative;
@@ -239,6 +240,7 @@
 
 @code
 {
+    private MemberDTO memberDto { get; set; }
     private string _icon = "/Assets/logo/BWLogo.png";
     private string _userName;
     private string _loggedOut;
@@ -261,12 +263,20 @@
     {
         if (firstRender)
         {
+            await JsRuntime.InvokeVoidAsync("getClientIpAddress", DotNetObjectReference.Create(this));
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             if (authState.User.Identity.IsAuthenticated)
             {
                 StateHasChanged();
             }
         }
+    }
+    
+    [JSInvokable]
+    public void SetClientIp(string ipAddress)
+    {
+        Logger.LogDebug($"Client IP: {ipAddress}");
+        AuthStateProvider.SetIpAddress(ipAddress);
     }
 
     private async Task Logout()

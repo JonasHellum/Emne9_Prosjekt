@@ -16,8 +16,8 @@ public interface IMemberService : IBaseService<MemberDTO>
     string MakeRefreshToken();
     Task<bool> UserNameExistsAsync(string username);
     Task<bool> EmailExistsAsync(string email);
-    Task SaveRefreshTokenAsync(Guid memberId, string refreshToken);
-    Task<Guid> ValidateRefreshTokenAsync(string token);
+    Task SaveRefreshTokenAsync(Guid memberId, string refreshToken, string ipAdress);
+    Task<Guid> ValidateRefreshTokenAsync(MemberTokenRequest token);
     Task RevokeRefreshTokenAsync(string token);
     Task<MemberRefreshToken> GetStoredRefreshTokenAsync(string token);
 

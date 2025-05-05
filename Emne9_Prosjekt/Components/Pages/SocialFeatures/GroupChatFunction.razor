@@ -117,6 +117,7 @@
     {
         if (firstRender)
         {
+            await JSRuntime.InvokeVoidAsync("getClientIpAddress", DotNetObjectReference.Create(this));
             if (_loggedIn == false)
             {
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -189,5 +190,12 @@
             Console.WriteLine("--Connection closed.");
            await InvokeAsync(StateHasChanged);
         }
+    }
+    
+    [JSInvokable]
+    public void SetClientIp(string ipAddress)
+    {
+        Logger.LogDebug($"Client IP: {ipAddress}");
+        AuthStateProvider.SetIpAddress(ipAddress);
     }
 }
