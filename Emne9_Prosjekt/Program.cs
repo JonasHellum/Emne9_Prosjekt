@@ -168,8 +168,8 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 app.UseHttpsRedirection();
 
 app.UseRouting();
-app.UseMiddleware<JwtMiddleware>()
-    .UseMiddleware<ApiExceptionHandling>();
+app.UseMiddleware<ApiExceptionHandling>()
+    .UseMiddleware<JwtMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
