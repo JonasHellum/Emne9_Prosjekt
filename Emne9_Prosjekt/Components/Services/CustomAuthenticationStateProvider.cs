@@ -103,6 +103,25 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
             _logger.LogDebug($"Refreshing the access token using Refresh token: {refreshToken}");
             var response = await _httpClient.PostAsJsonAsync("http://localhost:80/api/members/RefreshToken", _memberTokenRequest);
             
+            _logger.LogWarning("RefreshToken response status: {StatusCode}", response.StatusCode);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("RefreshToken response body: {Body}", errorBody);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    _logger.LogWarning("Refresh token was rejected. Logging out.");
+                    await MarkUserAsLoggedOutAsync();
+                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                }
+
+                _logger.LogWarning("Refresh failed, but not because token was rejected. Keeping current auth state.");
+
+                return _cachedAuthState;
+            }
+            
 
             if (response.IsSuccessStatusCode)
             {
@@ -155,6 +174,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
             _logger.LogWarning($"Error during token refresh: {ex.Message}");
         }
         
+        _logger.LogWarning("No valid token found, clearing local storage and setting authentication state to unauthenticated.");
         await MarkUserAsLoggedOutAsync();
         return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
     }

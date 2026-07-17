@@ -292,6 +292,14 @@ public class MemberService : IMemberService
     public async Task<MemberDTO?> GetByIdAsync(Guid memberId)
     {
         _logger.LogDebug($"Getting member in service by memberId: {memberId}");
+        var currentLoggedInMember = await GetLoggedInMemberAsync();
+
+        if (currentLoggedInMember.MemberId != memberId)
+        {
+            _logger.LogWarning($"Member with memberId: {memberId} is not authorized to get member with memberId: {currentLoggedInMember.MemberId}");
+            throw new UnauthorizedAccessException($"Member with memberId: {memberId} is not authorized to get member with memberId: {currentLoggedInMember.MemberId}");
+        }
+        
         var member = await _memberRepository.GetByIdAsync(memberId);
         return member is null
             ? null
@@ -430,6 +438,16 @@ public class MemberService : IMemberService
         return await _memberRepository.GetStoredRefreshTokenAsync(token);
     }
 
+    public async Task<MemberDTO?> GetByIdFromRefreshTokenAsync(Guid memberId)
+    {
+        _logger.LogDebug("Getting member from validated refresh token. MemberId: {MemberId}", memberId);
+
+    var member = await _memberRepository.GetByIdAsync(memberId);
+
+    return member is null
+        ? null
+        : _memberMapper.MapToDTO(member);
+    }
 
 
     #region Private methods
@@ -537,7 +555,7 @@ public class MemberService : IMemberService
     {
         var loggedInMemberId = _httpContextAccessor.HttpContext?.Items["MemberId"] as string;
         _logger.LogDebug("Logged in member ID: {LoggedInMemberId}", loggedInMemberId);
-    
+        
         if (string.IsNullOrEmpty(loggedInMemberId))
         {
             _logger.LogWarning("No logged in member.");
@@ -550,6 +568,35 @@ public class MemberService : IMemberService
             _logger.LogWarning("Logged in member not found: {LoggedInMemberId}", loggedInMemberId);
             throw new UnauthorizedAccessException("Logged in member ID not found.");
         }
+        
+        // var httpContext = _httpContextAccessor.HttpContext;
+        //
+        // var loggedInMemberId =
+        //     httpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)
+        //     ?? httpContext?.User.FindFirst("nameid")?.Value
+        //     ?? httpContext?.Items["MemberId"] as string;
+        //
+        // _logger.LogDebug("Logged in member ID: {LoggedInMemberId}", loggedInMemberId);
+        //
+        // if (string.IsNullOrEmpty(loggedInMemberId))
+        // {
+        //     _logger.LogWarning("No logged in member.");
+        //     throw new UnauthorizedAccessException("No logged in member.");
+        // }
+        //
+        // if (!Guid.TryParse(loggedInMemberId, out var memberGuid))
+        // {
+        //     _logger.LogWarning("Invalid logged in member ID format: {LoggedInMemberId}", loggedInMemberId);
+        //     throw new UnauthorizedAccessException("Invalid logged in member ID.");
+        // }
+        //
+        // var loggedInMember = await _memberRepository.GetByIdAsync(memberGuid);
+        //
+        // if (loggedInMember == null)
+        // {
+        //     _logger.LogWarning("Logged in member not found: {LoggedInMemberId}", loggedInMemberId);
+        //     throw new UnauthorizedAccessException("Logged in member ID not found.");
+        // }
         
         return loggedInMember;
     }

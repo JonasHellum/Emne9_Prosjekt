@@ -20,6 +20,7 @@ public interface IMemberService : IBaseService<MemberDTO>
     Task<Guid> ValidateRefreshTokenAsync(MemberTokenRequest token);
     Task RevokeRefreshTokenAsync(string token);
     Task<MemberRefreshToken> GetStoredRefreshTokenAsync(string token);
+    Task<MemberDTO?> GetByIdFromRefreshTokenAsync(Guid memberId);
 
     //(string? userId, IEnumerable<string>? roles) ValidateAccessToken(string accessToken);
     //

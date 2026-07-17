@@ -128,7 +128,7 @@ builder.Services.AddDbContext<Emne9EksamenDbContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
         new MySqlServerVersion(new Version(8, 0, 33))));
 
-builder.Services.AddScoped<JwtMiddleware>();
+// builder.Services.AddScoped<JwtMiddleware>();
 
 
 builder.Host.UseSerilog((context, configuration) => 
@@ -142,11 +142,69 @@ builder.Services.AddAuthentication(options =>
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; 
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme; 
     })
-    .AddJwtBearer()
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]!)),
+            ValidIssuer = builder.Configuration["JWT:Issuer"],
+            ValidAudience = builder.Configuration["JWT:Audience"],
+            ClockSkew = TimeSpan.Zero
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var logger = context.HttpContext.RequestServices
+                    .GetRequiredService<ILogger<Program>>();
+
+                logger.LogWarning(
+                    "JwtBearer OnMessageReceived. Path: {Path}, Authorization header: {Header}",
+                    context.Request.Path,
+                    context.Request.Headers.Authorization.ToString());
+
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                var logger = context.HttpContext.RequestServices
+                    .GetRequiredService<ILogger<Program>>();
+
+                logger.LogWarning("JwtBearer OnTokenValidated fired.");
+
+                var memberIdTest = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                               ?? context.Principal?.FindFirst("nameid")?.Value;
+
+                logger.LogWarning("MemberId from JWT: {MemberId}", memberIdTest);
+                
+                
+                
+                var memberId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                               ?? context.Principal?.FindFirst("nameid")?.Value;
+
+                var userName = context.Principal?.FindFirst(ClaimTypes.Name)?.Value
+                               ?? context.Principal?.FindFirst("unique_name")?.Value;
+
+                if (!string.IsNullOrEmpty(memberId))
+                    context.HttpContext.Items["MemberId"] = memberId;
+
+                if (!string.IsNullOrEmpty(userName))
+                    context.HttpContext.Items["UserName"] = userName;
+
+                return Task.CompletedTask;
+            }
+        };
+    })
     .AddGoogle(options =>
     {
-        options.ClientId = "525416754804-5sjmgl3kc3e2q8s4s8dgvv6dajd53m7s.apps.googleusercontent.com";
-        options.ClientSecret = "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";
+        options.ClientId = builder.Configuration["Google:ClientId"];
+        options.ClientSecret = builder.Configuration["Google:ClientSecret"];
     });
 
 
@@ -168,8 +226,8 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 app.UseHttpsRedirection();
 
 app.UseRouting();
-app.UseMiddleware<ApiExceptionHandling>()
-    .UseMiddleware<JwtMiddleware>();
+app.UseMiddleware<ApiExceptionHandling>();
+    // .UseMiddleware<JwtMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 

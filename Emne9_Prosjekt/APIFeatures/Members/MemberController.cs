@@ -129,7 +129,7 @@ public class MemberController : ControllerBase
             return Unauthorized("IP Address is null or empty.");
         }
         
-        var member = await _memberService.GetByIdAsync(memberId);
+        var member = await _memberService.GetByIdFromRefreshTokenAsync(memberId);
         if (member == null)
         {
             _logger.LogWarning("User not found");
@@ -282,7 +282,7 @@ public class MemberController : ControllerBase
     public async Task<ActionResult<MemberDTO>> GetMemberByIdAsync(Guid memberId)
     {
         _logger.LogInformation($"Doing a Get on member with id: {memberId}");
-        var memberDto = await _memberService.GetByIdAsync(memberId);
+        var memberDto = await _memberService.GetByIdFromRefreshTokenAsync(memberId);
         return memberDto is null
             ? BadRequest("Failed to get member")
             : Ok(memberDto);
@@ -292,7 +292,7 @@ public class MemberController : ControllerBase
     /// Retrieves the username of the currently authenticated user.
     /// </summary>
     /// <returns>The username of the authenticated user if available; otherwise, null if no user is authenticated.</returns>
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet("Username-info")]
     public string GetUserNameFromJWT()
     {
